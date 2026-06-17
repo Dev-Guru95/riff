@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mv PLATFORM_DESIGN.md ../PLATFORM_DESIGN.md.tmp)",
+      "Bash(pnpm dlx *)"
+    ]
+  }
+}
