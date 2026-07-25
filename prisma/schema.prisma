@@ -1,0 +1,578 @@
+// Riff — AI Music Artist Education Platform
+// Local dev uses SQLite for zero-setup. For production switch `provider` to
+// "postgresql", restore native enums/arrays/pgvector, and re-run migrations.
+// Statuses are stored as strings (see src/lib/constants.ts) and structured
+// fields as JSON so the schema is portable across both engines.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ===== Identity & Profile =====
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  role         String   @default("artist") // artist | admin | reviewer | moderator
+  countryCode  String?
+  status       String   @default("active")
+  mfaEnabled   Boolean  @default(false)
+  mfaSecret    String?
+  // Skool community membership. Gates Community + AI Coach. Access is granted by
+  // ADMIN VERIFICATION only. A user can request access (skoolRequestedAt); an
+  // admin then verifies (skoolMember). Seam for a real Skool webhook later.
+  skoolMember  Boolean  @default(false)
+  skoolRequestedAt DateTime?
+  skoolJoinedAt DateTime?
+  skoolHandle  String?
+  createdAt    DateTime @default(now())
+  lastActiveAt DateTime @default(now())
+
+  profile      ArtistProfile?
+  enrollments  Enrollment[]
+  lessonProgress LessonProgress[]
+  quizAttempts QuizAttempt[]
+  submissions  Submission[]
+  xpLedger     XpLedger[]
+  level        UserLevel?
+  badges       UserBadge[]
+  streak       Streak?
+  userMissions UserMission[]
+  coachThreads CoachThread[]
+  coachMemories CoachMemory[]
+  roadmaps     Roadmap[]
+  socialAccounts SocialAccount[]
+  auditSnapshots AuditSnapshot[]
+  auditReports AuditReport[]
+  threads      Thread[]
+  posts        Post[]
+  groupMembers GroupMember[]
+  subscription Subscription?
+  certificates Certificate[]
+}
+
+// ===== Certificates =====
+// The single program-completion credential. Issued ONCE per artist, the moment
+// they finish EVERY published course in the program (see src/lib/certificates.ts).
+// Shareable to the Skool community. `serial` is a public, unguessable id used for
+// the shareable view. `programKey` is the seam for supporting multiple programs
+// later — today there is one program ("riff").
+model Certificate {
+  id         String   @id @default(cuid())
+  serial     String   @unique @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  programKey String   @default("riff")
+  title      String
+  issuedAt   DateTime @default(now())
+
+  @@unique([userId, programKey])
+  @@index([userId, issuedAt])
+}
+
+model ArtistProfile {
+  userId       String  @id
+  user         User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  stageName    String?
+  genres       String  @default("[]") // JSON array of strings
+  careerStage  String  @default("beginner") // beginner | rising | working
+  audienceSize Int     @default(0)
+  goals        String  @default("[]") // JSON array
+  timezone     String  @default("UTC")
+}
+
+// ===== Course Domain =====
+model Course {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  title       String
+  description String
+  level       String   @default("beginner")
+  isPublished Boolean  @default(false)
+  orderIndex  Int      @default(0)
+  version     Int      @default(1)
+  modules     Module[]
+  enrollments Enrollment[]
+}
+
+model Module {
+  id         String   @id @default(cuid())
+  courseId   String
+  course     Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  title      String
+  orderIndex Int
+  lessons    Lesson[]
+}
+
+model Lesson {
+  id          String   @id @default(cuid())
+  moduleId    String
+  module      Module   @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  title       String
+  orderIndex  Int
+  content     String   @default("") // markdown / rich content
+  estMinutes  Int      @default(5)
+  xpReward    Int      @default(20)
+  quiz        Quiz?
+  assignment  Assignment?
+  progress    LessonProgress[]
+}
+
+model Quiz {
+  id            String   @id @default(cuid())
+  lessonId      String   @unique
+  lesson        Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  passThreshold Int      @default(80)
+  xpReward      Int      @default(30)
+  questions     QuizQuestion[]
+  attempts      QuizAttempt[]
+}
+
+model QuizQuestion {
+  id          String @id @default(cuid())
+  quizId      String
+  quiz        Quiz   @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  type        String @default("single") // single | multi | truefalse
+  prompt      String
+  options     String // JSON array of {id,text}
+  correct     String // JSON array of option ids
+  explanation String @default("")
+  orderIndex  Int    @default(0)
+}
+
+model Assignment {
+  id             String   @id @default(cuid())
+  lessonId       String   @unique
+  lesson         Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  title          String
+  instructions   String
+  acceptedTypes  String   @default("[\"image\",\"link\",\"text\"]") // JSON array
+  rubric         String   @default("[]") // JSON weighted criteria
+  xpReward       Int      @default(60)
+  minPassingScore Int     @default(60)
+  submissions    Submission[]
+}
+
+// ===== Progress =====
+model Enrollment {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  courseId    String
+  course      Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  startedAt   DateTime  @default(now())
+  completedAt DateTime?
+  progressPct Float     @default(0)
+
+  @@unique([userId, courseId])
+}
+
+model LessonProgress {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lessonId    String
+  lesson      Lesson    @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  status      String    @default("available") // locked | available | in_progress | completed
+  completedAt DateTime?
+  timeSpentSec Int      @default(0)
+
+  @@unique([userId, lessonId])
+}
+
+model QuizAttempt {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  quizId    String
+  quiz      Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  score     Int
+  passed    Boolean
+  answers   String   // JSON
+  attemptNo Int      @default(1)
+  createdAt DateTime @default(now())
+}
+
+model Submission {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  assignmentId    String
+  assignment      Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  artifactType    String   @default("text")
+  artifactUrls    String   @default("[]") // JSON array
+  externalLink    String?
+  textContent     String?
+  status          String   @default("processing") // processing | reviewed | flagged | resubmit
+  aiScore         Int?
+  strengths       String?  // JSON array
+  weaknesses      String?  // JSON array
+  recommendations String?  // JSON array
+  nextActions     String?  // JSON array
+  confidence      Float?
+  humanReviewed   Boolean  @default(false)
+  createdAt       DateTime @default(now())
+}
+
+// ===== Gamification =====
+model XpLedger {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  delta     Int
+  source    String   // lesson | quiz | assignment | mission | streak | bonus
+  refId     String?
+  createdAt DateTime @default(now())
+
+  @@unique([userId, source, refId]) // idempotency guard
+  @@index([userId, createdAt])
+}
+
+model UserLevel {
+  userId     String @id
+  user       User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  totalXp    Int    @default(0)
+  levelIndex Int    @default(0)
+  levelKey   String @default("beginner_artist")
+}
+
+model Badge {
+  id          String      @id @default(cuid())
+  key         String      @unique
+  name        String
+  description String
+  icon        String      @default("🏅")
+  tier        String      @default("bronze")
+  users       UserBadge[]
+}
+
+model UserBadge {
+  userId   String
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badgeId  String
+  badge    Badge    @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+  earnedAt DateTime @default(now())
+
+  @@id([userId, badgeId])
+}
+
+model Streak {
+  userId           String   @id
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  currentLen       Int      @default(0)
+  longestLen       Int      @default(0)
+  lastActivityDate String?  // YYYY-MM-DD
+  freezeTokens     Int      @default(2)
+}
+
+// ===== Missions =====
+model Mission {
+  id          String   @id @default(cuid())
+  title       String
+  description String
+  category    String   @default("content") // branding | content | engagement | release
+  xpReward    Int      @default(100)
+  badgeKey    String?  // optional badge awarded on completion
+  weekKey     String?  // YYYY-Www — rotating weekly mission set
+  activeFrom  DateTime @default(now())
+  activeTo    DateTime?
+  userMissions UserMission[]
+}
+
+model UserMission {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  missionId   String
+  mission     Mission   @relation(fields: [missionId], references: [id], onDelete: Cascade)
+  status      String    @default("assigned") // assigned | submitted | completed | expired
+  completedAt DateTime?
+
+  @@unique([userId, missionId])
+}
+
+// ===== Monetization & Admin =====
+model Coupon {
+  id             String   @id @default(cuid())
+  code           String   @unique
+  type           String   @default("percent") // percent | fixed | reward
+  value          Float    @default(0)
+  description    String   @default("")
+  maxRedemptions Int      @default(0) // 0 = unlimited
+  redeemed       Int      @default(0)
+  active         Boolean  @default(true)
+  expiresAt      DateTime?
+  createdAt      DateTime @default(now())
+}
+
+// AI-suggested content updates awaiting admin review/approval.
+model ContentSuggestion {
+  id           String   @id @default(cuid())
+  targetType   String   // course | lesson | trend
+  targetId     String?
+  title        String
+  rationale    String
+  suggested    String   @default("{}") // JSON diff/content
+  sourceUrls   String   @default("[]") // JSON array
+  status       String   @default("pending") // pending | approved | rejected
+  reviewedById String?
+  createdAt    DateTime @default(now())
+}
+
+// Append-only trail of privileged actions.
+model AuditLog {
+  id        String   @id @default(cuid())
+  actorId   String
+  action    String
+  entity    String
+  entityId  String?
+  meta      String   @default("{}") // JSON
+  createdAt DateTime @default(now())
+
+  @@index([actorId, createdAt])
+}
+
+// ===== AI Coach =====
+model CoachThread {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String   @default("New chat")
+  createdAt DateTime @default(now())
+  messages  CoachMessage[]
+
+  @@index([userId, createdAt])
+}
+
+model CoachMessage {
+  id        String   @id @default(cuid())
+  threadId  String
+  thread    CoachThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  role      String   // user | assistant | system
+  content   String
+  feedback  String?  // up | down | null — coach quality feedback loop
+  createdAt DateTime @default(now())
+}
+
+// Distilled, durable facts the coach personalizes from (RAG memory).
+model CoachMemory {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind      String   // goal | genre | audience | insight | preference
+  content   String
+  weight    Float    @default(1)
+  updatedAt DateTime @default(now())
+
+  @@index([userId, kind])
+}
+
+// ===== Career Roadmap =====
+model Roadmap {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  horizon       String   // 30d | 90d | 6m | 12m
+  plan          String   @default("{}") // JSON { summary, milestones:[{title, tasks[]}] }
+  generatedFrom String   @default("{}") // JSON snapshot of inputs
+  isCurrent     Boolean  @default(true)
+  createdAt     DateTime @default(now())
+
+  @@index([userId, horizon])
+}
+
+// ===== Social Audit =====
+model SocialAccount {
+  id           String    @id @default(cuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  platform     String    // instagram | tiktok | youtube | facebook | x | spotify
+  handle       String
+  externalId   String?   // provider account id
+  accessToken  String?   // AES-256-GCM encrypted
+  refreshToken String?   // AES-256-GCM encrypted
+  expiresAt    DateTime?
+  scopes       String?   // space-separated granted scopes
+  connectVia   String    @default("manual") // manual | oauth
+  status       String    @default("active") // active | expired | revoked
+  connectedAt  DateTime  @default(now())
+
+  @@unique([userId, platform])
+}
+
+// ===== Billing =====
+model Subscription {
+  id                   String    @id @default(cuid())
+  userId               String    @unique
+  user                 User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan                 String    @default("free") // free | pro | premium
+  status               String    @default("active") // active | trialing | past_due | canceled
+  stripeCustomerId     String?
+  stripeSubscriptionId String?
+  currentPeriodEnd     DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+}
+
+model AuditSnapshot {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  platform   String
+  capturedAt DateTime @default(now())
+  metrics    String   @default("{}") // JSON: followers, posts, engRate, reach...
+
+  @@index([userId, platform, capturedAt])
+}
+
+model AuditReport {
+  id               String   @id @default(cuid())
+  userId           String
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  periodStart      DateTime
+  periodEnd        DateTime
+  marketingScore   Int
+  brandingScore    Int
+  growthScore      Int
+  consistencyScore Int
+  deltas           String   @default("{}") // JSON vs previous report
+  recommendations  String   @default("[]") // JSON array
+  createdAt        DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
+
+// ===== Community =====
+model Forum {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  title       String
+  description String   @default("")
+  genre       String?
+  orderIndex  Int      @default(0)
+  threads     Thread[]
+}
+
+model Thread {
+  id        String   @id @default(cuid())
+  forumId   String
+  forum     Forum    @relation(fields: [forumId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  kind      String   @default("discussion") // discussion | showcase | feedback
+  link      String?  // for showcases / feedback requests
+  pinned    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  posts     Post[]
+
+  @@index([forumId, createdAt])
+}
+
+model Post {
+  id        String   @id @default(cuid())
+  threadId  String
+  thread    Thread   @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  body      String
+  createdAt DateTime @default(now())
+
+  @@index([threadId, createdAt])
+}
+
+model AccountabilityGroup {
+  id        String   @id @default(cuid())
+  name      String
+  genre     String?
+  capacity  Int      @default(10)
+  createdAt DateTime @default(now())
+  members   GroupMember[]
+}
+
+model GroupMember {
+  groupId  String
+  group    AccountabilityGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  userId   String
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  joinedAt DateTime @default(now())
+
+  @@id([groupId, userId])
+}
+
+// ===== Moderation =====
+model Report {
+  id           String   @id @default(cuid())
+  reporterId   String
+  targetType   String   // thread | post | user
+  targetId     String
+  reason       String
+  status       String   @default("open") // open | resolved | dismissed
+  reviewedById String?
+  createdAt    DateTime @default(now())
+
+  @@index([status, createdAt])
+}
+
+model UserBlock {
+  blockerId String
+  blockedId String
+  createdAt DateTime @default(now())
+
+  @@id([blockerId, blockedId])
+  @@index([blockerId])
+}
+
+// ===== Notifications =====
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String   // badge | levelup | mission | audit | reward | community | system
+  title     String
+  body      String   @default("")
+  link      String?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId, read, createdAt])
+}
+
+// ===== Analytics =====
+model AnalyticsEvent {
+  id        String   @id @default(cuid())
+  userId    String?
+  type      String   // lesson_complete | quiz_pass | assignment_submit | xp_earned | streak | audit_run | coach_message | mission_complete | login | signup
+  meta      String   @default("{}") // JSON
+  createdAt DateTime @default(now())
+
+  @@index([type, createdAt])
+  @@index([userId, createdAt])
+}
+
+// ===== Monetization =====
+model CouponRedemption {
+  couponId   String
+  userId     String
+  redeemedAt DateTime @default(now())
+
+  @@id([couponId, userId])
+}
+
+// ===== Leaderboard history =====
+model LeaderboardSnapshot {
+  id         String   @id @default(cuid())
+  userId     String
+  scope      String   // global | country:XX | genre:yyy
+  rank       Int
+  composite  Float
+  periodKey  String   // YYYY-Www
+  capturedAt DateTime @default(now())
+
+  @@index([scope, periodKey, rank])
+  @@index([userId, capturedAt])
+}
