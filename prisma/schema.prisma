@@ -54,6 +54,25 @@ model User {
   groupMembers GroupMember[]
   subscription Subscription?
   certificates Certificate[]
+
+  // Project management (Kanban boards) — see "Project Management" section below.
+  boardsOwned      Board[]
+  boardMemberships BoardMember[]
+  cardAssignments  CardAssignee[]
+  cardWatches      CardWatcher[]
+  cardComments     Comment[]
+  cardAttachments  Attachment[]
+  boardActivity    ActivityLog[]
+  aiDrafts         AiDraft[]
+  brandKit         BrandKit?
+  financeEntries   FinanceEntry[]
+  merchItems       MerchItem[]
+  gigs             Gig[]
+  careerGoals      CareerGoal[]
+  fans             Fan[]
+  broadcasts       Broadcast[]
+  linkPage         LinkPage?
+  bookings         Booking[]
 }
 
 // ===== Certificates =====
@@ -73,6 +92,216 @@ model Certificate {
 
   @@unique([userId, programKey])
   @@index([userId, issuedAt])
+}
+
+// ===== Project Management (Kanban Boards) =====
+// A native, Trello-style project-management surface. The BOARD is the unit of
+// collaboration: each board carries its own member list with per-board roles
+// (owner | admin | manager | member | guest) via BoardMember — there is no
+// separate "team"/"org" layer. All conventions mirror the rest of this schema:
+// cuid ids, `orderIndex Int` ordering, String "enums" with inline value comments
+// (typed unions live in src/lib/constants.ts), and explicit composite-PK join
+// tables for many-to-many. Additive only — no existing model is modified beyond
+// User back-relations.
+
+model Board {
+  id          String   @id @default(cuid())
+  ownerId     String
+  owner       User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  title       String
+  description String   @default("")
+  color       String   @default("brand") // ui accent token: brand | accent | success | warning | brand-2
+  // Template this board was created from — drives its seeded columns/labels and
+  // the specialized track tool it represents.
+  kind        String   @default("generic") // generic | content_calendar | release_planner | pitch_tracker | outreach_crm | collab_board
+  archived    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  members  BoardMember[]
+  columns  BoardColumn[]
+  cards    Card[]
+  labels   Label[]
+  activity ActivityLog[]
+
+  @@index([ownerId, archived])
+}
+
+// Board membership + per-board role. Copy of the GroupMember join pattern.
+model BoardMember {
+  boardId   String
+  board     Board    @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      String   @default("member") // owner | admin | manager | member | guest
+  createdAt DateTime @default(now())
+
+  @@id([boardId, userId])
+  @@index([userId])
+}
+
+// A column/list within a board (To Do, In Progress, …). Named BoardColumn to
+// avoid the SQL reserved word "Column".
+model BoardColumn {
+  id         String   @id @default(cuid())
+  boardId    String
+  board      Board    @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  title      String
+  orderIndex Int
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  cards Card[]
+
+  @@index([boardId, orderIndex])
+}
+
+model Card {
+  id              String      @id @default(cuid())
+  boardId         String
+  board           Board       @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  columnId        String
+  column          BoardColumn @relation(fields: [columnId], references: [id], onDelete: Cascade)
+  title           String
+  description     String      @default("") // markdown
+  orderIndex      Int
+  priority        String? // low | medium | high | urgent
+  dueDate         DateTime?
+  startDate       DateTime?
+  estimateMinutes Int?
+  completion      Int         @default(0) // 0..100
+  archived        Boolean     @default(false)
+  completedAt     DateTime?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  assignees   CardAssignee[]
+  watchers    CardWatcher[]
+  labels      CardLabel[]
+  checklists  Checklist[]
+  comments    Comment[]
+  attachments Attachment[]
+
+  @@index([columnId, orderIndex])
+  @@index([boardId, archived])
+  @@index([boardId, dueDate])
+}
+
+// Board-scoped label definition; attached to cards via CardLabel.
+model Label {
+  id        String   @id @default(cuid())
+  boardId   String
+  board     Board    @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  name      String   @default("")
+  color     String   @default("brand") // brand | accent | success | warning | brand-2 | muted
+  createdAt DateTime @default(now())
+
+  cards CardLabel[]
+
+  @@index([boardId])
+}
+
+model CardLabel {
+  cardId  String
+  card    Card   @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  labelId String
+  label   Label  @relation(fields: [labelId], references: [id], onDelete: Cascade)
+
+  @@id([cardId, labelId])
+  @@index([labelId])
+}
+
+model CardAssignee {
+  cardId    String
+  card      Card     @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@id([cardId, userId])
+  @@index([userId])
+}
+
+model CardWatcher {
+  cardId    String
+  card      Card     @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@id([cardId, userId])
+  @@index([userId])
+}
+
+model Checklist {
+  id         String   @id @default(cuid())
+  cardId     String
+  card       Card     @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  title      String   @default("Checklist")
+  orderIndex Int
+  createdAt  DateTime @default(now())
+
+  items ChecklistItem[]
+
+  @@index([cardId, orderIndex])
+}
+
+model ChecklistItem {
+  id          String    @id @default(cuid())
+  checklistId String
+  checklist   Checklist @relation(fields: [checklistId], references: [id], onDelete: Cascade)
+  text        String
+  done        Boolean   @default(false)
+  orderIndex  Int
+  createdAt   DateTime  @default(now())
+
+  @@index([checklistId, orderIndex])
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  cardId    String
+  card      Card     @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  body      String // markdown
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([cardId, createdAt])
+}
+
+model Attachment {
+  id        String   @id @default(cuid())
+  cardId    String
+  card      Card     @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  url       String
+  name      String
+  mime      String   @default("")
+  size      Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([cardId, createdAt])
+}
+
+// Append-only per-board / per-card activity feed. `cardId` is a bare nullable
+// column (board-level events have none) queried directly — mirrors the
+// Notification/AnalyticsEvent "no FK on the hot column" precedent.
+model ActivityLog {
+  id        String   @id @default(cuid())
+  boardId   String
+  board     Board    @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  cardId    String?
+  actorId   String
+  actor     User     @relation(fields: [actorId], references: [id], onDelete: Cascade)
+  verb      String // created | renamed | moved | updated | archived | commented | assigned | ...
+  meta      String   @default("{}") // JSON
+  createdAt DateTime @default(now())
+
+  @@index([boardId, createdAt])
+  @@index([cardId, createdAt])
 }
 
 model ArtistProfile {
@@ -575,4 +804,186 @@ model LeaderboardSnapshot {
 
   @@index([scope, periodKey, rank])
   @@index([userId, capturedAt])
+}
+
+// ===== Studio: AI Builders =====
+// A generic AI-scored work item for the "builder" tools (Bio & Brand-Statement
+// Builder, Editorial Pitch Writer, and future ones). The artist writes text and
+// gets a 0-100 score + structured feedback via src/lib/ai-review.ts. `kind`
+// selects the builder + its rubric (see src/lib/studio.ts). `feedback` is the
+// JSON ReviewResult of the latest scoring run.
+model AiDraft {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind      String // bio | editorial_pitch
+  title     String    @default("")
+  content   String    @default("")
+  score     Int?
+  feedback  String    @default("{}") // JSON ReviewResult
+  scoredAt  DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([userId, kind, updatedAt])
+}
+
+// ===== Studio: Brand Kit (Track 1) =====
+// One per artist. Palette + fonts stored as JSON; logos/assets are uploaded
+// files (reuses /api/uploads); guidelines are markdown.
+model BrandKit {
+  id         String   @id @default(cuid())
+  userId     String   @unique
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  colors     String   @default("[]") // JSON array of { name, hex }
+  fonts      String   @default("[]") // JSON array of { name, usage }
+  guidelines String   @default("") // markdown
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  assets BrandAsset[]
+}
+
+model BrandAsset {
+  id         String   @id @default(cuid())
+  brandKitId String
+  brandKit   BrandKit @relation(fields: [brandKitId], references: [id], onDelete: Cascade)
+  name       String
+  url        String // /uploads/...
+  createdAt  DateTime @default(now())
+
+  @@index([brandKitId, createdAt])
+}
+
+// ===== Studio: Revenue & Budget Tracker (Track 6) =====
+// A simple income/expense ledger. Amounts are integer minor units (cents) to
+// avoid float drift.
+model FinanceEntry {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind      String // income | expense
+  category  String   @default("") // streaming | merch | shows | ads | gear | other
+  label     String
+  amount    Int // minor units (cents)
+  currency  String   @default("USD")
+  date      DateTime @default(now())
+  createdAt DateTime @default(now())
+
+  @@index([userId, date])
+}
+
+// ===== Studio: Merch & Gig Planner (Track 6) =====
+model MerchItem {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  status    String   @default("idea") // idea | design | production | for_sale | sold_out
+  cost      Int      @default(0) // cents
+  price     Int      @default(0) // cents
+  stock     Int      @default(0)
+  notes     String   @default("")
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
+
+model Gig {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  venue     String
+  city      String    @default("")
+  date      DateTime?
+  status    String    @default("inquiry") // inquiry | confirmed | done | cancelled
+  fee       Int       @default(0) // cents
+  notes     String    @default("")
+  createdAt DateTime  @default(now())
+
+  @@index([userId, date])
+}
+
+// ===== Studio: Goal & Milestone Tracker (Track 8) =====
+// User-defined career goals with sub-milestones. Distinct from the DERIVED
+// gamification goals in src/lib/goals.ts (hence CareerGoal).
+model CareerGoal {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title      String
+  detail     String    @default("")
+  targetDate DateTime?
+  progress   Int       @default(0) // 0..100
+  milestones String    @default("[]") // JSON array of { text, done }
+  status     String    @default("active") // active | done | archived
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([userId, status])
+}
+
+// ===== Studio: Fan CRM + Segmentation (Track 5) =====
+model Fan {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  email     String   @default("")
+  location  String   @default("")
+  tags      String   @default("[]") // JSON array of strings (segments)
+  source    String   @default("") // instagram | show | signup | ...
+  notes     String   @default("")
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
+
+// A composed broadcast. Sending needs an email provider (not configured yet) —
+// mirrors the app's "degrade gracefully until keys are set" pattern.
+model Broadcast {
+  id             String    @id @default(cuid())
+  userId         String
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subject        String
+  body           String    @default("") // markdown
+  segment        String    @default("") // targeted tag; "" = all fans
+  recipientCount Int       @default(0)
+  sentAt         DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([userId, createdAt])
+}
+
+// ===== Studio: Link-in-Bio Page Builder (Track 5) =====
+// One per artist. Rendered on a PUBLIC (unauthenticated) route /u/[handle].
+model LinkPage {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  handle    String   @unique
+  title     String   @default("")
+  bio       String   @default("")
+  theme     String   @default("brand") // brand | accent | success | warning | brand-2
+  links     String   @default("[]") // JSON array of { label, url }
+  published Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ===== Studio: Booking Scheduler (Track 7) =====
+model Booking {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  contact   String    @default("")
+  date      DateTime?
+  status    String    @default("inquiry") // inquiry | held | confirmed | done | declined
+  fee       Int       @default(0) // cents
+  notes     String    @default("")
+  createdAt DateTime  @default(now())
+
+  @@index([userId, date])
 }

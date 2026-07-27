@@ -18,6 +18,19 @@ export type SubmissionStatus = (typeof SUBMISSION_STATUS)[number];
 export const XP_SOURCES = ["lesson", "quiz", "assignment", "mission", "streak", "bonus"] as const;
 export type XpSource = (typeof XP_SOURCES)[number];
 
+// ===== Project Management (Kanban) =====
+// Per-board roles, most→least privileged. `owner` is the board creator (exactly
+// one); the rest are grantable. Capability checks live in src/lib/boards.ts.
+export const BOARD_ROLES = ["owner", "admin", "manager", "member", "guest"] as const;
+export type BoardRole = (typeof BOARD_ROLES)[number];
+
+export const CARD_PRIORITIES = ["low", "medium", "high", "urgent"] as const;
+export type CardPriority = (typeof CARD_PRIORITIES)[number];
+
+// UI accent tokens (map to the CSS vars in globals.css) reused for board/label colours.
+export const UI_COLORS = ["brand", "brand-2", "accent", "success", "warning", "muted"] as const;
+export type UiColor = (typeof UI_COLORS)[number];
+
 // ===== Achievements: the program & its badges =====
 // Artists work through one learning *program* made of ordered courses (tracks).
 // Finishing a track earns that track's badge; finishing EVERY published track

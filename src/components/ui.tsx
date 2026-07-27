@@ -79,6 +79,8 @@ export function TopNav({ email, isAdmin }: { email?: string; isAdmin?: boolean }
           <NavLink href="/courses">Courses</NavLink>
           <NavLink href="/coach">Coach</NavLink>
           <NavLink href="/missions">Missions</NavLink>
+          <NavLink href="/studio">Studio</NavLink>
+          <NavLink href="/boards">Projects</NavLink>
           <NavLink href="/audit">Audit</NavLink>
           <NavLink href="/roadmap">Roadmap</NavLink>
           <NavLink href="/community">Community</NavLink>

@@ -1,0 +1,11 @@
+import { getSession } from "@/lib/auth";
+import { listMerchAndGigs } from "@/lib/studio-tools";
+import { MerchGigClient } from "./MerchGigClient";
+
+export const metadata = { title: "Merch & Gigs — Riff" };
+
+export default async function MerchPage() {
+  const session = (await getSession())!;
+  const data = await listMerchAndGigs(session.id);
+  return <MerchGigClient initial={data} />;
+}

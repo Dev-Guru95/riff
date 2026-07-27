@@ -5,7 +5,7 @@ import Link from "next/link";
 
 type Notif = { id: string; type: string; title: string; body: string; link: string | null; read: boolean; createdAt: string };
 
-const ICON: Record<string, string> = { badge: "🏅", levelup: "⬆️", mission: "🎯", audit: "📈", reward: "🎁", community: "💬", certificate: "🎓", system: "🔔" };
+const ICON: Record<string, string> = { badge: "🏅", levelup: "⬆️", mission: "🎯", audit: "📈", reward: "🎁", community: "💬", certificate: "🎓", system: "🔔", mention: "📣", comment: "💬", task: "✅", due: "⏰", board: "🗂️" };
 
 export function NotificationBell() {
   const [open, setOpen] = useState(false);

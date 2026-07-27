@@ -1,7 +1,21 @@
 import { prisma } from "./prisma";
 
 export type NotifyInput = {
-  type: "badge" | "levelup" | "mission" | "audit" | "reward" | "community" | "certificate" | "system";
+  type:
+    | "badge"
+    | "levelup"
+    | "mission"
+    | "audit"
+    | "reward"
+    | "community"
+    | "certificate"
+    | "system"
+    // Project-management (Kanban) events:
+    | "mention"
+    | "comment"
+    | "task"
+    | "due"
+    | "board";
   title: string;
   body?: string;
   link?: string;
