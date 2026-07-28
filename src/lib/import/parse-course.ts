@@ -241,10 +241,12 @@ function heuristicParse(text: string, filename: string): ParsedCourse {
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
-    if (!line) {
-      if (curQuestion) curQuestion = null; // blank line ends a question block
-      continue;
-    }
+    // Skip blank lines WITHOUT ending the current question. Word/.docx text comes
+    // through (via mammoth) with a blank line between every paragraph, so a
+    // question and its "A./B./C." options are always blank-separated — nulling the
+    // question here would orphan the options. A question naturally ends when the
+    // next question/heading begins.
+    if (!line) continue;
 
     // Course-level metadata (first occurrences).
     const meta = line.match(/^(course\s*title|title|course)\s*[:.\-)]\s*(.+)$/i);
