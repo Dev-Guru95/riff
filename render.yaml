@@ -8,22 +8,21 @@ services:
   - type: web
     name: riff-app
     runtime: node
-    plan: starter
+    plan: free
     region: oregon # must match the database's region for the internal URL to resolve
     branch: main
 
-    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm exec prisma generate && pnpm build
+    # `prisma generate` is required: without it @prisma/client ships no generated
+    # types and the Next.js typecheck fails on prisma/seed.ts.
+    #
+    # `migrate deploy` runs last, after the build succeeds, so a broken build
+    # never mutates the database schema. On a paid instance type this belongs in
+    # `preDeployCommand` instead — that runs after the build but before traffic
+    # shifts, so a failed migration rolls back cleanly. preDeployCommand is not
+    # available on the free tier.
+    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm exec prisma generate && pnpm run build && pnpm exec prisma migrate deploy
 
-    # Runs after the build, before traffic shifts to the new version. If the
-    # migration fails the deploy is rolled back and the old version keeps
-    # serving. NOTE: preDeployCommand requires a paid instance type — on the
-    # free tier, delete this line and append
-    #   && pnpm exec prisma migrate deploy
-    # to buildCommand instead.
-    preDeployCommand: pnpm exec prisma migrate deploy
-
-    startCommand: pnpm start
-    healthCheckPath: /login # a static route that renders without a session
+    startCommand: pnpm run start
 
     envVars:
       # ---- Database -------------------------------------------------------
@@ -56,13 +55,13 @@ services:
         value: "24"
       - key: NODE_ENV
         value: production
-      # Public base URL, used for OAuth redirects and Stripe return URLs.
-      # Render substitutes the service's own hostname.
+      # Public base URL for OAuth redirects and Stripe return URLs. Set this by
+      # hand to the full origin including scheme, e.g.
+      # https://riff-app.onrender.com — deliberately NOT `fromService: host`,
+      # which yields a bare hostname with no scheme and silently produces
+      # malformed redirect URLs.
       - key: APP_URL
-        fromService:
-          type: web
-          name: riff-app
-          property: host
+        sync: false
 
       # ---- AI provider (optional — falls back to the mock reviewer) --------
       - key: DEEPSEEK_API_KEY
