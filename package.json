@@ -2,6 +2,7 @@
   "name": "course-web",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "pnpm@9.12.0",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -18,6 +19,16 @@
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@prisma/client",
+      "@prisma/engines",
+      "prisma",
+      "sharp",
+      "esbuild",
+      "unrs-resolver"
+    ]
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",
