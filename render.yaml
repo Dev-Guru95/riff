@@ -53,8 +53,11 @@ services:
       # ---- Runtime --------------------------------------------------------
       - key: NODE_VERSION
         value: "24"
-      - key: NODE_ENV
-        value: production
+      # Deliberately NOT setting NODE_ENV=production here. As a service-level
+      # env var it applies to the *build* too, which makes pnpm skip
+      # devDependencies — and typescript/tailwind/eslint-config-next are all
+      # devDependencies, so `next build` would fail. `next build` and
+      # `next start` each set NODE_ENV=production themselves anyway.
       # Public base URL for OAuth redirects and Stripe return URLs. Set this by
       # hand to the full origin including scheme, e.g.
       # https://riff-app.onrender.com — deliberately NOT `fromService: host`,
