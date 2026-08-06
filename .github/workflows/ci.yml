@@ -8,8 +8,27 @@ on:
 jobs:
   build-test:
     runs-on: ubuntu-latest
+
+    # Real Postgres so `prisma migrate deploy` exercises the same DDL that runs
+    # against Render, and the integration suite gets a live database.
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: riff
+          POSTGRES_PASSWORD: riff
+          POSTGRES_DB: riff_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
     env:
-      DATABASE_URL: "file:./dev.db"
+      DATABASE_URL: "postgresql://riff:riff@localhost:5432/riff_ci"
+      TEST_DATABASE_URL: "postgresql://riff:riff@localhost:5432/riff_ci"
       JWT_SECRET: "ci-only-secret-that-is-definitely-over-32-characters"
     steps:
       - uses: actions/checkout@v4

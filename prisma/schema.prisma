@@ -1,15 +1,14 @@
 // Riff — AI Music Artist Education Platform
-// Local dev uses SQLite for zero-setup. For production switch `provider` to
-// "postgresql", restore native enums/arrays/pgvector, and re-run migrations.
-// Statuses are stored as strings (see src/lib/constants.ts) and structured
-// fields as JSON so the schema is portable across both engines.
+// Runs on PostgreSQL (Render). Statuses are stored as strings (see
+// src/lib/constants.ts) rather than native enums, which keeps the schema
+// portable; restore native enums/arrays/pgvector here if you ever want them.
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 

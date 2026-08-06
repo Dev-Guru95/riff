@@ -1,0 +1,107 @@
+# Render Blueprint — Riff (Next.js + Prisma + PostgreSQL)
+#
+# Apply with: Render Dashboard → Blueprints → New Blueprint Instance → pick this repo.
+# Env vars marked `sync: false` are NOT stored in git — set them in the Render
+# dashboard (Service → Environment). Everything else is managed from this file.
+
+services:
+  - type: web
+    name: riff-app
+    runtime: node
+    plan: starter
+    region: oregon # must match the database's region for the internal URL to resolve
+    branch: main
+
+    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm exec prisma generate && pnpm build
+
+    # Runs after the build, before traffic shifts to the new version. If the
+    # migration fails the deploy is rolled back and the old version keeps
+    # serving. NOTE: preDeployCommand requires a paid instance type — on the
+    # free tier, delete this line and append
+    #   && pnpm exec prisma migrate deploy
+    # to buildCommand instead.
+    preDeployCommand: pnpm exec prisma migrate deploy
+
+    startCommand: pnpm start
+    healthCheckPath: /login # a static route that renders without a session
+
+    envVars:
+      # ---- Database -------------------------------------------------------
+      # Set to the database's INTERNAL connection string, which looks like
+      # postgresql://<user>:<password>@dpg-<id>-a/<dbname>
+      # Copy it from Render → your database → "Connections" → Internal URL.
+      # Internal is preferred over external: it stays on Render's private
+      # network, so it is faster and never leaves their perimeter.
+      #
+      # If this database lives in the same Render account you can replace the
+      # `sync: false` line with the two commented lines below and Render will
+      # wire it up automatically (use the database's dashboard name):
+      #   fromDatabase:
+      #     name: sr-staging
+      #     property: connectionString
+      - key: DATABASE_URL
+        sync: false
+
+      # ---- Auth / crypto --------------------------------------------------
+      # Generated once by Render and then held stable across deploys.
+      # WARNING: changing JWT_SECRET invalidates every existing session;
+      # changing APP_ENCRYPTION_KEY makes stored OAuth tokens undecryptable.
+      - key: JWT_SECRET
+        generateValue: true
+      - key: APP_ENCRYPTION_KEY
+        generateValue: true
+
+      # ---- Runtime --------------------------------------------------------
+      - key: NODE_VERSION
+        value: "24"
+      - key: NODE_ENV
+        value: production
+      # Public base URL, used for OAuth redirects and Stripe return URLs.
+      # Render substitutes the service's own hostname.
+      - key: APP_URL
+        fromService:
+          type: web
+          name: riff-app
+          property: host
+
+      # ---- AI provider (optional — falls back to the mock reviewer) --------
+      - key: DEEPSEEK_API_KEY
+        sync: false
+      - key: AI_MODEL
+        value: deepseek-chat
+
+      # ---- Stripe billing (optional — UI shows "not configured" until set) -
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: STRIPE_PRICE_PRO
+        sync: false
+      - key: STRIPE_PRICE_PREMIUM
+        sync: false
+
+      # ---- Social OAuth (optional — manual connect until set) --------------
+      - key: SOCIAL_SPOTIFY_CLIENT_ID
+        sync: false
+      - key: SOCIAL_SPOTIFY_CLIENT_SECRET
+        sync: false
+      - key: SOCIAL_YOUTUBE_CLIENT_ID
+        sync: false
+      - key: SOCIAL_YOUTUBE_CLIENT_SECRET
+        sync: false
+      - key: SOCIAL_FACEBOOK_CLIENT_ID
+        sync: false
+      - key: SOCIAL_FACEBOOK_CLIENT_SECRET
+        sync: false
+      - key: SOCIAL_INSTAGRAM_CLIENT_ID
+        sync: false
+      - key: SOCIAL_INSTAGRAM_CLIENT_SECRET
+        sync: false
+      - key: SOCIAL_TIKTOK_CLIENT_ID
+        sync: false
+      - key: SOCIAL_TIKTOK_CLIENT_SECRET
+        sync: false
+      - key: SOCIAL_X_CLIENT_ID
+        sync: false
+      - key: SOCIAL_X_CLIENT_SECRET
+        sync: false

@@ -2,7 +2,7 @@
 // loaders, and the activity-log writer. Mirrors the app's conventions
 // (fire-and-forget side effects, cuid ids, orderIndex ordering). Pure server
 // module — only imported by route handlers and Server Components.
-import { prisma } from "@/lib/prisma";
+import { prisma, ci } from "@/lib/prisma";
 import { notify } from "@/lib/notifications";
 import { templateFor } from "@/lib/board-templates";
 import type { Prisma } from "@prisma/client";
@@ -684,27 +684,27 @@ export async function searchProjects(userId: string, q: string): Promise<SearchR
 
   const [boards, cards, labels, comments, attachments, memberRows] = await Promise.all([
     prisma.board.findMany({
-      where: { id: { in: boardIds }, OR: [{ title: { contains: term } }, { description: { contains: term } }] },
+      where: { id: { in: boardIds }, OR: [{ title: ci(term) }, { description: ci(term) }] },
       select: { id: true, title: true }, take: 8,
     }),
     prisma.card.findMany({
-      where: { boardId: { in: boardIds }, archived: false, OR: [{ title: { contains: term } }, { description: { contains: term } }] },
+      where: { boardId: { in: boardIds }, archived: false, OR: [{ title: ci(term) }, { description: ci(term) }] },
       select: { id: true, boardId: true, title: true }, take: 10,
     }),
     prisma.label.findMany({
-      where: { boardId: { in: boardIds }, name: { contains: term } },
+      where: { boardId: { in: boardIds }, name: ci(term) },
       select: { id: true, boardId: true, name: true, color: true }, take: 8,
     }),
     prisma.comment.findMany({
-      where: { body: { contains: term }, card: { boardId: { in: boardIds } } },
+      where: { body: ci(term), card: { boardId: { in: boardIds } } },
       select: { cardId: true, body: true, card: { select: { boardId: true } } }, take: 8, orderBy: { createdAt: "desc" },
     }),
     prisma.attachment.findMany({
-      where: { name: { contains: term }, card: { boardId: { in: boardIds } } },
+      where: { name: ci(term), card: { boardId: { in: boardIds } } },
       select: { cardId: true, name: true, card: { select: { boardId: true } } }, take: 8,
     }),
     prisma.boardMember.findMany({
-      where: { boardId: { in: boardIds }, user: { OR: [{ email: { contains: term } }, { profile: { stageName: { contains: term } } }] } },
+      where: { boardId: { in: boardIds }, user: { OR: [{ email: ci(term) }, { profile: { stageName: ci(term) } }] } },
       select: { userId: true, user: { select: { email: true, profile: { select: { stageName: true } } } } }, take: 20,
     }),
   ]);

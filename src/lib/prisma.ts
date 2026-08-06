@@ -9,3 +9,12 @@ export const prisma =
   });
 
 if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
+
+/**
+ * Case-insensitive "contains" filter for user-facing search.
+ *
+ * Postgres `LIKE` is case-sensitive, so a bare `{ contains: term }` would only
+ * match exact casing. `mode: "insensitive"` compiles to `ILIKE`. Use this
+ * anywhere a human types the search term.
+ */
+export const ci = (term: string) => ({ contains: term, mode: "insensitive" as const });

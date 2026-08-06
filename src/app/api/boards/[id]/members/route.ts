@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { prisma } from "@/lib/prisma";
+import { prisma, ci } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { ok, fail, tooMany, withRoute, parseBody } from "@/lib/api";
 import { rateLimit, LIMITS } from "@/lib/ratelimit";
@@ -25,7 +25,7 @@ export const GET = withRoute(async (req: Request, { params }: { params: Promise<
   const users = await prisma.user.findMany({
     where: {
       id: { notIn: excludeIds },
-      OR: [{ email: { contains: q } }, { profile: { stageName: { contains: q } } }],
+      OR: [{ email: ci(q) }, { profile: { stageName: ci(q) } }],
     },
     select: { id: true, email: true, profile: { select: { stageName: true } } },
     take: 8,

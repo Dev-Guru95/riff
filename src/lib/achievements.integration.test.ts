@@ -1,15 +1,24 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
 import { execSync } from "node:child_process";
-import { mkdtempSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 
-// Integration tests exercise the real awarding chain against a throwaway SQLite
-// database (never dev.db). We point DATABASE_URL at a temp file, push the schema,
-// then dynamically import the lib so the Prisma client binds to the temp DB.
+// Integration tests exercise the real awarding chain against a real Postgres
+// database in a throwaway schema (never the app's own data). Point
+// TEST_DATABASE_URL at any Postgres instance — the suite creates a uniquely
+// named schema, pushes the Prisma schema into it, and drops it on the way out,
+// so concurrent runs never collide. Without TEST_DATABASE_URL the suite skips
+// itself, keeping `pnpm test` green on a bare checkout with no database.
+
+const BASE_URL = process.env.TEST_DATABASE_URL ?? "";
+const HAS_DB = /^postgres(ql)?:\/\//.test(BASE_URL);
+const SCHEMA = `riff_test_${process.pid.toString(36)}_${Date.now().toString(36)}`;
+
+function withSchema(url: string, schema: string) {
+  const u = new URL(url);
+  u.searchParams.set("schema", schema);
+  return u.toString();
+}
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-let tmp: string;
 let prisma: any;
 let recomputeEnrollmentProgress: any;
 let backfillAchievements: any;
@@ -79,10 +88,10 @@ function badgeCount(userId: string, key: string) {
 }
 
 beforeAll(async () => {
-  tmp = mkdtempSync(join(tmpdir(), "riff-ach-"));
-  const url = `file:${join(tmp, "test.db").replace(/\\/g, "/")}`;
+  if (!HAS_DB) return;
+  const url = withSchema(BASE_URL, SCHEMA);
   process.env.DATABASE_URL = url;
-  execSync("npx prisma db push --skip-generate", {
+  execSync("npx prisma db push --skip-generate --accept-data-loss", {
     env: { ...process.env, DATABASE_URL: url },
     stdio: "ignore",
   });
@@ -94,13 +103,17 @@ beforeAll(async () => {
 }, 180_000);
 
 afterAll(async () => {
+  if (!HAS_DB) return;
+  await prisma?.$executeRawUnsafe(`DROP SCHEMA IF EXISTS "${SCHEMA}" CASCADE`);
   await prisma?.$disconnect();
-  rmSync(tmp, { recursive: true, force: true });
 });
 
-beforeEach(reset);
+beforeEach(async () => {
+  if (!HAS_DB) return;
+  await reset();
+});
 
-describe("track completion badges", () => {
+describe.skipIf(!HAS_DB)("track completion badges", () => {
   it("awards the correct track badge when a course is completed", async () => {
     const user = await makeUser();
     const { course, lessons } = await makeCourse("Marketing Foundations");
@@ -138,7 +151,7 @@ describe("track completion badges", () => {
   });
 });
 
-describe("program certificate", () => {
+describe.skipIf(!HAS_DB)("program certificate", () => {
   it("issues the certificate + capstone badge when the whole program is complete", async () => {
     const user = await makeUser();
     const a = await makeCourse("Track A");
@@ -166,7 +179,7 @@ describe("program certificate", () => {
   });
 });
 
-describe("backfill — previously completed tracks", () => {
+describe.skipIf(!HAS_DB)("backfill — previously completed tracks", () => {
   it("grants badges + certificate for courses completed before the feature existed", async () => {
     const user = await makeUser();
     const { course, lessons } = await makeCourse("Legacy Track");

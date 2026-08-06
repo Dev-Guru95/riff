@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { prisma } from "@/lib/prisma";
+import { prisma, ci } from "@/lib/prisma";
 import { Pagination } from "@/components/Pagination";
 import { UserActions } from "./UsersClient";
 
@@ -10,7 +10,7 @@ export default async function AdminUsers({ searchParams }: { searchParams: Promi
   const page = Math.max(1, parseInt(pageParam ?? "1", 10) || 1);
   const pendingOnly = pending === "1";
   const where = {
-    ...(q ? { email: { contains: q } } : {}),
+    ...(q ? { email: ci(q) } : {}),
     ...(pendingOnly ? { skoolRequestedAt: { not: null }, skoolMember: false } : {}),
   };
   const [users, pendingCount] = await Promise.all([
