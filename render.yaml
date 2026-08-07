@@ -20,7 +20,11 @@ services:
     # `preDeployCommand` instead — that runs after the build but before traffic
     # shifts, so a failed migration rolls back cleanly. preDeployCommand is not
     # available on the free tier.
-    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm exec prisma generate && pnpm run build && pnpm exec prisma migrate deploy
+    # The trailing create-admin step is a no-op unless ADMIN_EMAIL and
+    # ADMIN_PASSWORD are both set, so it is safe to leave here permanently.
+    # Set both, deploy once, then clear them — re-setting them later doubles as
+    # an admin password reset without ever putting the password in git.
+    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm exec prisma generate && pnpm run build && pnpm exec prisma migrate deploy && pnpm exec tsx prisma/create-admin.ts
 
     startCommand: pnpm run start
 
@@ -64,6 +68,14 @@ services:
       # which yields a bare hostname with no scheme and silently produces
       # malformed redirect URLs.
       - key: APP_URL
+        sync: false
+
+      # ---- Admin bootstrap (see buildCommand above) ------------------------
+      # Set both to create or promote an admin, deploy, then clear them.
+      # Leave unset and prisma/create-admin.ts does nothing.
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
         sync: false
 
       # ---- AI provider (optional — falls back to the mock reviewer) --------
