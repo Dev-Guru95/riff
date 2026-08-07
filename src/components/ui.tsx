@@ -1,6 +1,3 @@
-import Link from "next/link";
-import { LogoutButton } from "./LogoutButton";
-import { NotificationBell } from "./NotificationBell";
 import { badgeAsset } from "@/lib/assets";
 
 export function ProgressBar({ pct }: { pct: number }) {
@@ -64,47 +61,5 @@ export function Badge({ badgeKey, icon, name, dim }: { badgeKey?: string; icon: 
       )}
       <span className="text-xs font-medium">{name}</span>
     </div>
-  );
-}
-
-export function TopNav({ email, isAdmin }: { email?: string; isAdmin?: boolean }) {
-  return (
-    <nav className="border-b border-[var(--border)] sticky top-0 z-20 bg-[var(--background)]/90 backdrop-blur">
-      <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
-        <Link href="/dashboard" className="font-bold text-lg flex items-center gap-2">
-          <span className="text-[var(--brand)]">●</span> Riff
-        </Link>
-        <div className="flex items-center gap-0.5 text-sm flex-wrap justify-end">
-          <NavLink href="/dashboard">Home</NavLink>
-          <NavLink href="/courses">Courses</NavLink>
-          <NavLink href="/coach">Coach</NavLink>
-          <NavLink href="/missions">Missions</NavLink>
-          <NavLink href="/studio">Studio</NavLink>
-          <NavLink href="/boards">Projects</NavLink>
-          <NavLink href="/audit">Audit</NavLink>
-          <NavLink href="/roadmap">Roadmap</NavLink>
-          <NavLink href="/community">Community</NavLink>
-          <NavLink href="/leaderboard">Ranks</NavLink>
-          <NavLink href="/pricing">Plans</NavLink>
-          {isAdmin && <NavLink href="/admin">Admin</NavLink>}
-          {email && <NotificationBell />}
-          {email ? (
-            <span className="ml-2">
-              <LogoutButton />
-            </span>
-          ) : (
-            <NavLink href="/login">Log in</NavLink>
-          )}
-        </div>
-      </div>
-    </nav>
-  );
-}
-
-function NavLink({ href, children }: { href: string; children: React.ReactNode }) {
-  return (
-    <Link href={href} className="px-3 py-1.5 rounded-lg hover:bg-[var(--surface-2)] transition">
-      {children}
-    </Link>
   );
 }

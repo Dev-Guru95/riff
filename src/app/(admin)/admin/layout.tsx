@@ -1,9 +1,8 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getAdminSession } from "@/lib/admin";
-import { LogoutButton } from "@/components/LogoutButton";
+import { AdminNav, type AdminNavItem } from "@/components/AdminNav";
 
-const NAV = [
+const NAV: AdminNavItem[] = [
   { href: "/admin", label: "Overview", icon: "📊" },
   { href: "/admin/courses", label: "Courses", icon: "🎓" },
   { href: "/admin/import", label: "Import Course", icon: "📥" },
@@ -19,26 +18,11 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const session = await getAdminSession();
   if (!session) redirect("/login");
 
+  // Column below lg (nav is a top bar), row from lg up (nav is a sidebar).
   return (
-    <div className="flex-1 flex min-h-screen">
-      <aside className="w-56 border-r border-[var(--border)] p-4 flex flex-col gap-1 shrink-0">
-        <Link href="/admin" className="font-bold text-lg flex items-center gap-2 mb-4 px-2">
-          <span className="text-[var(--brand)]">●</span> Riff <span className="text-xs text-[var(--muted)] font-normal">admin</span>
-        </Link>
-        {NAV.map((n) => (
-          <Link key={n.href} href={n.href} className="px-3 py-2 rounded-lg text-sm hover:bg-[var(--surface-2)] transition flex items-center gap-2">
-            <span>{n.icon}</span> {n.label}
-          </Link>
-        ))}
-        <div className="mt-auto pt-4 border-t border-[var(--border)] space-y-2">
-          <Link href="/dashboard" className="px-3 py-2 rounded-lg text-sm text-[var(--muted)] hover:bg-[var(--surface-2)] transition block">
-            ← Artist view
-          </Link>
-          <div className="px-3 text-xs text-[var(--muted)] truncate">{session.email}</div>
-          <div className="px-1"><LogoutButton /></div>
-        </div>
-      </aside>
-      <main className="flex-1 p-6 overflow-auto">{children}</main>
+    <div className="flex-1 flex flex-col lg:flex-row min-h-screen">
+      <AdminNav items={NAV} email={session.email} />
+      <main className="flex-1 p-4 sm:p-6 overflow-auto min-w-0">{children}</main>
     </div>
   );
 }

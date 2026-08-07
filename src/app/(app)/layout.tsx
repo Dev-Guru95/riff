@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
-import { TopNav } from "@/components/ui";
+import { TopNav } from "@/components/TopNav";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const session = await getSession();
