@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { AddModuleForm, AddLessonForm } from "./LessonBuilder";
 import { ModuleHeader, LessonEditor } from "./EditClient";
+import { ReturnLinkEditor } from "./ReturnLinkEditor";
+import { SKOOL_URL } from "@/lib/constants";
 
 export default async function ManageCourse({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -32,6 +34,13 @@ export default async function ManageCourse({ params }: { params: Promise<{ id: s
         <h1 className="text-2xl font-bold">{course.title}</h1>
         <p className="text-sm text-[var(--muted)]">/{course.slug} · {course.isPublished ? "Published" : "Draft"} · v{course.version}</p>
       </div>
+
+      <ReturnLinkEditor
+        courseId={course.id}
+        returnUrl={course.returnUrl}
+        returnLabel={course.returnLabel}
+        fallbackUrl={SKOOL_URL}
+      />
 
       <div className="space-y-5">
         {course.modules.map((m, mi) => (

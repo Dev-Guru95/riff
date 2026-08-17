@@ -8,6 +8,8 @@ import { badgeAsset } from "@/lib/assets";
 import { buildShare } from "@/lib/share";
 import { ProgressBar } from "@/components/ui";
 import { ShareToSkool } from "@/components/ShareToSkool";
+import { TrackReturnButton } from "@/components/TrackReturnLink";
+import { resolveReturnLink } from "@/lib/returnLink";
 
 export default async function CourseDetail({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -28,6 +30,10 @@ export default async function CourseDetail({ params }: { params: Promise<{ slug:
   const profile = completed
     ? await prisma.artistProfile.findUnique({ where: { userId: session.id }, select: { stageName: true } })
     : null;
+  // Closes the Skool ⇄ Riff loop: finishing the track hands the learner back,
+  // normally to the next Skool track. Also reachable on a revisit, so someone
+  // who closed the completion screen can still pick the cycle back up.
+  const returnLink = resolveReturnLink(course);
 
   return (
     <main className="max-w-3xl mx-auto px-4 py-8">
@@ -36,20 +42,23 @@ export default async function CourseDetail({ params }: { params: Promise<{ slug:
       <p className="text-[var(--muted)] text-sm mt-1 mb-4">{tree.description}</p>
 
       {completed && (
-        <div className="card p-5 mb-6 flex items-center gap-4 border-[var(--brand)]">
+        <div className="card p-5 mb-6 flex items-center gap-4 flex-wrap border-[var(--brand)]">
           {/* Placeholder track-badge art — swap public/badges/track.svg to reskin. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={badgeAsset(badge.key)} alt="" width={56} height={56} className="shrink-0" />
-          <div className="flex-1">
+          <div className="flex-1 min-w-40">
             <div className="text-xs text-[var(--success)] uppercase tracking-wide">Track complete</div>
             <div className="font-semibold">{badge.name}</div>
             <div className="text-xs text-[var(--muted)]">This track badge is now yours. 🎉</div>
           </div>
-          <ShareToSkool
-            share={buildShare({ kind: "badge", value: badge.name, stageName: profile?.stageName, detail: badge.icon })}
-            size="sm"
-            variant="ghost"
-          />
+          <div className="flex items-center gap-2">
+            <ShareToSkool
+              share={buildShare({ kind: "badge", value: badge.name, stageName: profile?.stageName, detail: badge.icon })}
+              size="sm"
+              variant="ghost"
+            />
+            <TrackReturnButton link={returnLink} className="py-1.5 px-3 text-xs" />
+          </div>
         </div>
       )}
 

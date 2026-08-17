@@ -324,6 +324,12 @@ model Course {
   isPublished Boolean  @default(false)
   orderIndex  Int      @default(0)
   version     Int      @default(1)
+  // Where to send the learner once they finish this track. The teaching for a
+  // track lives in Skool and the assessment lives here, so completing a track
+  // has to hand the learner back — normally to the NEXT Skool track. Null falls
+  // back to SKOOL_URL (the community root) so the loop still closes.
+  returnUrl   String?
+  returnLabel String?
   modules     Module[]
   enrollments Enrollment[]
 }

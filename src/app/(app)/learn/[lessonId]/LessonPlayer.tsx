@@ -3,6 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { TrackReturnButton } from "@/components/TrackReturnLink";
+import type { TrackReturnLink } from "@/lib/returnLink";
 
 type Quiz = {
   id: string;
@@ -27,11 +29,14 @@ export function LessonPlayer({
   quiz,
   assignment,
   nextLessonId,
+  returnLink,
 }: {
   lesson: Lesson;
   quiz: Quiz | null;
   assignment: Assignment | null;
   nextLessonId: string | null;
+  /** Set only on the final lesson of a track — hands the learner back to Skool. */
+  returnLink?: TrackReturnLink | null;
 }) {
   const [step, setStep] = useState<Step>("read");
   const [toast, setToast] = useState<string | null>(null);
@@ -73,7 +78,9 @@ export function LessonPlayer({
         <AssignmentStep assignment={assignment} onDone={(msg) => { flash(msg); setStep("done"); }} />
       )}
 
-      {step === "done" && <DoneStep nextLessonId={nextLessonId} courseSlug={lesson.courseSlug} />}
+      {step === "done" && (
+        <DoneStep nextLessonId={nextLessonId} courseSlug={lesson.courseSlug} returnLink={returnLink} />
+      )}
 
       {toast && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 card px-5 py-3 animate-pop border-[var(--brand)] z-30">
@@ -337,17 +344,39 @@ function AssignmentStep({ assignment, onDone }: { assignment: Assignment; onDone
   );
 }
 
-function DoneStep({ nextLessonId, courseSlug }: { nextLessonId: string | null; courseSlug: string }) {
+function DoneStep({
+  nextLessonId,
+  courseSlug,
+  returnLink,
+}: {
+  nextLessonId: string | null;
+  courseSlug: string;
+  returnLink?: TrackReturnLink | null;
+}) {
+  // Last lesson of the track and a return destination configured: the return
+  // link becomes the primary call to action, so the Skool → Riff → Skool cycle
+  // continues instead of stranding the learner here.
+  const trackDone = !nextLessonId && !!returnLink;
+
   return (
     <div className="card p-8 text-center animate-pop">
-      <div className="text-5xl mb-3">🎉</div>
-      <h2 className="text-2xl font-bold mb-2">Lesson complete!</h2>
-      <p className="text-[var(--muted)] mb-6">You earned XP and kept your streak alive.</p>
-      <div className="flex gap-3 justify-center">
+      <div className="text-5xl mb-3">{trackDone ? "🏁" : "🎉"}</div>
+      <h2 className="text-2xl font-bold mb-2">{trackDone ? "Track complete!" : "Lesson complete!"}</h2>
+      <p className="text-[var(--muted)] mb-6">
+        {trackDone
+          ? "You've finished every question in this track. Head back to pick up the next one."
+          : "You earned XP and kept your streak alive."}
+      </p>
+      <div className="flex gap-3 justify-center flex-wrap">
         {nextLessonId ? (
           <Link href={`/learn/${nextLessonId}`} className="btn btn-primary px-6 py-3">Next lesson →</Link>
+        ) : returnLink ? (
+          <TrackReturnButton link={returnLink} className="px-6 py-3" />
         ) : (
           <Link href={`/courses/${courseSlug}`} className="btn btn-primary px-6 py-3">Back to course</Link>
+        )}
+        {trackDone && (
+          <Link href={`/courses/${courseSlug}`} className="btn btn-ghost px-6 py-3">Back to track</Link>
         )}
         <Link href="/dashboard" className="btn btn-ghost px-6 py-3">Dashboard</Link>
       </div>

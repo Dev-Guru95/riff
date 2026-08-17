@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { isLessonUnlocked } from "@/lib/progression";
+import { resolveReturnLink } from "@/lib/returnLink";
 import { LessonPlayer } from "./LessonPlayer";
 
 export default async function LearnPage({ params }: { params: Promise<{ lessonId: string }> }) {
@@ -11,7 +12,9 @@ export default async function LearnPage({ params }: { params: Promise<{ lessonId
   const lesson = await prisma.lesson.findUnique({
     where: { id: lessonId },
     include: {
-      module: { include: { course: { select: { slug: true, title: true } } } },
+      module: {
+        include: { course: { select: { slug: true, title: true, returnUrl: true, returnLabel: true } } },
+      },
       quiz: { include: { questions: { orderBy: { orderIndex: "asc" } } } },
       assignment: true,
       progress: { where: { userId: session.id } },
@@ -40,6 +43,11 @@ export default async function LearnPage({ params }: { params: Promise<{ lessonId
   );
   const idx = ordered.findIndex((l) => l.id === lessonId);
   const nextLessonId = idx >= 0 && idx < ordered.length - 1 ? ordered[idx + 1].id : null;
+
+  // No next lesson means this one ends the track. Because lessons unlock
+  // sequentially, finishing the last one finishes the track — so the completion
+  // screen hands the learner back to Skool for the next one.
+  const returnLink = nextLessonId === null ? resolveReturnLink(lesson.module.course) : null;
 
   return (
     <LessonPlayer
@@ -75,6 +83,7 @@ export default async function LearnPage({ params }: { params: Promise<{ lessonId
           : null
       }
       nextLessonId={nextLessonId}
+      returnLink={returnLink}
     />
   );
 }
