@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { resolveLevel } from "@/lib/constants";
@@ -14,7 +15,11 @@ import { ShareToSkool } from "@/components/ShareToSkool";
 import { GoalRow } from "@/components/GoalRow";
 
 export default async function Dashboard() {
-  const session = (await getSession())!;
+  // Layouts and pages render in parallel, so the layout's auth redirect is not a
+  // guarantee this page has a session by the time it runs — check it here too
+  // rather than asserting non-null and crashing the whole segment.
+  const session = await getSession();
+  if (!session) redirect("/login");
 
   const [level, streak, profile, badges, allBadges, enrollment, ranks] = await Promise.all([
     prisma.userLevel.findUnique({ where: { userId: session.id } }),

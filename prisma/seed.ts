@@ -174,9 +174,18 @@ async function main() {
   }
 
   // ---- Demo user ----
+  // Gated: these credentials are hardcoded below and this repo is public, so an
+  // unguarded seed would put a known-password admin on a live URL. Opt in with
+  // SEED_DEMO_USERS=true for local development only; use prisma/create-admin.ts
+  // (env-supplied password) to make a real admin on a deployed environment.
+  const seedDemoUsers = process.env.SEED_DEMO_USERS === "true";
+  if (!seedDemoUsers) {
+    console.log("Skipping demo/admin users (set SEED_DEMO_USERS=true to create them).");
+  }
+
   const demoEmail = "demo@riff.app";
   const demoExists = await prisma.user.findUnique({ where: { email: demoEmail } });
-  if (!demoExists) {
+  if (seedDemoUsers && !demoExists) {
     const user = await prisma.user.create({
       data: {
         email: demoEmail,
@@ -196,7 +205,7 @@ async function main() {
 
   // ---- Admin user ----
   const adminEmail = "admin@riff.app";
-  if (!(await prisma.user.findUnique({ where: { email: adminEmail } }))) {
+  if (seedDemoUsers && !(await prisma.user.findUnique({ where: { email: adminEmail } }))) {
     await prisma.user.create({
       data: {
         email: adminEmail,

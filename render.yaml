@@ -20,11 +20,21 @@ services:
     # `preDeployCommand` instead — that runs after the build but before traffic
     # shifts, so a failed migration rolls back cleanly. preDeployCommand is not
     # available on the free tier.
+    # `db-doctor` runs before `migrate deploy` and prints the database's real
+    # schema state to the build log. On the free tier there is no Shell, so the
+    # build log is the only window into the deployed database. It is read-only
+    # unless DB_RESET is set (see below).
+    #
+    # `db seed` is idempotent (upserts / existence checks) and creates no user
+    # accounts unless SEED_DEMO_USERS=true, so it is safe on every deploy. It
+    # restores badges, missions, forums, coupons and the starter course after a
+    # reset.
+    #
     # The trailing create-admin step is a no-op unless ADMIN_EMAIL and
     # ADMIN_PASSWORD are both set, so it is safe to leave here permanently.
     # Set both, deploy once, then clear them — re-setting them later doubles as
     # an admin password reset without ever putting the password in git.
-    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm exec prisma generate && pnpm run build && pnpm exec prisma migrate deploy && pnpm exec tsx prisma/create-admin.ts
+    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm exec prisma generate && pnpm run build && pnpm exec tsx prisma/db-doctor.ts && pnpm exec prisma migrate deploy && pnpm exec prisma db seed && pnpm exec tsx prisma/create-admin.ts
 
     startCommand: pnpm run start
 
@@ -76,6 +86,20 @@ services:
       - key: ADMIN_EMAIL
         sync: false
       - key: ADMIN_PASSWORD
+        sync: false
+
+      # ---- Schema rebuild (destructive — leave UNSET) -----------------------
+      # Set to the exact phrase `wipe-and-rebuild` to make db-doctor drop the
+      # public schema on the next deploy; `migrate deploy` then recreates every
+      # table from prisma/migrations. Deletes ALL data. Deploy once, then CLEAR
+      # IT — while set, every deploy wipes the database.
+      - key: DB_RESET
+        sync: false
+
+      # Set to "true" ONLY in local development. It makes prisma/seed.ts create
+      # demo@riff.app and admin@riff.app with passwords hardcoded in this public
+      # repo. On a deployed environment use ADMIN_EMAIL/ADMIN_PASSWORD instead.
+      - key: SEED_DEMO_USERS
         sync: false
 
       # ---- AI provider (optional — falls back to the mock reviewer) --------
