@@ -46,9 +46,23 @@ services:
       # Internal is preferred over external: it stays on Render's private
       # network, so it is faster and never leaves their perimeter.
       #
+      # ALWAYS append `?schema=riff`:
+      # postgresql://<user>:<password>@dpg-<id>-a/<dbname>?schema=riff
+      #
+      # The `sr_staging` instance is shared with another Soundring project. On
+      # 2026-09-02 that project ran a migration against the default `public`
+      # schema and replaced Riff's tables with its own — every signed-in page
+      # 500'd on `User.passwordHash does not exist`. A named schema gives each
+      # app its own namespace in the same database, so neither can clobber the
+      # other, and it costs nothing (Render's free plan allows only ONE free
+      # database per account, so a second one is not an option). db-doctor
+      # creates the schema if it is missing; `migrate deploy` will not.
+      #
       # If this database lives in the same Render account you can replace the
       # `sync: false` line with the two commented lines below and Render will
-      # wire it up automatically (use the database's dashboard name):
+      # wire it up automatically (use the database's dashboard name) — but note
+      # that this yields a bare URL with no `?schema=`, so only use it for a
+      # database this app has to itself:
       #   fromDatabase:
       #     name: sr-staging
       #     property: connectionString
