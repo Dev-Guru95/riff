@@ -25,6 +25,25 @@ export async function track(type: EventType, userId: string | null, meta: Record
   }
 }
 
+/**
+ * Signup attribution rollup: how many accounts each `?ref=` link produced.
+ *
+ * Counted off `User.referralSource` rather than the `signup` AnalyticsEvent
+ * because that is the durable record — analytics rows are a time series and may
+ * be pruned, whereas the user row is the account itself. Untagged signups
+ * (direct traffic) are returned under a null source so the numbers reconcile
+ * against the total.
+ */
+export async function getSignupsBySource(): Promise<{ source: string | null; count: number }[]> {
+  const rows = await prisma.user.groupBy({
+    by: ["referralSource"],
+    _count: { _all: true },
+  });
+  return rows
+    .map((r) => ({ source: r.referralSource, count: r._count._all }))
+    .sort((a, b) => b.count - a.count || (a.source ?? "").localeCompare(b.source ?? ""));
+}
+
 /** KPI rollup for the admin dashboard. */
 export async function getKpis(days = 30) {
   const since = new Date(Date.now() - days * 86_400_000);

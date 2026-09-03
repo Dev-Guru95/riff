@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { TrackReturnButton } from "@/components/TrackReturnLink";
@@ -233,12 +233,44 @@ function AssignmentStep({ assignment, onDone }: { assignment: Assignment; onDone
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Gates the form while the saved answer loads. Without it the artist sees an
+  // empty textarea that is about to be filled in, which reads as "my work is
+  // gone" and invites them to rewrite what they already wrote.
+  const [loadingSaved, setLoadingSaved] = useState(true);
+  const [saved, setSaved] = useState<null | { submittedAt: string; status: string }>(null);
+  const [editing, setEditing] = useState(false);
   const [review, setReview] = useState<null | {
     review: { score: number; strengths: string[]; weaknesses: string[]; recommendations: string[]; nextActions: string[] };
     passed: boolean;
     flaggedForHumanReview: boolean;
     xp?: { awarded: number } | null;
   }>(null);
+
+  // Reopen with the artist's own work already in the box. Without this, a
+  // completed action step looked untouched on every revisit and there was no
+  // way to see, let alone edit, what had been submitted.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/assignments/${assignment.id}/submissions`);
+        if (!res.ok) return; // no saved work is the normal case, not an error
+        const data = await res.json();
+        if (cancelled || !data.submission) return;
+        setText(data.submission.textContent ?? "");
+        setLink(data.submission.externalLink ?? "");
+        setSaved({ submittedAt: data.submission.submittedAt, status: data.submission.status });
+      } catch {
+        // Offline or transient failure: fall through to a blank form rather than
+        // blocking the artist from writing a fresh answer.
+      } finally {
+        if (!cancelled) setLoadingSaved(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [assignment.id]);
 
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -268,15 +300,26 @@ function AssignmentStep({ assignment, onDone }: { assignment: Assignment; onDone
       headers: { "content-type": "application/json" },
       body: JSON.stringify(body),
     });
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
     setLoading(false);
     if (res.ok) {
       setReview(data);
+      setSaved({ submittedAt: new Date().toISOString(), status: data.status ?? "reviewed" });
+      setEditing(false);
       const xp = data.xp?.awarded ?? 0;
-      setTimeout(() => onDone(xp > 0 ? `Reviewed! +${xp} XP` : "Submission reviewed"), 800);
+      setTimeout(() => onDone(xp > 0 ? `Reviewed! +${xp} XP` : "Response saved"), 800);
     } else {
       setError(data.error ?? "Error submitting");
     }
+  }
+
+  if (loadingSaved) {
+    return (
+      <div className="card p-7 space-y-3">
+        <h2 className="text-xl font-bold">{assignment.title}</h2>
+        <p className="text-sm text-[var(--muted)]">Loading your saved response…</p>
+      </div>
+    );
   }
 
   if (review) {
@@ -292,10 +335,41 @@ function AssignmentStep({ assignment, onDone }: { assignment: Assignment; onDone
             </div>
           </div>
         </div>
+        <div className="text-sm text-[var(--success)]">✓ Response saved · ✓ Action step completed</div>
         <ReviewList title="Strengths" items={r.strengths} color="var(--success)" />
         <ReviewList title="Weaknesses" items={r.weaknesses} color="var(--brand-2)" />
         <ReviewList title="Recommendations" items={r.recommendations} color="var(--accent)" />
         <ReviewList title="Next actions" items={r.nextActions} color="var(--warning)" />
+        <button className="btn btn-ghost w-full py-2 text-sm" onClick={() => { setReview(null); setEditing(true); }}>
+          Edit my response
+        </button>
+      </div>
+    );
+  }
+
+  // Saved and not being edited: show the work back instead of an input, so the
+  // completed state is obvious at a glance on a revisit.
+  if (saved && !editing) {
+    return (
+      <div className="card p-7 space-y-4">
+        <h2 className="text-xl font-bold">{assignment.title}</h2>
+        <p className="text-sm text-[var(--muted)]">{assignment.instructions}</p>
+        <div className="text-sm text-[var(--success)]">✓ Response saved · ✓ Action step completed</div>
+        <div className="bg-[var(--surface-2)] border border-[var(--border)] rounded-lg p-3 text-sm whitespace-pre-wrap">
+          {text || <span className="text-[var(--muted)]">(no written response)</span>}
+        </div>
+        {link && (
+          <a href={link} target="_blank" rel="noreferrer" className="text-sm text-[var(--accent)] break-all">
+            {link}
+          </a>
+        )}
+        <p className="text-xs text-[var(--muted)]">
+          Saved {new Date(saved.submittedAt).toLocaleDateString()} · stored on your account.
+        </p>
+        <div className="flex gap-3">
+          <button className="btn btn-ghost flex-1 py-2.5" onClick={() => setEditing(true)}>Edit response</button>
+          <button className="btn btn-primary flex-1 py-2.5" onClick={() => onDone("Action step complete")}>Continue →</button>
+        </div>
       </div>
     );
   }
@@ -306,7 +380,7 @@ function AssignmentStep({ assignment, onDone }: { assignment: Assignment; onDone
       <p className="text-sm text-[var(--muted)]">{assignment.instructions}</p>
       <textarea
         className="w-full bg-[var(--surface-2)] border border-[var(--border)] rounded-lg p-3 text-sm min-h-32 outline-none focus:border-[var(--brand)]"
-        placeholder="Write your submission here…"
+        placeholder="Write your response here — it saves to your account, so you can come back and edit it."
         value={text}
         onChange={(e) => setText(e.target.value)}
       />
@@ -337,9 +411,16 @@ function AssignmentStep({ assignment, onDone }: { assignment: Assignment; onDone
       </div>
 
       {error && <p className="text-sm text-[var(--brand-2)]">{error}</p>}
-      <button className="btn btn-primary w-full py-3" onClick={submit} disabled={loading || uploading || (!text && !link && uploads.length === 0)}>
-        {loading ? "AI is reviewing…" : "Submit for AI review"}
-      </button>
+      <div className="flex gap-3">
+        {saved && (
+          <button className="btn btn-ghost py-3 px-4" onClick={() => setEditing(false)} disabled={loading}>
+            Cancel
+          </button>
+        )}
+        <button className="btn btn-primary flex-1 py-3" onClick={submit} disabled={loading || uploading || (!text && !link && uploads.length === 0)}>
+          {loading ? "Saving & reviewing…" : saved ? "Save changes" : "Save response"}
+        </button>
+      </div>
     </div>
   );
 }

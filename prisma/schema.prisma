@@ -29,6 +29,11 @@ model User {
   skoolRequestedAt DateTime?
   skoolJoinedAt DateTime?
   skoolHandle  String?
+  // Signup attribution: the `?ref=` tag on the link that brought this artist in
+  // (e.g. "skool-track-00"). Written once at signup and never updated, so it
+  // stays the acquisition source rather than the most recent visit. Paired with
+  // the `signup` AnalyticsEvent, which carries the same tag as a time series.
+  referralSource String?
   createdAt    DateTime @default(now())
   lastActiveAt DateTime @default(now())
 
@@ -72,6 +77,8 @@ model User {
   broadcasts       Broadcast[]
   linkPage         LinkPage?
   bookings         Booking[]
+
+  @@index([referralSource])
 }
 
 // ===== Certificates =====
@@ -482,6 +489,11 @@ model Badge {
   description String
   icon        String      @default("🏅")
   tier        String      @default("bronze")
+  // Display position on the badge wall. Postgres returns rows in no
+  // guaranteed order, so without this the achievements list reshuffles
+  // between page loads. Journey badges 10-50, track badges 100+track
+  // order, capstone 900 — see BADGE_ORDER in src/lib/constants.ts.
+  orderIndex  Int         @default(500)
   users       UserBadge[]
 }
 
@@ -602,7 +614,14 @@ model CoachMemory {
   content   String
   weight    Float    @default(1)
   updatedAt DateTime @default(now())
+  // What produced this memory, e.g. "assignment:<id>" for an action-step
+  // response. Lets a re-submission replace its own memory instead of stacking a
+  // near-duplicate every time the artist edits their answer. Null for memories
+  // derived from chat or the social audit, which are append-only by nature —
+  // Postgres treats NULLs as distinct, so the unique index below allows many.
+  sourceKey String?
 
+  @@unique([userId, sourceKey])
   @@index([userId, kind])
 }
 

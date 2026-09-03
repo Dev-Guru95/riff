@@ -26,7 +26,11 @@ export default async function Dashboard() {
     prisma.streak.findUnique({ where: { userId: session.id } }),
     prisma.artistProfile.findUnique({ where: { userId: session.id } }),
     prisma.userBadge.findMany({ where: { userId: session.id }, include: { badge: true } }),
-    prisma.badge.findMany(),
+    // Explicit ordering is required: Postgres returns rows in whatever order it
+    // likes, so an unordered findMany() made the Achievements section reshuffle
+    // between page loads. `key` is the tiebreaker so the order is total, and
+    // therefore identical on every render.
+    prisma.badge.findMany({ orderBy: [{ orderIndex: "asc" }, { key: "asc" }] }),
     prisma.enrollment.findFirst({ where: { userId: session.id }, include: { course: true }, orderBy: { startedAt: "asc" } }),
     getUserRanks(session.id),
   ]);

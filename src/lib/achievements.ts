@@ -25,7 +25,9 @@ const EMPTY: CourseCompletionRewards = { trackBadge: null, certificate: null };
 export async function onCourseCompleted(userId: string, courseId: string): Promise<CourseCompletionRewards> {
   const course = await prisma.course.findUnique({
     where: { id: courseId },
-    select: { slug: true, title: true },
+    // orderIndex positions the track badge on the badge wall, so the
+    // achievements read in the same order as the tracks themselves.
+    select: { slug: true, title: true, orderIndex: true },
   });
   if (!course) return EMPTY;
 

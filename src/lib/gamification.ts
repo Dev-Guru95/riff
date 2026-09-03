@@ -1,5 +1,5 @@
 import { prisma } from "./prisma";
-import { resolveLevel, trackBadgeKey, type XpSource } from "./constants";
+import { resolveLevel, trackBadgeKey, trackBadgeOrder, type XpSource } from "./constants";
 import { notify } from "./notifications";
 
 /** Today's date in the user's local frame as YYYY-MM-DD (UTC fallback). */
@@ -163,13 +163,16 @@ export async function evaluateBadges(userId: string) {
  * everything from the course, so an admin creating a new course needs zero extra
  * badge setup — the badge is materialized on first completion (awardTrackBadge).
  */
-export function trackBadgeMeta(course: { slug: string; title: string }) {
+export function trackBadgeMeta(course: { slug: string; title: string; orderIndex?: number }) {
   return {
     key: trackBadgeKey(course.slug),
     name: `${course.title} Graduate`,
     description: `Complete every lesson in ${course.title}.`,
     icon: "🎖️",
     tier: "gold",
+    // Track badges sit in track order on the badge wall, so the achievements
+    // read down in the same sequence the learner works through the program.
+    orderIndex: trackBadgeOrder(course.orderIndex ?? 0),
   };
 }
 
@@ -181,15 +184,16 @@ export function trackBadgeMeta(course: { slug: string; title: string }) {
  */
 export async function awardTrackBadge(
   userId: string,
-  course: { slug: string; title: string },
+  course: { slug: string; title: string; orderIndex?: number },
 ): Promise<{ key: string; name: string; icon: string } | null> {
   const meta = trackBadgeMeta(course);
   const badge = await prisma.badge.upsert({
     where: { key: meta.key },
     create: meta,
-    // Keep the label in step if a course is renamed; leave icon/tier alone so a
-    // designer's later customization isn't clobbered.
-    update: { name: meta.name, description: meta.description },
+    // Keep the label and wall position in step if a course is renamed or
+    // reordered; leave icon/tier alone so a designer's later customization
+    // isn't clobbered.
+    update: { name: meta.name, description: meta.description, orderIndex: meta.orderIndex },
   });
   // Check-first (like evaluateBadges) so re-completing an already-finished course
   // is a silent no-op rather than a caught-but-logged unique-constraint error.

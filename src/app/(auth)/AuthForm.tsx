@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { readReferralCookie } from "@/components/ReferralCapture";
 
 export function AuthForm({ mode }: { mode: "login" | "signup" }) {
   const router = useRouter();
@@ -19,8 +20,14 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
     setError(null);
     setLoading(true);
     const endpoint = mode === "login" ? "/api/auth/login" : "/api/auth/signup";
+    // Attribution rides along with the account creation itself, so the source
+    // is committed in the same transaction as the user — never a follow-up call
+    // that could fail and silently lose the credit.
+    const ref = mode === "signup" ? readReferralCookie() : null;
     const body =
-      mode === "login" ? { email, password, ...(mfaStep ? { code } : {}) } : { email, password, stageName };
+      mode === "login"
+        ? { email, password, ...(mfaStep ? { code } : {}) }
+        : { email, password, stageName, ...(ref ? { ref } : {}) };
     const res = await fetch(endpoint, {
       method: "POST",
       headers: { "content-type": "application/json" },

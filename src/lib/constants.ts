@@ -50,6 +50,39 @@ export function isTrackBadgeKey(key: string): boolean {
   return key.startsWith("track:");
 }
 
+// ===== Badge wall ordering =====
+// `Badge.orderIndex` decides the order of the dashboard's Achievements section.
+// It exists because `findMany()` with no `orderBy` leaves the order to Postgres,
+// which is free to change it between page loads (and does, after row updates) —
+// the achievements appeared to shuffle at random.
+//
+// The order mirrors docs/ACHIEVEMENTS.md: the five journey badges in the order
+// a learner realistically earns them, then one badge per track in *track* order,
+// then the program capstone last as the thing everything else builds toward.
+export const JOURNEY_BADGE_ORDER = [
+  "first_steps",
+  "quiz_whiz",
+  "first_submission",
+  "streak_7",
+  "mission_marathon",
+] as const;
+
+/** Journey badges occupy 10, 20, 30…; a key not in the list sorts after them. */
+export function journeyBadgeOrder(key: string): number {
+  const i = JOURNEY_BADGE_ORDER.indexOf(key as (typeof JOURNEY_BADGE_ORDER)[number]);
+  return i === -1 ? BADGE_ORDER_UNKNOWN : (i + 1) * 10;
+}
+
+/** Track badges sit between the journey badges and the capstone, in track order. */
+export function trackBadgeOrder(courseOrderIndex: number): number {
+  return BADGE_ORDER_TRACK_BASE + courseOrderIndex;
+}
+
+export const BADGE_ORDER_TRACK_BASE = 100;
+export const BADGE_ORDER_CAPSTONE = 900;
+/** Matches the column default: anything unclassified sorts after the tracks. */
+export const BADGE_ORDER_UNKNOWN = 500;
+
 // Progression levels: Beginner Artist -> Music Entrepreneur
 export const LEVELS = [
   { key: "beginner_artist", name: "Beginner Artist" },

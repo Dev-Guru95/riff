@@ -4,6 +4,7 @@ import { hashPassword, setSession } from "@/lib/auth";
 import { parseBody, ok, fail, tooMany, withRoute } from "@/lib/api";
 import { rateLimit, clientIp, LIMITS } from "@/lib/ratelimit";
 import { track } from "@/lib/analytics";
+import { normalizeReferral } from "@/lib/referral";
 
 const schema = z.object({
   email: z.string().email(),
@@ -11,6 +12,10 @@ const schema = z.object({
   stageName: z.string().min(1).optional(),
   genres: z.array(z.string()).optional(),
   countryCode: z.string().length(2).optional(),
+  // Attribution tag from the link that brought this artist in. Validated
+  // again here rather than trusted from the client: it is user-supplied and
+  // ends up rendered in admin screens.
+  ref: z.string().max(64).optional(),
 });
 
 export const POST = withRoute(async (req: Request) => {
@@ -23,11 +28,14 @@ export const POST = withRoute(async (req: Request) => {
   const existing = await prisma.user.findUnique({ where: { email: data.email } });
   if (existing) return fail("An account with that email already exists", 409);
 
+  const referralSource = normalizeReferral(data.ref);
+
   const user = await prisma.user.create({
     data: {
       email: data.email,
       passwordHash: await hashPassword(data.password),
       countryCode: data.countryCode,
+      referralSource,
       profile: {
         create: {
           stageName: data.stageName,
@@ -45,7 +53,7 @@ export const POST = withRoute(async (req: Request) => {
     await prisma.enrollment.create({ data: { userId: user.id, courseId: course.id } });
   }
 
-  await track("signup", user.id, {});
+  await track("signup", user.id, referralSource ? { ref: referralSource } : {});
   await setSession({ id: user.id, email: user.email, role: user.role });
   return ok({ id: user.id, email: user.email }, 201);
 });

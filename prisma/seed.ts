@@ -1,6 +1,12 @@
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
-import { trackBadgeKey, PROGRAM_BADGE_KEY } from "../src/lib/constants";
+import {
+  trackBadgeKey,
+  PROGRAM_BADGE_KEY,
+  BADGE_ORDER_CAPSTONE,
+  journeyBadgeOrder,
+  trackBadgeOrder,
+} from "../src/lib/constants";
 
 const prisma = new PrismaClient();
 
@@ -11,6 +17,9 @@ async function main() {
   // Journey/milestone badges + the program capstone. Track-completion badges are
   // seeded separately below (one per published course) so they show on the badge
   // wall before they're earned.
+  // `orderIndex` fixes the badge wall's order — journeyBadgeOrder() gives the
+  // five journey badges 10..50, and the capstone sorts last at 900. Without it
+  // the dashboard's Achievements section reshuffles between page loads.
   const badges = [
     { key: "first_steps", name: "First Steps", description: "Complete your first lesson.", icon: "👣", tier: "bronze" },
     { key: "quiz_whiz", name: "Quiz Whiz", description: "Pass 3 quizzes.", icon: "🧠", tier: "silver" },
@@ -18,7 +27,10 @@ async function main() {
     { key: "streak_7", name: "Consistency King", description: "Reach a 7-day streak.", icon: "🔥", tier: "gold" },
     { key: "mission_marathon", name: "Mission Marathon", description: "Complete 10 missions.", icon: "🏃", tier: "platinum" },
     { key: PROGRAM_BADGE_KEY, name: "Program Graduate", description: "Complete the entire Soundring Artist Program.", icon: "🎓", tier: "platinum" },
-  ];
+  ].map((b) => ({
+    ...b,
+    orderIndex: b.key === PROGRAM_BADGE_KEY ? BADGE_ORDER_CAPSTONE : journeyBadgeOrder(b.key),
+  }));
   for (const b of badges) {
     await prisma.badge.upsert({ where: { key: b.key }, create: b, update: b });
   }
@@ -294,9 +306,12 @@ async function main() {
   // awardTrackBadge() also upserts lazily, so admin-created courses still work.
   const publishedCourses = await prisma.course.findMany({
     where: { isPublished: true },
-    select: { slug: true, title: true },
+    select: { slug: true, title: true, orderIndex: true },
   });
   for (const c of publishedCourses) {
+    // orderIndex is kept in `update` too: reordering a track must move its badge
+    // with it, otherwise the badge wall drifts out of step with the track list.
+    const orderIndex = trackBadgeOrder(c.orderIndex);
     await prisma.badge.upsert({
       where: { key: trackBadgeKey(c.slug) },
       create: {
@@ -305,8 +320,9 @@ async function main() {
         description: `Complete every lesson in ${c.title}.`,
         icon: "🎖️",
         tier: "gold",
+        orderIndex,
       },
-      update: {},
+      update: { orderIndex },
     });
   }
 

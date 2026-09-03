@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { getKpis } from "@/lib/analytics";
+import { getKpis, getSignupsBySource } from "@/lib/analytics";
 
 export default async function AdminOverview() {
   const kpis = await getKpis(30);
+  const signupSources = await getSignupsBySource();
   const [users, courses, lessons, submissions, flagged, attempts, completedEnroll, totalEnroll, pendingContent] =
     await Promise.all([
       prisma.user.count({ where: { role: "artist" } }),
@@ -72,6 +73,25 @@ export default async function AdminOverview() {
           <FunnelRow label="Activated (≥1 lesson)" value={usersWithProgress.length} max={users} />
           <FunnelRow label="Completed a course" value={completedEnroll} max={users} />
           <p className="text-xs text-[var(--muted)] mt-3">Activation rate: <strong>{activationRate}%</strong></p>
+        </div>
+
+        <div className="card p-5">
+          <h2 className="text-sm font-semibold text-[var(--muted)] uppercase tracking-wide mb-4">Signup source</h2>
+          {signupSources.length === 0 ? (
+            <p className="text-sm text-[var(--muted)]">No signups yet.</p>
+          ) : (
+            <ul className="space-y-2">
+              {signupSources.map((s) => (
+                <li key={s.source ?? "direct"} className="flex items-center justify-between text-sm">
+                  <span className={s.source ? "" : "text-[var(--muted)]"}>{s.source ?? "Direct / untagged"}</span>
+                  <span className="font-bold">{s.count}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+          <p className="text-xs text-[var(--muted)] mt-3">
+            Tagged by the <code>?ref=</code> on the link the artist arrived through.
+          </p>
         </div>
 
         <div className="card p-5">

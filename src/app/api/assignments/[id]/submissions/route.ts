@@ -7,6 +7,7 @@ import { reviewSubmission } from "@/lib/ai-review";
 import { track } from "@/lib/analytics";
 import { parseBody, ok, fail, tooMany, withRoute } from "@/lib/api";
 import { rateLimit, LIMITS } from "@/lib/ratelimit";
+import { recordActionStepMemory, getLatestResponse } from "@/lib/artist-context";
 
 const schema = z.object({
   artifactType: z.enum(["text", "link", "image", "audio", "video", "pdf"]).default("text"),
@@ -75,6 +76,13 @@ export const POST = withRoute(async (req: Request, { params }: { params: Promise
     },
   });
 
+  // Persist the answer as artist context for the AI coach. Fire-and-forget by
+  // design (it swallows its own errors): the Submission above is the system of
+  // record, and a failed memory write must never cost the artist their work.
+  if (data.textContent) {
+    await recordActionStepMemory(session.id, assignment, data.textContent);
+  }
+
   // Award XP only on a confident pass, idempotent per assignment.
   let xp = null;
   let streak = null;
@@ -99,3 +107,51 @@ export const POST = withRoute(async (req: Request, { params }: { params: Promise
     shares,
   });
 });
+
+
+/**
+ * The signed-in artist's latest answer to this action step.
+ *
+ * Exists so the lesson UI can reopen with the work already written in it —
+ * without this, returning to a completed action step showed an empty textarea
+ * and the artist had no way to see, let alone edit, what they had submitted.
+ * Scoped to the session user: an assignment id is not a capability.
+ */
+export const GET = withRoute(async (_req: Request, { params }: { params: Promise<{ id: string }> }) => {
+  const session = await getSession();
+  if (!session) return fail("Not authenticated", 401);
+  const { id } = await params;
+
+  const latest = await getLatestResponse(session.id, id);
+  if (!latest) return ok({ submission: null });
+
+  return ok({
+    submission: {
+      id: latest.id,
+      textContent: latest.textContent ?? "",
+      externalLink: latest.externalLink,
+      artifactUrls: JSON.parse(latest.artifactUrls) as string[],
+      status: latest.status,
+      aiScore: latest.aiScore,
+      submittedAt: latest.createdAt,
+      review: latest.status === "processing" ? null : {
+        score: latest.aiScore ?? 0,
+        strengths: safeList(latest.strengths),
+        weaknesses: safeList(latest.weaknesses),
+        recommendations: safeList(latest.recommendations),
+        nextActions: safeList(latest.nextActions),
+      },
+    },
+  });
+});
+
+/** Review fields are JSON strings; a malformed one must not 500 the read path. */
+function safeList(raw: string | null): string[] {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.map(String) : [];
+  } catch {
+    return [];
+  }
+}
