@@ -1,0 +1,130 @@
+{
+  "course": {
+    "title": "Track 3: The Industry Map",
+    "description": "Protect your rights, register properly with collection societies, and avoid the common legal traps that cost independent artists money.",
+    "level": "beginner",
+    "objectives": [
+      "Understand the two copyrights in every recorded song",
+      "Use split sheets to prevent ownership disputes",
+      "Register with a PRO so your performance royalties actually reach you",
+      "Read management and record deal terms without being taken advantage of"
+    ],
+    "durationText": "About 35 minutes",
+    "modules": [
+      {
+        "title": "Navigating the Business",
+        "lessons": [
+          {
+            "title": "Copyrights 101 — The Two Halves of a Song",
+            "estMinutes": 9,
+            "content": "The music business is entirely built on copyright law. If you do not understand this, you will be exploited. It is that simple. Every single piece of recorded music generates two distinct copyrights.\n\n**The Master (sound recording).** This is the actual audio file you listen to — the specific recording, the exact performance, the exact production. Historically, record labels owned the Master because they paid for the studio time.\n\n**The Composition (publishing).** This is the underlying song — the lyrics, the melody, the chord progression. It is the idea of the song before it is ever recorded. Songwriters and publishers own this.\n\nHere is a real-world example that makes it crystal clear. Dolly Parton wrote \"I Will Always Love You\", so she owns the Composition. Whitney Houston later recorded a cover, and Whitney's label owns the Master of that specific recording. But Dolly still gets paid for the Composition every single time Whitney's version is played on the radio, streamed, or used in a film — reportedly over $10 million from that version alone, without singing a note on it.\n\nAs an independent artist writing and recording your own music, you own 100% of both copyrights. Do not give them away lightly. Understand what you are signing before you sign anything.",
+            "questions": [],
+            "assignment": {
+              "title": "Identify Who Owns Your Track",
+              "instructions": "Identify who owns the master and the publishing for your chosen track. Are you the sole writer? Did you buy a beat from a producer online? If so, review that beat licence and note what rights you actually hold — exclusive or non-exclusive, and whether the producer takes a publishing percentage."
+            }
+          },
+          {
+            "title": "Split Sheets and Collaboration",
+            "estMinutes": 8,
+            "content": "Music is collaborative. You might write the lyrics, someone else writes the guitar riff, and a producer builds the beat. When the song starts making money, who owns what percentage of the Composition?\n\nIf you do not decide this in writing immediately, the law in many territories assumes an equal split among everyone present in the creative session, regardless of who did the most work. That leads to bitter disputes, broken friendships, and expensive lawsuits once the song generates revenue.\n\nThe solution is a **split sheet** — a simple written agreement, signed by all collaborators, stating exactly what percentage of the song's composition each person owns. It includes everyone's full legal name, their PRO affiliation, their publisher if they have one, the exact percentage they own, and the date and song title.\n\n**Rule of thumb:** have the conversation about splits before you leave the studio or finalise the file transfer. It is a sign of professionalism, not greed. The best time to discuss money is when everyone is happy and excited about the song. The worst time is six months later when it is taking off and everyone remembers their contribution differently.",
+            "questions": [],
+            "assignment": {
+              "title": "Complete a Split Sheet",
+              "instructions": "Complete a split sheet for your track. Even if you wrote and produced 100% of it yourself, download a free template and fill it out. Build the muscle memory of treating your art as a legal asset from day one."
+            }
+          },
+          {
+            "title": "PROs and Royalties",
+            "estMinutes": 8,
+            "content": "When your song is played on the radio, streamed, used in a TV show, performed at a live venue, or even played over the speakers in a coffee shop, it generates a **public performance royalty** for the composition.\n\nBut how do you actually collect that money? You cannot personally monitor every radio station and coffee shop in the world. That is where a **Performance Rights Organization** comes in.\n\nIn the United States the main PROs are ASCAP and BMI. In the United Kingdom it is PRS for Music. Other territories have equivalents — SOCAN in Canada, APRA AMCOS in Australia. These organisations hold agreements with broadcasters, venues and streaming platforms. They monitor public performances, collect the royalties owed, and distribute the money to registered songwriters and publishers.\n\nIf you are not registered with a PRO, your performance royalties sit in a black box, unclaimed. Eventually that unclaimed money is redistributed to other registered artists. You are literally leaving money on the table.",
+            "questions": [],
+            "assignment": {
+              "title": "Register With a PRO",
+              "instructions": "Register as a writer AND a publisher with a Performance Rights Organization in your territory. If you do not have a publisher, register as your own publishing company — you will typically need a Tax ID and/or an LLC to validate it. Once registered as both, register each song you write so the PRO collects 100% of the royalties on your behalf. Report which PRO you joined and what is still outstanding."
+            }
+          },
+          {
+            "title": "Contracts and Management",
+            "estMinutes": 9,
+            "content": "As you grow, people will want to work with you — managers, labels, publishers, booking agents. This is exciting, but you need to understand the standard terms so you do not sign your life away in a moment of excitement.\n\n**Artist managers.** A manager is your business partner. They handle the logistics — booking shows, negotiating deals, managing your schedule — so you can focus on the art. The industry standard commission is **15% to 20% of your gross income**. A good manager earns that many times over. A bad one takes 20% and does nothing. Always ask: what specifically will you do for me that I cannot do myself right now?\n\n**Record deals and advances.** If a label offers you a $50,000 advance, that is not a signing bonus and it is not free money. It is a **loan against your future royalties**. The label keeps 100% of your royalty earnings until that $50,000 — plus all marketing, recording and video costs they spent on your behalf — is entirely paid back. This is called recoupment. Only once the label has recouped every penny will you see another royalty cheque. Many artists never recoup.\n\nAs an independent artist, you are the label. You fund the project yourself, even if that is $0 using free tools, but you keep 100% of the profits from day one. There is no one to recoup.\n\n**Toolkit for Track 3.** Songtrust and Symphonic offer free downloadable split sheet templates. ASCAP and BMI are free for writers to join. HelloSign has a free tier for electronic signatures on contracts and split sheets.",
+            "questions": [],
+            "assignment": {
+              "title": "Study a Management Agreement",
+              "instructions": "Find a standard artist management agreement template online and read it through, just to familiarise yourself with the language, the standard clauses, and what to watch for. Note the three clauses you found most surprising or concerning."
+            }
+          },
+          {
+            "title": "Track 3 Quiz",
+            "estMinutes": 5,
+            "content": "You have covered copyright, split sheets, performance royalties and contract basics. Answer the questions below to confirm you are ready for Track 4.",
+            "questions": [
+              {
+                "type": "single",
+                "prompt": "What are the two distinct copyrights generated by every piece of recorded music?",
+                "options": [
+                  { "id": "a", "text": "The Master (sound recording) and the Composition (publishing / underlying song)" },
+                  { "id": "b", "text": "The digital copyright and the physical copyright" },
+                  { "id": "c", "text": "The domestic copyright and the international copyright" },
+                  { "id": "d", "text": "The artist's copyright and the producer's copyright" }
+                ],
+                "correct": ["a"],
+                "explanation": "The Master is the specific recording. The Composition is the underlying song — lyrics, melody, chords. They can be owned by different people."
+              },
+              {
+                "type": "single",
+                "prompt": "What is the purpose of a split sheet?",
+                "options": [
+                  { "id": "a", "text": "It divides streaming revenue between the artist and the distributor" },
+                  { "id": "b", "text": "It is a written agreement signed by all collaborators stating what percentage of a song's composition each person owns" },
+                  { "id": "c", "text": "It splits a long song into separate tracks for release" },
+                  { "id": "d", "text": "It records how studio costs will be shared" }
+                ],
+                "correct": ["b"],
+                "explanation": "Without one, many territories assume an equal split among everyone in the room — regardless of who actually did the work."
+              },
+              {
+                "type": "single",
+                "prompt": "What does a Performance Rights Organization (PRO) do?",
+                "options": [
+                  { "id": "a", "text": "It books live performances on behalf of artists" },
+                  { "id": "b", "text": "It distributes your music to streaming platforms" },
+                  { "id": "c", "text": "It collects and distributes royalties to songwriters and publishers whenever their compositions are performed publicly" },
+                  { "id": "d", "text": "It registers your trademark and artist name" }
+                ],
+                "correct": ["c"],
+                "explanation": "Radio, TV, live venues, streaming, even a coffee shop — the PRO monitors, collects, and pays out to registered writers and publishers."
+              },
+              {
+                "type": "single",
+                "prompt": "What is the standard industry commission rate for an artist manager?",
+                "options": [
+                  { "id": "a", "text": "5% to 10% of gross income" },
+                  { "id": "b", "text": "15% to 20% of gross income" },
+                  { "id": "c", "text": "30% to 40% of gross income" },
+                  { "id": "d", "text": "50% of gross income" }
+                ],
+                "correct": ["b"],
+                "explanation": "15% to 20% of gross is standard. Always ask what they will do that you cannot do yourself right now."
+              },
+              {
+                "type": "single",
+                "prompt": "In a traditional record deal, what is an \"advance\"?",
+                "options": [
+                  { "id": "a", "text": "A signing bonus the artist keeps regardless of performance" },
+                  { "id": "b", "text": "A loan against future royalties that must be fully recouped before the artist earns anything further" },
+                  { "id": "c", "text": "A payment made to the artist's manager on signing" },
+                  { "id": "d", "text": "A grant from a PRO to fund recording costs" }
+                ],
+                "correct": ["b"],
+                "explanation": "The label recoups the advance plus marketing, recording and video costs out of your royalties before you see another cheque. Many artists never recoup."
+              }
+            ],
+            "assignment": null
+          }
+        ]
+      }
+    ]
+  },
+  "sourceFile": "SoundRig Skool - Full Course Content.docx (v4.0) / 03_Track_3_The_Industry_Map.docx"
+}

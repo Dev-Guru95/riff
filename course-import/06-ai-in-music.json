@@ -1,0 +1,119 @@
+{
+  "course": {
+    "title": "Track 6: AI in Music",
+    "description": "Demystify artificial intelligence and learn to use it ethically and effectively as a workflow bridge, not a replacement for your talent.",
+    "level": "beginner",
+    "objectives": [
+      "Use AI to remove administrative friction from your workflow",
+      "Apply audio and visual AI tools to production and artwork",
+      "Understand the copyright limits of AI-generated work"
+    ],
+    "durationText": "About 25 minutes",
+    "modules": [
+      {
+        "title": "The Creative Co-Pilot",
+        "lessons": [
+          {
+            "title": "AI as a Workflow Bridge",
+            "estMinutes": 8,
+            "content": "There is a lot of fear surrounding artificial intelligence in the music industry. Some artists think it will replace them. Some think using it is cheating. The mindset you must adopt is this: **AI is a workflow bridge and a creative co-pilot.** It is used to remove friction, not to replace authentic human talent.\n\nThink of AI the way you think of a calculator. A calculator does not make you a mathematician. But it removes the tedious arithmetic so you can focus on solving the actual problem.\n\nHere are practical, everyday uses for an independent artist.\n\n**Writer's block.** Stuck on a second verse? Ask for 20 rhyming words related to your theme, or for metaphors that capture the emotion you are chasing.\n\n**Administrative tasks.** Dreading writing your artist bio? Give it a bulleted list of facts about your life and ask for three drafts in different tones.\n\n**Content strategy.** Ask for a week of social caption ideas based on your upcoming release theme.\n\n**Research.** Ask it to find independent playlist curators in your genre, or to explain a confusing clause in a contract.\n\nThis is the difference between **AI-assisted** — using it as a tool in your process — and **AI-generated** — having the machine do all the work. The former makes you faster and more creative. The latter makes you generic and legally vulnerable.",
+            "questions": [],
+            "assignment": {
+              "title": "Brainstorm Content Ideas With AI",
+              "instructions": "Open a free AI text tool and prompt it to brainstorm 10 potential social media content ideas based on the theme of your upcoming release. Pick the best three and add them to the content plan you built in Track 5. Share the three you chose and why."
+            }
+          },
+          {
+            "title": "Visual and Audio AI Tools",
+            "estMinutes": 8,
+            "content": "Beyond text, AI is transforming audio and visual workflows for independent artists who cannot afford large production teams.\n\n**Audio tools.**\n\n**Stem separation.** Tools like Lalal.ai take a single mixed audio file and separate the vocals, drums, bass and other instruments into individual tracks. This is useful for creating acapellas for remixes, isolating a vocal for a live backing track, or sampling elements from reference tracks with proper licensing.\n\n**AI mastering.** As covered in Track 2, AI mastering analyses your track against thousands of professional masters and applies intelligent EQ, compression and limiting. This used to cost $100 or more per track from a human engineer.\n\n**Visual tools.**\n\n**Concept and cover art.** If you need cover art but cannot afford a professional illustrator at $200 to $500, AI image generators can create striking visual concepts from a text description. Use them as your final artwork, or as detailed mood boards to hand to a human designer later.\n\n**Music video concepts.** AI video tools can generate short visual clips from text prompts, useful for lyric videos or abstract visual content for social media.",
+            "questions": [],
+            "assignment": {
+              "title": "Generate Concept Art",
+              "instructions": "Use a free AI image generator to create a piece of concept art or a mood board image for your upcoming release. Even if you do not use it as your final cover, it will help you articulate your visual direction. Share the image and the prompt you used."
+            }
+          },
+          {
+            "title": "The Ethics and Future of AI",
+            "estMinutes": 7,
+            "content": "As you integrate AI into your workflow, you must understand the current legal and ethical landscape. It is evolving rapidly, but here is where things stand today.\n\nUnder current legal frameworks in most major territories, including guidance from the US Copyright Office, **only works created by a human author can be copyrighted**.\n\nWhat that means in practice: if you type a prompt into an AI music generator and it produces a fully finished song with vocals and instrumentation, and you did nothing else, you cannot definitively copyright that song. You do not own it in the traditional legal sense. Anyone could potentially use it.\n\nHowever, if you write the lyrics yourself, sing the vocals yourself, play the guitar yourself, and merely use AI to master the track, generate a cover art concept or brainstorm ideas, your underlying human authorship is fully protected. The AI was a tool in your process, not the creator.\n\n**The rule:** always maintain meaningful human creative control over the final output. Use AI to assist, not to replace. This protects you legally and keeps your art authentically yours.\n\n**Toolkit for Track 6.** ChatGPT and Claude have free tiers for ideation, drafting bios, marketing strategy and research. Lalal.ai has a free tier for high-quality stem separation. Canva AI and Leonardo.ai have free tiers for visual concept and cover art generation.",
+            "questions": [],
+            "assignment": {
+              "title": "Check Your AI Tool's Terms",
+              "instructions": "Review the terms of service of the AI tool you used in the previous lesson. Understand the specific commercial usage rights — can you use the generated image commercially? Do they claim any ownership? Summarise what you found before you publish anything made with it."
+            }
+          },
+          {
+            "title": "Track 6 Quiz",
+            "estMinutes": 5,
+            "content": "You have covered AI as a workflow tool, the audio and visual tooling available, and the legal limits. Answer the questions below to confirm you are ready for Track 7.",
+            "questions": [
+              {
+                "type": "single",
+                "prompt": "What is the recommended mindset for an independent artist regarding AI tools?",
+                "options": [
+                  { "id": "a", "text": "AI should produce the finished work so the artist can focus on promotion" },
+                  { "id": "b", "text": "AI is a workflow bridge and creative co-pilot that removes friction and amplifies human creativity, not a replacement for talent" },
+                  { "id": "c", "text": "AI should be avoided entirely as using it is cheating" },
+                  { "id": "d", "text": "AI is only useful for artists who cannot play an instrument" }
+                ],
+                "correct": ["b"],
+                "explanation": "Think of it like a calculator — it removes the tedious work so you can focus on the actual creative problem."
+              },
+              {
+                "type": "single",
+                "prompt": "What is the difference between AI-assisted and AI-generated creation?",
+                "options": [
+                  { "id": "a", "text": "AI-assisted uses paid tools; AI-generated uses free tools" },
+                  { "id": "b", "text": "AI-assisted means using AI as a tool within your own process; AI-generated means the AI produces the final output on its own" },
+                  { "id": "c", "text": "AI-assisted applies to visuals; AI-generated applies to audio" },
+                  { "id": "d", "text": "There is no meaningful difference between the two" }
+                ],
+                "correct": ["b"],
+                "explanation": "Assisted keeps you the author. Generated makes the output generic and legally vulnerable."
+              },
+              {
+                "type": "single",
+                "prompt": "Can you definitively copyright a song generated 100% by AI with no human authorship?",
+                "options": [
+                  { "id": "a", "text": "Yes, as long as you paid for the AI tool's commercial licence" },
+                  { "id": "b", "text": "Yes, because writing the prompt counts as authorship" },
+                  { "id": "c", "text": "No — under current frameworks in most major territories, only works created by a human author can be copyrighted" },
+                  { "id": "d", "text": "Yes, but only after registering it with a PRO" }
+                ],
+                "correct": ["c"],
+                "explanation": "Maintain meaningful human creative control over the final output, or you may not own it at all."
+              },
+              {
+                "type": "single",
+                "prompt": "Which of the following is a practical administrative use of AI for an artist?",
+                "options": [
+                  { "id": "a", "text": "Generating an entire finished album to release under your name" },
+                  { "id": "b", "text": "Drafting a press release or social captions from a bulleted list of facts about a new song" },
+                  { "id": "c", "text": "Replacing your PRO registration" },
+                  { "id": "d", "text": "Automatically negotiating your management contract" }
+                ],
+                "correct": ["b"],
+                "explanation": "Admin work — bios, press releases, captions, research — is exactly where AI removes the most friction."
+              },
+              {
+                "type": "single",
+                "prompt": "What does an AI stem separation tool do?",
+                "options": [
+                  { "id": "a", "text": "It isolates individual instruments such as vocals, drums or bass from a single mixed audio file" },
+                  { "id": "b", "text": "It removes background noise from a vocal recording" },
+                  { "id": "c", "text": "It generates new instrumental parts to add to your song" },
+                  { "id": "d", "text": "It converts audio files between formats for distribution" }
+                ],
+                "correct": ["a"],
+                "explanation": "Useful for acapellas, remixes, live backing tracks and sampling — work that used to take hours of expensive engineering."
+              }
+            ],
+            "assignment": null
+          }
+        ]
+      }
+    ]
+  },
+  "sourceFile": "SoundRig Skool - Full Course Content.docx (v4.0) / 06_Track_6_AI_in_Music.docx"
+}

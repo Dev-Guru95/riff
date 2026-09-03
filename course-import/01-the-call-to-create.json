@@ -1,0 +1,119 @@
+{
+  "course": {
+    "title": "Track 1: The Call to Create",
+    "description": "Establish the mindset required for success, understand how this course works, and define the ultimate goal of 1,000 true fans.",
+    "level": "beginner",
+    "objectives": [
+      "Understand the 1,000 True Fans model and the math of independence",
+      "Know how the Launchpad works and what you are building toward",
+      "Adopt the operating mindset of an Independent CEO"
+    ],
+    "durationText": "About 25 minutes",
+    "modules": [
+      {
+        "title": "Introduction & Roadmap",
+        "lessons": [
+          {
+            "title": "The 1,000 True Fans Philosophy",
+            "estMinutes": 8,
+            "content": "The modern music industry sells a very specific, very toxic dream: that success only looks like a million streams, a viral moment, and a massive record deal.\n\nBut if you look at the math, a million streams on a traditional streaming service might only pay out $3,000 to $4,000. And if you have a label, you are only seeing a fraction of that.\n\nThere is a better, more sustainable way. It is called the **1,000 True Fans** philosophy.\n\nA True Fan is someone who will buy anything you produce. They will drive 200 miles to see you sing. They will buy the super-deluxe re-issued vinyl. They will subscribe to your community.\n\nHere is the math of independence: if you have 1,000 True Fans, and each of them spends just $50 a year on your music, merchandise and experiences, you make **$50,000 a year**.\n\nYou do not need to appeal to everyone. You need to appeal deeply to a specific group of people. Your job as an independent artist is not to chase the algorithm; your job is to find your 1,000 people and serve them relentlessly.",
+            "questions": [],
+            "assignment": {
+              "title": "Define Your True Fan Avatar",
+              "instructions": "Write a one-paragraph description of the person who would buy everything you release. What do they care about? What other artists do they listen to? Where do they hang out online? Be specific — a vague avatar is the same as no avatar."
+            }
+          },
+          {
+            "title": "The Course Mechanics",
+            "estMinutes": 6,
+            "content": "Welcome to The Launchpad. Over the next 2 to 4 weeks, we are going to tear down the mystery of the music industry and give you the exact steps to build your career.\n\nThis is not a passive experience. This is a learn-by-doing ecosystem.\n\n**Your ultimate goal:** by the end of these 8 Tracks, you will have prepared a project — a single, an EP, an album, or even a tour — for a professional release.\n\nHere is how we get there.\n\n**Read and watch.** Consume the lesson material in Skool. Every lesson has a written guide and a video walkthrough.\n\n**Take action.** At the end of every lesson there is a specific action step. Submit your work here in RIFF for instant AI feedback.\n\n**Pass the quiz.** At the end of each Track, a short quiz here in RIFF confirms you have grasped the core concepts.\n\n**Unlock The Keys.** When you complete all 8 Tracks you graduate and unlock The Keys — your execution playbook, access to SoundRig distribution, and a discount to join our Pro community, The Lab.\n\nWe have provided a toolkit of free or low-cost resources in every Track so you can execute immediately without a large budget. No excuses.",
+            "questions": [],
+            "assignment": {
+              "title": "Commit to the Timeline",
+              "instructions": "Look at your calendar right now and schedule 3 hours a week dedicated solely to this course. Then choose the specific song or project you will focus on for this journey. Tell us which project you picked and which hours you have blocked out."
+            }
+          },
+          {
+            "title": "The Mindset of the Independent CEO",
+            "estMinutes": 8,
+            "content": "The greatest trap for an independent artist is believing that talent is enough. Talent gets you to the starting line. Execution wins the race.\n\nTo succeed, you must adopt the mindset of an **Independent CEO**. This requires a fundamental shift in how you operate: you must separate the creative process from the business process.\n\nWhen you are in **Creative Mode**, you must be vulnerable, open, and free from judgement. You cannot worry about algorithms, marketing budgets or playlists while you are writing a chorus. It will kill the art.\n\nBut when you are in **Business Mode**, you must be analytical, objective and relentless. You cannot take rejection personally when pitching a playlist. It is just data.\n\n**The golden rule of the CEO:** schedule your modes. Dedicate specific days or hours to creation, and completely separate times for administration and marketing. Monday and Tuesday might be studio days. Wednesday is your business day. Protect those boundaries like your career depends on it — because it does.\n\n**Toolkit for Track 1.** Notion (free) for organising goals, writing your fan avatar and project planning. Trello (free) for visual task boards to track your release timeline.",
+            "questions": [],
+            "assignment": {
+              "title": "Set Up Your Organisational System",
+              "instructions": "Create a simple task board with three columns: To Do, Doing, and Done. Add your first task: \"Choose my project song.\" Share a link or screenshot of your board."
+            }
+          },
+          {
+            "title": "Track 1 Quiz",
+            "estMinutes": 5,
+            "content": "You have covered the mindset, the mechanics, and the maths behind an independent career. Answer the questions below to confirm you are ready to move on to Track 2.",
+            "questions": [
+              {
+                "type": "single",
+                "prompt": "What is the core idea behind the \"1,000 True Fans\" philosophy?",
+                "options": [
+                  { "id": "a", "text": "You need at least a million streams before music can pay your bills" },
+                  { "id": "b", "text": "1,000 dedicated fans spending around $50 a year each can fund a sustainable career" },
+                  { "id": "c", "text": "Only artists signed to a major label can earn a living from music" },
+                  { "id": "d", "text": "Fan loyalty matters less than pleasing the streaming algorithm" }
+                ],
+                "correct": ["b"],
+                "explanation": "1,000 fans spending $50 a year each is $50,000 a year — a sustainable living without chasing millions of casual streams."
+              },
+              {
+                "type": "single",
+                "prompt": "What is the ultimate project goal you are working toward during The Launchpad?",
+                "options": [
+                  { "id": "a", "text": "Reaching 100,000 monthly listeners" },
+                  { "id": "b", "text": "Signing a record deal with a major label" },
+                  { "id": "c", "text": "Preparing a project — a single, EP, album or tour — for a professional release" },
+                  { "id": "d", "text": "Building an audience of 1,000 fans before releasing anything" }
+                ],
+                "correct": ["c"],
+                "explanation": "The Launchpad is built around one outcome: getting a real project release-ready."
+              },
+              {
+                "type": "single",
+                "prompt": "Why must an independent artist separate \"Creative Mode\" from \"Business Mode\"?",
+                "options": [
+                  { "id": "a", "text": "Tax rules require creative and business hours to be logged separately" },
+                  { "id": "b", "text": "They demand different energy and mindsets, and mixing them leads to burnout in both" },
+                  { "id": "c", "text": "Managers refuse to work with artists who handle their own marketing" },
+                  { "id": "d", "text": "Streaming platforms penalise artists who promote their own releases" }
+                ],
+                "correct": ["b"],
+                "explanation": "Being analytical about marketing while trying to be emotionally vulnerable in writing burns you out at both. Schedule your modes."
+              },
+              {
+                "type": "single",
+                "prompt": "What is a \"True Fan\" avatar?",
+                "options": [
+                  { "id": "a", "text": "The profile picture you use across your social channels" },
+                  { "id": "b", "text": "An AI-generated portrait of your typical listener" },
+                  { "id": "c", "text": "A detailed profile of the ideal listener who connects deeply with your brand and is likely to buy what you release" },
+                  { "id": "d", "text": "The average age and location of your streaming audience" }
+                ],
+                "correct": ["c"],
+                "explanation": "It is a written profile of the person most likely to buy everything you put out — used to focus every creative and marketing decision."
+              },
+              {
+                "type": "single",
+                "prompt": "How long is The Launchpad designed to take?",
+                "options": [
+                  { "id": "a", "text": "2 to 4 weeks" },
+                  { "id": "b", "text": "2 to 4 days" },
+                  { "id": "c", "text": "About 6 months" },
+                  { "id": "d", "text": "A full year" }
+                ],
+                "correct": ["a"],
+                "explanation": "Two to four weeks, working roughly 3 hours a week."
+              }
+            ],
+            "assignment": null
+          }
+        ]
+      }
+    ]
+  },
+  "sourceFile": "SoundRig Skool - Full Course Content.docx (v4.0) / 01_Track_1_The_Call_to_Create.docx"
+}

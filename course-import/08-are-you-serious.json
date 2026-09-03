@@ -1,0 +1,63 @@
+{
+  "course": {
+    "title": "Track 8: Are You Serious?",
+    "description": "The bridge to Pro — a motivational close, your graduation reward, and the invitation to The Lab.",
+    "level": "beginner",
+    "objectives": [
+      "Understand why consistency, not talent, separates professionals from hobbyists",
+      "Claim The Keys — your execution playbook and distribution access",
+      "Decide whether to continue into The Lab"
+    ],
+    "durationText": "About 20 minutes",
+    "modules": [
+      {
+        "title": "The Bridge to Pro",
+        "lessons": [
+          {
+            "title": "The Reality of Execution",
+            "estMinutes": 7,
+            "content": "You now possess more actionable industry knowledge than 90% of artists trying to build a career in music today. You understand copyright, distribution, marketing, AI workflows, community building, and the maths of 1,000 True Fans.\n\nBut knowledge without execution is just trivia.\n\nThe difference between hobbyists and professionals is not talent. It is **consistency**. Professionals do not wait for inspiration to strike; they rely on their systems. They show up on the days they do not feel like it. They treat setbacks — a rejected playlist pitch, a low-turnout show, a song that flops — as data, not as verdicts on their self-worth.\n\nYou will face rejection. You will have moments of doubt. You will compare yourself to artists who seem to be growing faster. This is normal. It is part of the path. The artists who succeed are simply the ones who did not quit.\n\nYou have prepared your project. You have the knowledge. You have the tools. Now it is time to launch it into the world.",
+            "questions": [],
+            "assignment": null
+          },
+          {
+            "title": "Claiming Your Reward",
+            "estMinutes": 6,
+            "content": "Congratulations on completing The Launchpad. You did not just passively consume information — you took the action steps. You defined your fan avatar. You mapped your arrangement. You prepared your metadata. You built your EPK. You are ready.\n\nYou have earned your reward: **The Keys**.\n\nThe Independent Artist Playbook is your execution manual. It contains your **8-Week Release Checklist**, a day-by-day operational guide for launching your project professionally. Your **Content Matrix**, with 30 days of pre-built social media content templates. Your **Pitch Templates**, fill-in-the-blank emails for curators and press. Your **Legal Templates**, ready-to-use split sheets and metadata trackers. And your **Fan Funnel Blueprint**, a visual guide to converting listeners into superfans.\n\nYou also now have full access to SoundRig Distribution to get your music out to the world.",
+            "questions": [],
+            "assignment": null
+          },
+          {
+            "title": "The Pro Artist Invitation",
+            "estMinutes": 6,
+            "content": "You have the playbook. You can absolutely execute this on your own. Many artists will, and they will succeed.\n\nBut the road is long, and doing it alone is hard. If you want accountability, advanced guides, and a community of serious artists walking the exact same path, it is time to enter **The Lab**.\n\nThe Lab is our Pro community. Inside you will find the **8-Week Release Challenge**, where you launch your project alongside peers with weekly feedback, accountability check-ins and mentor reviews — this is where your prepared project actually goes live. **Advanced playbooks** with deep dives into sync licensing, regional touring, geofenced marketing and crowdfunding. And **The Agency Builder**, a structured course teaching you to build your own artist management agency on SoundRig — scouting talent, managing their releases, and earning revenue overrides from their success.\n\nBecause you completed The Launchpad, you have proven you are serious. You have earned an exclusive discount on your first month in The Lab. This offer is only available to graduates.",
+            "questions": [],
+            "assignment": {
+              "title": "Claim The Keys and Decide",
+              "instructions": "Download The Keys and review the offer for The Lab. Then tell us: what is the single next action you are committing to this week to get your project released? Be specific and give it a date."
+            }
+          },
+          {
+            "title": "Track 8 Quiz",
+            "estMinutes": 2,
+            "content": "One question. This is not a knowledge check — it is a commitment to yourself. The real test begins now.",
+            "questions": [
+              {
+                "type": "single",
+                "prompt": "Are you ready to execute?",
+                "options": [
+                  { "id": "a", "text": "Yes — I have my project prepared and I am launching it." },
+                  { "id": "b", "text": "Not yet — I need to go back and finish my action steps first." }
+                ],
+                "correct": ["a"],
+                "explanation": "This is a commitment confirmation to yourself. You have the map. Now walk the road."
+              }
+            ],
+            "assignment": null
+          }
+        ]
+      }
+    ]
+  },
+  "sourceFile": "SoundRig Skool - Full Course Content.docx (v4.0) / 08_Track_8_Are_You_Serious.docx"
+}

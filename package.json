@@ -16,7 +16,8 @@
     "db:seed": "prisma db seed",
     "db:create-admin": "tsx prisma/create-admin.ts",
     "db:reset": "prisma migrate reset --force",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "db:import-tracks": "tsx prisma/import-tracks.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

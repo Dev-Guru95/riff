@@ -1,0 +1,117 @@
+{
+  "course": {
+    "title": "Track 2: The DNA of a Song",
+    "description": "Master the technical and creative steps required to produce a release-ready track, even with limited resources.",
+    "level": "beginner",
+    "objectives": [
+      "Arrange a song for retention in the streaming era",
+      "Capture clean, professional recordings without a professional studio",
+      "Understand the difference between mixing and mastering, and prepare a track for both"
+    ],
+    "durationText": "About 25 minutes",
+    "modules": [
+      {
+        "title": "Creation & Refinement",
+        "lessons": [
+          {
+            "title": "Arrangement and Structure",
+            "estMinutes": 8,
+            "content": "In the streaming era, attention spans are ruthlessly short. The average listener decides whether to skip a song within the first **7 to 10 seconds**. This means your song arrangement is not just a creative choice; it is a retention strategy.\n\nA modern, streaming-optimised arrangement often looks like this.\n\n**The hook or intro (0:00 to 0:10).** Do not wait 45 seconds to get to the point. Start with a memorable melodic element or drop straight into the chorus. The listener needs a reason to stay within the first few seconds.\n\n**Verse 1.** Keep it tight. Establish the story or the vibe without overstaying your welcome.\n\n**Pre-chorus.** Build the tension. Make the listener feel something big is coming.\n\n**Chorus.** The emotional payoff. Make it massive. This is the part they will remember.\n\n**Dynamic contrast.** Make sure the second verse feels different from the first — drop the drums out, add a new synth line, change the vocal delivery. Keep the ear engaged.\n\nYou want to reward repeated listening. Add subtle ear candy — a whisper in the background, an odd percussion hit, a harmony that appears only once — that people notice on the third or fourth listen. That is what turns a good song into an obsession.",
+            "questions": [],
+            "assignment": {
+              "title": "Map Your Arrangement",
+              "instructions": "Map out the arrangement of your chosen track. Listen to it critically. Are you getting to the hook fast enough? Label each section (Intro, Verse, Chorus, Bridge, Outro) and note the timestamp where each begins."
+            }
+          },
+          {
+            "title": "Recording Fundamentals",
+            "estMinutes": 8,
+            "content": "You do not need to rent a $1,000-a-day studio to capture a professional vocal or instrument take. Billie Eilish recorded her Grammy-winning debut album in a bedroom. You just need to understand the fundamentals of capturing clean audio.\n\n**Acoustic treatment beats expensive microphones.** A $3,000 microphone in an empty, echoey room sounds terrible. A $100 microphone in a closet full of clothes sounds professional. The room matters more than the gear. Dead air is your friend — hang blankets, record in a walk-in closet, or use a portable reflection filter behind the mic.\n\n**Microphone placement.** Stay about 6 to 8 inches from the mic. Sing slightly off-axis, not directly into the centre of the capsule, to reduce harshness. Use a pop filter to stop plosives — the harsh P and B sounds — from hitting the diaphragm.\n\n**Gain staging.** This is critical and non-negotiable. When recording into your interface or DAW, your levels should never hit the red at 0 dB. If it clips and distorts while recording, you cannot fix it later — no plugin in the world can undo digital clipping. Aim for your loudest peaks to land around **-12 dB to -6 dB**. That gives you clean headroom to work with in the mix.",
+            "questions": [],
+            "assignment": {
+              "title": "Record Your Final Takes",
+              "instructions": "Record your final vocal or instrument takes for your project using the techniques above. Focus on a clean, dry signal with no clipping. Do multiple takes and keep the best one. Upload the take or describe your setup and the peak levels you hit."
+            }
+          },
+          {
+            "title": "The Mix and The Master",
+            "estMinutes": 8,
+            "content": "These are two entirely different processes, and understanding the difference will save you money and headaches.\n\n**Mixing** is the art of balancing the individual tracks in your session. It is adjusting the volume of the vocals so they sit perfectly over the drums. It is adding EQ so the bass guitar and the kick drum do not fight for the same frequency space. It is adding reverb and delay to create depth. The goal of a mix is to make every element audible and to create an emotional experience.\n\n**Mastering** is the final polish applied to the single, stereo mixed file. A mastering engineer, or an AI tool, takes your finished mix and makes sure it is loud enough to compete with other songs, makes the tonal balance consistent from start to finish, and prepares the file technically for distribution.\n\nIf you are mixing your own music, you must leave headroom for mastering. When you bounce your final stereo mix, the loudest peak should not exceed **-6 dB**. That gives the mastering process room to add loudness without distortion.\n\nIf you cannot afford a professional mastering engineer — typically $50 to $200 per track — AI mastering tools have become genuinely powerful and can give you a competitive, release-ready master for free.\n\n**Toolkit for Track 2.** BandLab (free) is a full web and mobile DAW for recording, arranging and collaborating. Tracktion Waveform Free is a professional desktop DAW with no track limits. BandLab Mastering (free) is AI-powered mastering to finalise your track for distribution.",
+            "questions": [],
+            "assignment": {
+              "title": "Prepare Your Track for Mastering",
+              "instructions": "If you are mixing it yourself, bounce a stereo mix ensuring the peak volume leaves -6 dB of headroom. Run it through a free AI mastering service and compare the before and after. Describe what changed."
+            }
+          },
+          {
+            "title": "Track 2 Quiz",
+            "estMinutes": 5,
+            "content": "You have covered arrangement, recording technique, and the mix-and-master process. Answer the questions below to confirm you are ready for Track 3.",
+            "questions": [
+              {
+                "type": "single",
+                "prompt": "What is the primary difference between mixing and mastering?",
+                "options": [
+                  { "id": "a", "text": "Mixing balances the individual tracks into a cohesive stereo file; mastering polishes that final file so it is loud, clear and competitive" },
+                  { "id": "b", "text": "Mixing is done by the artist and mastering is done by the record label" },
+                  { "id": "c", "text": "Mixing applies effects and mastering removes them" },
+                  { "id": "d", "text": "They are two names for the same process" }
+                ],
+                "correct": ["a"],
+                "explanation": "Mixing is balance across many tracks. Mastering is the final polish on the single stereo file."
+              },
+              {
+                "type": "single",
+                "prompt": "Why is song arrangement so critical in the modern streaming era?",
+                "options": [
+                  { "id": "a", "text": "Streaming services reject songs longer than three minutes" },
+                  { "id": "b", "text": "The average listener decides whether to skip within the first 7 to 10 seconds" },
+                  { "id": "c", "text": "Playlists only accept songs with a standard verse-chorus structure" },
+                  { "id": "d", "text": "Royalties are calculated per section of the song" }
+                ],
+                "correct": ["b"],
+                "explanation": "You have roughly 7 to 10 seconds to earn the listener's attention, which makes early hooks and pacing a retention strategy."
+              },
+              {
+                "type": "single",
+                "prompt": "How much headroom should you leave on a mix before sending it to mastering?",
+                "options": [
+                  { "id": "a", "text": "0 dB — as loud as possible" },
+                  { "id": "b", "text": "-1 dB" },
+                  { "id": "c", "text": "-6 dB" },
+                  { "id": "d", "text": "-30 dB" }
+                ],
+                "correct": ["c"],
+                "explanation": "Peak at -6 dB so the mastering stage has room to add loudness without distorting."
+              },
+              {
+                "type": "truefalse",
+                "prompt": "True or false: you need a million-dollar studio to capture a professional vocal take.",
+                "options": [
+                  { "id": "a", "text": "True" },
+                  { "id": "b", "text": "False" }
+                ],
+                "correct": ["b"],
+                "explanation": "False. Proper mic placement, gain staging and basic acoustic treatment — even a closet full of clothes — can yield professional results."
+              },
+              {
+                "type": "single",
+                "prompt": "What is \"gain staging\"?",
+                "options": [
+                  { "id": "a", "text": "Managing audio levels at every stage of recording and mixing to prevent distortion and keep a clean signal" },
+                  { "id": "b", "text": "Arranging performers on a stage for a live show" },
+                  { "id": "c", "text": "Raising the final volume of a track during mastering" },
+                  { "id": "d", "text": "Choosing which microphone to use for each instrument" }
+                ],
+                "correct": ["a"],
+                "explanation": "Gain staging keeps levels healthy end to end. Once a signal clips on the way in, no plugin can undo it."
+              }
+            ],
+            "assignment": null
+          }
+        ]
+      }
+    ]
+  },
+  "sourceFile": "SoundRig Skool - Full Course Content.docx (v4.0) / 02_Track_2_The_DNA_of_a_Song.docx"
+}

@@ -1,0 +1,130 @@
+{
+  "course": {
+    "title": "Track 5: Marketing & PR",
+    "description": "Establish a professional digital footprint and learn to drive targeted traffic to your music without a budget.",
+    "level": "beginner",
+    "objectives": [
+      "Write an artist bio that hooks curators and fans",
+      "Build a digital home and EPK you actually own",
+      "Apply the 80/20 rule to social content",
+      "Pitch curators and press without getting deleted"
+    ],
+    "durationText": "About 35 minutes",
+    "modules": [
+      {
+        "title": "Finding Your Audience",
+        "lessons": [
+          {
+            "title": "The Artist Brand and Story",
+            "estMinutes": 8,
+            "content": "If you look at the most successful independent artists today, their music is incredible — but their **story** is what hooks the fans. Think about it: why do you follow certain artists on social media even when they have not released new music in months? Because you are invested in them as a person.\n\nYour brand is not just a logo or a colour palette. It is the narrative of who you are, what you stand for, and why you make music. It is the feeling people get when they interact with anything you put out.\n\nTo pitch yourself to curators, venues or fans, you need a professional artist biography. A good bio is not a chronological list of everything you have ever done. It is a compelling narrative.\n\n**The 3-part bio structure.**\n\n**The Hook** — who are you and what do you sound like? For example: \"Blending 90s grunge with modern hyperpop, [Artist] makes music for the generation that grew up on both Nirvana and 100 gecs.\"\n\n**The Journey** — what is the struggle, background or emotional truth that led to this release? For example: \"After two years of silence following a devastating loss, this EP is the sound of rebuilding.\"\n\n**The Authority** — what have you achieved? For example: \"Featured on Spotify's Fresh Finds, with 50,000 monthly listeners and a sold-out hometown show.\"\n\nIf you do not have achievements yet, focus on the emotion and the vision. Authenticity beats credentials every time.",
+            "questions": [],
+            "assignment": {
+              "title": "Write Your 150-Word Artist Bio",
+              "instructions": "Write a 150-word artist bio using the 3-part structure: Hook, Journey, Authority. Then select your primary press photo — it does not need to be a professional studio shoot, but it must be high-resolution, well-lit, and clearly show your aesthetic."
+            }
+          },
+          {
+            "title": "The Digital Home — Website & EPK",
+            "estMinutes": 8,
+            "content": "Relying solely on social media is dangerous. If a platform changes its algorithm tomorrow, gets banned in your country, or your account is hacked, you lose access to your audience instantly. You have zero control.\n\nYou need a centralised hub that you own and control. At a minimum, you need an **Electronic Press Kit**, or EPK — a one-page digital summary designed for industry professionals: playlist curators, bloggers, venue bookers and journalists.\n\nIt must include your music as embedded players rather than just links, so they can press play without leaving the page. Your 150-word bio. Two or three high-resolution press photos, downloadable in one click. Links to your social profiles. And direct contact information — a professional email address, not \"DM me on Instagram\".\n\nYou can build this for free using a link-in-bio tool, or a simple one-page website builder for a few dollars a year with a custom domain.",
+            "questions": [],
+            "assignment": {
+              "title": "Build Your EPK",
+              "instructions": "Build a basic one-page artist website or a comprehensive link-in-bio page that serves as your EPK. Include your bio, your music, your press photo and your contact email. Share the link so it can be reviewed."
+            }
+          },
+          {
+            "title": "Social Media Strategy",
+            "estMinutes": 8,
+            "content": "The biggest mistake artists make on social media is treating it like a billboard. If every post is an advertisement — \"Out now!\", \"Link in bio!\", \"Stream my new single!\" — your audience will tune you out. You become noise.\n\nYou must follow the **80/20 rule**.\n\n**80% value content.** Content that entertains, educates or inspires. Showing how you produced a beat from scratch. Telling the emotional story behind a lyric. Performing a raw, acoustic version in your kitchen. Reacting to fan covers. Sharing your failures and what you learned.\n\n**20% promotion.** Direct asks. Buy tickets to the show. Pre-save the single dropping Friday. New merch just dropped.\n\nRight now, short-form video is the most powerful organic discovery engine in the world for musicians. You do not need to dance. You do not need to follow trends. You just need to document your process authentically. People are fascinated by creation.",
+            "questions": [],
+            "assignment": {
+              "title": "Plan Three Posts for Release Week",
+              "instructions": "Plan three distinct social media posts for the week leading up to your release. Two must be value posts — behind the scenes of recording, the story behind the song, a snippet of the production process. One can be a promotion post such as the pre-save link or release announcement. Write the hook and the call to action for each."
+            }
+          },
+          {
+            "title": "Pitching and PR",
+            "estMinutes": 9,
+            "content": "Getting your music onto independent playlists and music blogs requires pitching. The optimal time to begin is **4 to 6 weeks before your release date**. That gives curators time to listen, consider, and schedule your song into rotation.\n\nWhen pitching by email, personalisation is everything. A generic, copy-pasted email is instantly recognisable and instantly deleted.\n\n**The perfect pitch formula.**\n\n**Personal greeting.** Use their actual name. \"Hi Sarah,\" not \"Dear Curator.\"\n\n**The proof.** Prove you actually listened to their playlist or read their blog. \"I loved your recent inclusion of [Artist] on the Late Night Vibes playlist — that track has been on repeat for me.\"\n\n**The pitch.** Explain exactly why your song fits that specific vibe. Two sentences maximum.\n\n**The link.** Provide a private streaming link. Do not attach MP3 files — they clog inboxes and get flagged as spam.\n\n**The close.** Thank them for their time. No pressure, no \"please reply ASAP\".\n\n**Toolkit for Track 5.** Linktree and Carrd have free tiers for building your EPK and digital home. Canva's free tier covers social graphics, cover art and promotional materials. SubmitHub and Daily Playlists offer free credits for discovering and pitching to independent curators and blogs.",
+            "questions": [],
+            "assignment": {
+              "title": "Draft Your Curator Pitch",
+              "instructions": "Identify five independent playlist curators or local music blogs that fit your genre. Find their submission email or contact details. Draft one personalised pitch email using the formula above, and save it as a template you can customise per curator. Submit the draft pitch."
+            }
+          },
+          {
+            "title": "Track 5 Quiz",
+            "estMinutes": 5,
+            "content": "You have covered brand, EPK, social strategy and pitching. Answer the questions below to confirm you are ready for Track 6.",
+            "questions": [
+              {
+                "type": "single",
+                "prompt": "What is the \"80/20 rule\" for an artist's social media strategy?",
+                "options": [
+                  { "id": "a", "text": "Spend 80% of your time making music and 20% marketing it" },
+                  { "id": "b", "text": "80% of your content should entertain, educate or inspire; only 20% should be direct promotion" },
+                  { "id": "c", "text": "Post 80% video and 20% still images" },
+                  { "id": "d", "text": "80% of your budget goes to ads and 20% to content production" }
+                ],
+                "correct": ["b"],
+                "explanation": "Treat social as value first. If every post is an advert, your audience tunes you out."
+              },
+              {
+                "type": "single",
+                "prompt": "Why is relying solely on social media platforms dangerous for your career?",
+                "options": [
+                  { "id": "a", "text": "Social platforms charge artists a commission on streaming royalties" },
+                  { "id": "b", "text": "You do not own the platform or the audience data, so an algorithm change can instantly cut off your reach" },
+                  { "id": "c", "text": "Curators refuse to sign artists who are active on social media" },
+                  { "id": "d", "text": "Posting too often causes streaming services to deprioritise your releases" }
+                ],
+                "correct": ["b"],
+                "explanation": "Social platforms are rented land. Your website and your email list are owned."
+              },
+              {
+                "type": "single",
+                "prompt": "What is an EPK?",
+                "options": [
+                  { "id": "a", "text": "An Electronic Press Kit — a one-page digital summary with your bio, photos, music and contact details for industry professionals" },
+                  { "id": "b", "text": "An Extended Play Kit — a bundle of unreleased demo tracks" },
+                  { "id": "c", "text": "An Exclusive Publishing Key used to register songs with a PRO" },
+                  { "id": "d", "text": "An Electronic Payment Konto used to receive royalties" }
+                ],
+                "correct": ["a"],
+                "explanation": "It exists so a curator, blogger or booker has everything they need in one place, without emailing you for it."
+              },
+              {
+                "type": "single",
+                "prompt": "When should you begin pitching a new release to independent curators and blogs?",
+                "options": [
+                  { "id": "a", "text": "The day the track goes live" },
+                  { "id": "b", "text": "One week before release" },
+                  { "id": "c", "text": "4 to 6 weeks before the release date" },
+                  { "id": "d", "text": "Six months after release, once it has traction" }
+                ],
+                "correct": ["c"],
+                "explanation": "Four to six weeks gives curators time to listen, decide and schedule your song into rotation."
+              },
+              {
+                "type": "single",
+                "prompt": "What is the most important element of a pitch email to a curator?",
+                "options": [
+                  { "id": "a", "text": "Attaching high-quality MP3 files so they can download the track immediately" },
+                  { "id": "b", "text": "A personal greeting and context proving you have actually listened to their specific playlist or blog" },
+                  { "id": "c", "text": "Listing your total monthly listener count in the subject line" },
+                  { "id": "d", "text": "Asking them to reply as soon as possible" }
+                ],
+                "correct": ["b"],
+                "explanation": "Personalisation is what separates an opened pitch from a deleted one. And never attach MP3s — they get flagged as spam."
+              }
+            ],
+            "assignment": null
+          }
+        ]
+      }
+    ]
+  },
+  "sourceFile": "SoundRig Skool - Full Course Content.docx (v4.0) / 05_Track_5_Marketing_PR.docx"
+}

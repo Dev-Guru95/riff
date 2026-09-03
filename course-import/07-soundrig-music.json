@@ -1,0 +1,119 @@
+{
+  "course": {
+    "title": "Track 7: SoundRig Music",
+    "description": "Onboard onto the SoundRig platform and understand the mechanics of the artist-first revenue model.",
+    "level": "beginner",
+    "objectives": [
+      "Understand why the legacy streaming model underpays independent artists",
+      "Set up your SoundRig artist profile and prepare your metadata",
+      "Drive your existing community to the platform where they can actually support you"
+    ],
+    "durationText": "About 25 minutes",
+    "modules": [
+      {
+        "title": "The New Ecosystem",
+        "lessons": [
+          {
+            "title": "The SoundRig Philosophy",
+            "estMinutes": 8,
+            "content": "The legacy streaming model was built to benefit major record labels, not independent artists. It operates on a pro-rata system, meaning all subscription money from all users goes into one giant pool and is paid out based on total global market share.\n\nHere is what that means for you. If your biggest fan pays $10 a month for a streaming subscription and listens to nothing but your music all month, their $10 does **not** go to you. It goes into the pool and gets distributed based on who has the most streams globally. Your fan's money effectively subsidises the biggest artists in the world.\n\nSoundRig reverses this entirely.\n\nSoundRig is built on a direct artist-to-fan monetisation model. When a fan supports you — by purchasing your TUN3Z, subscribing to your community, or engaging with your exclusive experiences — the money goes to you, directly.\n\nWe operate on a **70/20/10 split**. 70% goes directly to you, the artist, with no recoupment and no middlemen. 20% goes to the platform for hosting, development and infrastructure. 10% goes to a community treasury and social impact fund supporting the broader music ecosystem.\n\nSoundRig is not just a music player. It is a music experience platform where your 1,000 True Fans can interact with your art directly and fund your career on their terms.",
+            "questions": [],
+            "assignment": {
+              "title": "Create Your SoundRig Artist Profile",
+              "instructions": "Create your SoundRig artist profile. Fill out your bio using the one you wrote in Track 5, upload your high-resolution press photo, and explore the Artist Dashboard. Share what you set up and anything that still needs completing."
+            }
+          },
+          {
+            "title": "Uploading and TUN3Z",
+            "estMinutes": 8,
+            "content": "On SoundRig, your music is not a passive stream sitting in a library. It is a digital asset and an interactive experience. We call these assets **TUN3Z**.\n\nWhen you upload a track, you are creating something fans can collect, engage with and support directly. To do this correctly you must prepare your **metadata** — the embedded information that travels with your audio file and identifies it across every system.\n\nYour metadata must include the **song title**, exactly as it should appear, spelling checked, because this is permanent. Your **artist name** as it should appear publicly. The **genre** and sub-genre. The **ISRC code** — the International Standard Recording Code, a unique 12-character fingerprint for your specific recording, which your distributor generates for you or you obtain from your local ISRC agency. And **writer credits**, the legal names of everyone who contributed to the composition.\n\nSoundRig is also deeply integrated with **Telegram** and the TON ecosystem. This allows native, frictionless distribution directly to fans where they already chat, and enables seamless micro-transactions without the friction of traditional payment processors.",
+            "questions": [],
+            "assignment": {
+              "title": "Prepare Your Metadata Sheet",
+              "instructions": "Create a simple document or spreadsheet listing your song title, your legal name for writer credits, the genre, the BPM, the key, and any collaborator information. Having this ready before you upload saves time and prevents errors that are permanent once published."
+            }
+          },
+          {
+            "title": "Driving Your Community to SoundRig",
+            "estMinutes": 8,
+            "content": "The biggest mistake artists make is assuming a new platform will magically find fans for them. SoundRig is a powerful monetisation engine, but **you must bring your fans to it**.\n\nYou build your community where your fans already are. Telegram is our recommended priority — it supports groups, channels and seamless integration with the SoundRig ecosystem. But your fans might also be on WhatsApp, Instagram, Facebook or TikTok. Use the platforms that make sense for your audience.\n\nThe key principle: meet your fans where they are, not where you wish they were. A 16-year-old fan might live on TikTok. A 35-year-old might prefer WhatsApp or email. Build presence across the platforms that match your audience, then funnel them to SoundRig when they are ready to support you financially.\n\nAcross all of these, you must shift from **broadcasting** to **facilitating**.\n\nInstead of \"My new song is out now!\", try: \"I almost scrapped this song three times. Here is the voice memo of the first terrible version versus the final. What do you think changed?\"\n\nInstead of \"Buy tickets to my show!\", try: \"I am planning the setlist for Friday. Which three songs do you want to hear?\"\n\nInstead of \"New merch dropped!\", try: \"I am choosing between these two colourways for the new hoodie. Which one are you wearing?\"\n\nWhen fans feel part of the process — when their opinion matters and they have insider access — they become superfans. They stop being passive consumers and become active investors in your journey.\n\n**Toolkit for Track 7.** SoundRig.io is free and hosts the Artist Dashboard and TUN3Z marketplace. Tonkeeper is a free wallet for platform integration and payouts. Telegram is free and provides SoundRig app access and the native distribution network.",
+            "questions": [],
+            "assignment": {
+              "title": "Announce Your Move to Your Community",
+              "instructions": "Identify the two or three platforms where your fans are most active and set up or optimise your presence on each. Then write a message for those channels explaining why you are releasing your next project on SoundRig — for example, that it lets you own your art and give fans a better experience. Submit the draft message."
+            }
+          },
+          {
+            "title": "Track 7 Quiz",
+            "estMinutes": 5,
+            "content": "You have covered the SoundRig model, uploading and metadata, and how to bring your community across. Answer the questions below to confirm you are ready for Track 8.",
+            "questions": [
+              {
+                "type": "single",
+                "prompt": "What is the revenue split model on the SoundRig Music platform?",
+                "options": [
+                  { "id": "a", "text": "50/50 between the artist and the platform" },
+                  { "id": "b", "text": "70/20/10 — 70% to the artist, 20% to the platform, 10% to the community treasury and social impact fund" },
+                  { "id": "c", "text": "90/10 between the artist and the platform" },
+                  { "id": "d", "text": "60/30/10 — 60% to the artist, 30% to the label, 10% to the platform" }
+                ],
+                "correct": ["b"],
+                "explanation": "70% to you with no recoupment, 20% to the platform for infrastructure, 10% to the community treasury."
+              },
+              {
+                "type": "single",
+                "prompt": "What are TUN3Z on the SoundRig platform?",
+                "options": [
+                  { "id": "a", "text": "The platform's subscription tiers for fans" },
+                  { "id": "b", "text": "The in-app currency fans use to tip artists" },
+                  { "id": "c", "text": "The core digital music assets and experiences that artists upload and monetise" },
+                  { "id": "d", "text": "Automated playlists generated from listening history" }
+                ],
+                "correct": ["c"],
+                "explanation": "Your music becomes a collectable, interactive asset rather than a passive stream."
+              },
+              {
+                "type": "single",
+                "prompt": "How does SoundRig fundamentally differ from legacy streaming platforms?",
+                "options": [
+                  { "id": "a", "text": "It prioritises active fandom and direct artist-to-fan monetisation rather than fractions of a penny for passive streams" },
+                  { "id": "b", "text": "It pays a higher per-stream rate using the same pro-rata pool model" },
+                  { "id": "c", "text": "It only accepts artists signed to independent labels" },
+                  { "id": "d", "text": "It replaces distributors entirely so no metadata is required" }
+                ],
+                "correct": ["a"],
+                "explanation": "Under pro-rata, your fan's subscription subsidises the biggest artists. Direct monetisation sends their support to you."
+              },
+              {
+                "type": "single",
+                "prompt": "What is \"metadata\" in the context of uploading a track?",
+                "options": [
+                  { "id": "a", "text": "The audio waveform data used to generate previews" },
+                  { "id": "b", "text": "The embedded data identifying the track — song title, artist name, genre, ISRC code and writer credits" },
+                  { "id": "c", "text": "The listening statistics generated after release" },
+                  { "id": "d", "text": "The compression settings applied during mastering" }
+                ],
+                "correct": ["b"],
+                "explanation": "Get it right before you publish — much of it, like the title, is permanent once live."
+              },
+              {
+                "type": "single",
+                "prompt": "Which messaging application is deeply integrated into SoundRig's native distribution model?",
+                "options": [
+                  { "id": "a", "text": "WhatsApp" },
+                  { "id": "b", "text": "Discord" },
+                  { "id": "c", "text": "Telegram" },
+                  { "id": "d", "text": "Signal" }
+                ],
+                "correct": ["c"],
+                "explanation": "Telegram, alongside the TON ecosystem, enables native distribution and frictionless micro-transactions."
+              }
+            ],
+            "assignment": null
+          }
+        ]
+      }
+    ]
+  },
+  "sourceFile": "SoundRig Skool - Full Course Content.docx (v4.0) / 07_Track_7_SoundRig_Music.docx"
+}

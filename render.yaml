@@ -25,6 +25,13 @@ services:
     # build log is the only window into the deployed database. It is read-only
     # unless DB_RESET is set (see below).
     #
+    # `import-tracks` loads The Launchpad's 8 tracks from course-import/*.json.
+    # The numeric filename prefixes ARE the Skool order, so importing by filename
+    # is what keeps Riff's track order matching Skool by construction. Idempotent:
+    # a track already present (matched on slug) is skipped, never re-imported —
+    # re-importing would append "-2" to the slug and break every link published
+    # in Skool. Runs here because the free tier has no Shell to run it from.
+    #
     # `db seed` is idempotent (upserts / existence checks) and creates no user
     # accounts unless SEED_DEMO_USERS=true, so it is safe on every deploy. It
     # restores badges, missions, forums, coupons and the starter course after a
@@ -34,7 +41,7 @@ services:
     # ADMIN_PASSWORD are both set, so it is safe to leave here permanently.
     # Set both, deploy once, then clear them — re-setting them later doubles as
     # an admin password reset without ever putting the password in git.
-    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm exec prisma generate && pnpm run build && pnpm exec tsx prisma/db-doctor.ts && pnpm exec prisma migrate deploy && pnpm exec prisma db seed && pnpm exec tsx prisma/create-admin.ts
+    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm exec prisma generate && pnpm run build && pnpm exec tsx prisma/db-doctor.ts && pnpm exec prisma migrate deploy && pnpm exec prisma db seed && pnpm exec tsx prisma/import-tracks.ts && pnpm exec tsx prisma/create-admin.ts
 
     startCommand: pnpm run start
 

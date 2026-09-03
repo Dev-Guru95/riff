@@ -6,6 +6,7 @@ import { parseBody, ok, fail, tooMany } from "@/lib/api";
 import { rateLimit, LIMITS } from "@/lib/ratelimit";
 import { z } from "zod";
 import { parsedCourseSchema, validateCourse, countEntities } from "@/lib/import/types";
+import { createCourseFromParsed, uniqueSlug } from "@/lib/import/create-course";
 
 export const runtime = "nodejs";
 
@@ -29,64 +30,11 @@ export async function POST(req: Request) {
   if (errors.length) return fail("Import blocked — fix these issues first.", 422, { issues: errors });
 
   const slug = await uniqueSlug(course.title);
+  // Appended to the end of the program: a newly imported track is the next one
+  // in order until an admin moves it.
   const orderIndex = await prisma.course.count();
 
-  const created = await prisma.course.create({
-    data: {
-      slug,
-      title: course.title,
-      description: course.description || course.title,
-      level: course.level,
-      isPublished: false,
-      orderIndex,
-      modules: {
-        create: course.modules.map((m, mi) => ({
-          title: m.title,
-          orderIndex: mi,
-          lessons: {
-            create: m.lessons.map((l, li) => {
-              // Keep only structurally valid quiz questions (≥2 options, ≥1 valid correct id).
-              const validQs = l.questions.filter((q) => {
-                const ids = new Set(q.options.map((o) => o.id));
-                return q.options.length >= 2 && q.correct.length >= 1 && q.correct.every((c) => ids.has(c));
-              });
-              return {
-                title: l.title,
-                content: l.content,
-                estMinutes: l.estMinutes,
-                orderIndex: li,
-                ...(validQs.length && {
-                  quiz: {
-                    create: {
-                      questions: {
-                        create: validQs.map((q, qi) => ({
-                          type: q.type === "truefalse" ? "truefalse" : q.correct.length > 1 ? "multi" : "single",
-                          prompt: q.prompt,
-                          options: JSON.stringify(q.options),
-                          correct: JSON.stringify(q.correct),
-                          explanation: q.explanation,
-                          orderIndex: qi,
-                        })),
-                      },
-                    },
-                  },
-                }),
-                ...(l.assignment && {
-                  assignment: {
-                    create: {
-                      title: l.assignment.title,
-                      instructions: l.assignment.instructions,
-                      rubric: JSON.stringify([]),
-                    },
-                  },
-                }),
-              };
-            }),
-          },
-        })),
-      },
-    },
-  });
+  const created = await createCourseFromParsed(course, { slug, orderIndex });
 
   const counts = countEntities(course);
   await writeAudit(session.id, "course.import", "course", created.id, {
@@ -96,24 +44,4 @@ export async function POST(req: Request) {
   });
 
   return ok({ id: created.id, slug: created.slug, title: created.title, counts }, 201);
-}
-
-function slugify(s: string): string {
-  return (
-    s
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "")
-      .slice(0, 60) || "course"
-  );
-}
-
-async function uniqueSlug(title: string): Promise<string> {
-  const base = slugify(title);
-  let slug = base;
-  let n = 1;
-  while (await prisma.course.findUnique({ where: { slug } })) {
-    slug = `${base}-${++n}`;
-  }
-  return slug;
 }

@@ -7,7 +7,9 @@ export default async function CoursesPage() {
   const session = (await getSession())!;
   const courses = await prisma.course.findMany({
     where: { isPublished: true },
-    orderBy: { orderIndex: "asc" },
+    // slug is the tiebreaker so two courses sharing an orderIndex (the seeded
+    // demo course ties with Track 1) still list in a stable, repeatable order.
+    orderBy: [{ orderIndex: "asc" }, { slug: "asc" }],
     include: {
       modules: { include: { lessons: { select: { id: true } } } },
       enrollments: { where: { userId: session.id } },

@@ -1,0 +1,119 @@
+{
+  "course": {
+    "title": "Track 4: Revenue Centers",
+    "description": "Understand how money actually flows in the modern music ecosystem, and set up the infrastructure to capture it.",
+    "level": "beginner",
+    "objectives": [
+      "Choose a distributor that does not hold your catalogue hostage",
+      "Launch merchandise with zero inventory and zero upfront risk",
+      "Understand live show economics and why fan data matters more than the fee"
+    ],
+    "durationText": "About 25 minutes",
+    "modules": [
+      {
+        "title": "Building the Income Engine",
+        "lessons": [
+          {
+            "title": "The Distribution Landscape",
+            "estMinutes": 8,
+            "content": "To get your music onto Digital Service Providers like Spotify, Apple Music, Amazon Music and TikTok, you must use a **distributor**, also called an aggregator. A distributor is the middleman that delivers your audio files and metadata to the streaming platforms.\n\nFor years, artists relied on legacy distributors that charged annual fees. If you stopped paying the yearly fee, they pulled your music off the internet. Your entire catalogue could vanish overnight because you missed a $20 payment.\n\nToday the model has evolved. We advocate for artist-first platforms that do not hold your music hostage.\n\n**Unchained Music** is a decentralised, Web3-native distributor that delivers to 220+ DSPs globally, and you keep 100% of your royalties. No annual fees, no hidden costs, and your music stays up permanently.\n\n**SoundRig Music**, which we cover deeply in Track 7, is a new ecosystem acting as a direct monetisation and music experience platform, with a 70/20/10 split that puts the artist first.\n\nThe key takeaway is that you have options now. You do not have to accept the old model where middlemen take a cut of your earnings for simply pressing upload.",
+            "questions": [],
+            "assignment": {
+              "title": "Set Up Your Distribution Pipeline",
+              "instructions": "Create a free account with an artist-first distributor to prepare your DSP distribution pipeline for release. Explore the dashboard and familiarise yourself with the upload requirements — file formats, artwork dimensions, and metadata fields. Note anything you still need to prepare."
+            }
+          },
+          {
+            "title": "Merchandising Without Inventory",
+            "estMinutes": 8,
+            "content": "Merchandise is one of the highest-margin revenue centres for an independent artist. A t-shirt that costs $5 to produce can sell for $30 — a $25 profit per unit. But historically merchandising required thousands of dollars upfront to print boxes of inventory that might never sell.\n\nEnter **print-on-demand**.\n\nWith platforms like Printful or Printify, you upload your design to a blank product — t-shirt, hoodie, mug, poster, phone case — digitally. You list it on your website or online store. When a fan buys the shirt for $30, the print-on-demand company prints that single shirt, packages it, ships it directly to the fan, and keeps their base cost of roughly $12 to $15. You keep the margin.\n\nYou carry zero inventory, handle zero shipping, and take zero financial risk. If nobody buys, you lose nothing. If it goes viral, the supplier scales production automatically.",
+            "questions": [],
+            "assignment": {
+              "title": "Design Your First Piece of Merch",
+              "instructions": "Create a free account on a print-on-demand platform. Design one simple piece of merchandise — even just your artist name or logo on a black shirt — related to your upcoming release. Share the mockup and the price you would sell it at, along with your margin."
+            }
+          },
+          {
+            "title": "Live Shows and Ticketing",
+            "estMinutes": 8,
+            "content": "Playing live is where casual listeners become True Fans. There is something irreplaceable about a shared, in-person experience. But booking shows requires understanding the financial language of venues.\n\n**The guarantee.** The venue agrees to pay you a flat, fixed fee — say $200 or $500 — regardless of how many people show up. This is rare for new artists and usually reserved for acts that can demonstrably draw a crowd.\n\n**The door split.** You take a percentage of the actual ticket sales at the door. A common structure is that the venue covers the sound engineer's cost off the top, then you split the remaining ticket revenue, often 70% to the artist and 30% to the venue. This is the standard for independent artists starting out.\n\n**The golden rule of live shows:** never leave the venue without collecting data. Put a clipboard at the merch table, display a QR code on stage, or keep a tablet at the door. Collect email addresses or phone numbers. A streaming follower is rented — you are at the mercy of an algorithm. An email address is owned. You can contact that fan directly, forever, for free.\n\n**Toolkit for Track 4.** Unchained Music has a free tier with 100% royalty retention across 220+ DSPs. Printful and Printify offer print-on-demand fulfilment with zero upfront cost. Bandsintown for Artists is free for tour date promotion and automatic fan notifications.",
+            "questions": [],
+            "assignment": {
+              "title": "Research Three Local Venues",
+              "instructions": "Research three local venues in your city that book artists at your current level — open mics, small bars, DIY spaces. Find the name and email address of the booking agent or promoter for each. List them, along with what kind of deal each typically offers."
+            }
+          },
+          {
+            "title": "Track 4 Quiz",
+            "estMinutes": 5,
+            "content": "You have covered distribution, merchandising and live show economics. Answer the questions below to confirm you are ready for Track 5.",
+            "questions": [
+              {
+                "type": "single",
+                "prompt": "What is the main advantage of an artist-first distributor over a legacy aggregator?",
+                "options": [
+                  { "id": "a", "text": "It guarantees playlist placement on Spotify" },
+                  { "id": "b", "text": "You retain 100% of your royalties and your music is not removed if you stop paying an annual fee" },
+                  { "id": "c", "text": "It masters your tracks for free before release" },
+                  { "id": "d", "text": "It registers your songs with a PRO automatically" }
+                ],
+                "correct": ["b"],
+                "explanation": "Legacy distributors charge annually and pull your catalogue if you stop paying. Artist-first platforms keep your music up permanently and let you keep your royalties."
+              },
+              {
+                "type": "single",
+                "prompt": "How does a print-on-demand merchandise model work?",
+                "options": [
+                  { "id": "a", "text": "You buy inventory in bulk at a discount and store it yourself" },
+                  { "id": "b", "text": "The venue prints and sells your merchandise on your behalf" },
+                  { "id": "c", "text": "You design and list the product, and it is only printed and shipped by a supplier after a fan buys it" },
+                  { "id": "d", "text": "Fans design their own merchandise using your logo" }
+                ],
+                "correct": ["c"],
+                "explanation": "Nothing is printed until a sale happens, so you carry no inventory, no shipping burden, and no financial risk."
+              },
+              {
+                "type": "single",
+                "prompt": "In live booking, what is the difference between a \"guarantee\" and a \"door split\"?",
+                "options": [
+                  { "id": "a", "text": "A guarantee is a fixed fee paid regardless of attendance; a door split is a percentage of actual ticket sales" },
+                  { "id": "b", "text": "A guarantee covers travel costs; a door split covers accommodation" },
+                  { "id": "c", "text": "A guarantee applies to festivals; a door split applies to arenas" },
+                  { "id": "d", "text": "A guarantee is paid by the promoter; a door split is paid by the audience directly" }
+                ],
+                "correct": ["a"],
+                "explanation": "Guarantees are rare for new artists. Door splits — often 70/30 in the artist's favour after sound costs — are the usual starting point."
+              },
+              {
+                "type": "single",
+                "prompt": "Why is it critical to collect email addresses or phone numbers at live shows?",
+                "options": [
+                  { "id": "a", "text": "Venues require an attendee list for licensing purposes" },
+                  { "id": "b", "text": "It lets you own your audience data and contact fans directly, rather than depending on an algorithm to reach them" },
+                  { "id": "c", "text": "PROs need it to calculate your performance royalties" },
+                  { "id": "d", "text": "It is needed to claim merchandise sales tax" }
+                ],
+                "correct": ["b"],
+                "explanation": "A streaming follower is rented. An email address is owned — you can reach that fan directly, forever, for free."
+              },
+              {
+                "type": "single",
+                "prompt": "Which of the following is NOT a revenue centre for an independent artist?",
+                "options": [
+                  { "id": "a", "text": "Merchandise sales" },
+                  { "id": "b", "text": "Live performance fees" },
+                  { "id": "c", "text": "A split sheet" },
+                  { "id": "d", "text": "Streaming royalties" }
+                ],
+                "correct": ["c"],
+                "explanation": "A split sheet defines ownership percentages. It protects revenue but does not generate any."
+              }
+            ],
+            "assignment": null
+          }
+        ]
+      }
+    ]
+  },
+  "sourceFile": "SoundRig Skool - Full Course Content.docx (v4.0) / 04_Track_4_Revenue_Centers.docx"
+}
