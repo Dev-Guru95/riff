@@ -35,6 +35,8 @@ import { chainTrackReturns } from "../src/lib/returnLink";
 const prisma = new PrismaClient();
 const IMPORT_DIR = path.join(process.cwd(), "course-import");
 const REPUBLISH = process.argv.includes("--republish");
+/** The seed's sample course, superseded by the real Launchpad tracks. */
+const RETIRED_PLACEHOLDER_SLUG = "marketing-foundations";
 
 async function main() {
   if (!fs.existsSync(IMPORT_DIR)) {
@@ -115,11 +117,14 @@ async function main() {
   console.log("Published track order:");
   for (const c of published) console.log(`  ${c.orderIndex}. ${c.title}  →  /courses/${c.slug}`);
 
-  // The seed's demo course ("Music Marketing Foundations") also sits at
-  // orderIndex 0, so it ties with Track 1 and appears in the catalogue beside
-  // the real program. Reported rather than silently unpublished: what learners
-  // can see is a content decision, not this script's call to make.
-  const strays = published.filter((c) => !trackSlugs.has(c.slug));
+  await retirePlaceholderCourse(published.length, trackSlugs.size);
+
+  // Any OTHER non-Launchpad course is reported, never touched: an admin may have
+  // published it deliberately, and silently hiding someone's course would be a
+  // content decision this script has no business making.
+  const strays = published.filter(
+    (c) => !trackSlugs.has(c.slug) && c.slug !== RETIRED_PLACEHOLDER_SLUG,
+  );
   if (strays.length) {
     console.warn(
       `\n⚠  ${strays.length} published course(s) are not Launchpad tracks and will appear` +
@@ -201,6 +206,48 @@ function orderedTrackSlugs(): string[] {
     .filter((f) => /^\d+-.*\.json$/.test(f))
     .sort()
     .map((f) => slugify(JSON.parse(fs.readFileSync(path.join(IMPORT_DIR, f), "utf-8")).course.title));
+}
+
+/**
+ * Retire the seeded placeholder course, "Music Marketing Foundations".
+ *
+ * It existed only while the real tracks had no content, and it is not part of
+ * the program. Leaving it published is not merely untidy: the program
+ * certificate requires completing EVERY published course, so it silently makes
+ * the program nine tracks long and blocks certification for artists who have
+ * finished all eight.
+ *
+ * Unpublished, never deleted — enrolments, progress and XP survive, and an
+ * admin can republish it in one click if it is ever wanted again.
+ *
+ * Guarded on the full program being present so this can never empty the
+ * catalogue: if the tracks failed to import, the placeholder stays up as the
+ * only thing an artist can see.
+ */
+async function retirePlaceholderCourse(publishedCount: number, expectedTracks: number): Promise<void> {
+  const placeholder = await prisma.course.findUnique({
+    where: { slug: RETIRED_PLACEHOLDER_SLUG },
+    select: { isPublished: true, title: true },
+  });
+  if (!placeholder || !placeholder.isPublished) return;
+
+  // publishedCount includes the placeholder itself, hence the +1.
+  if (publishedCount < expectedTracks + 1) {
+    console.warn(
+      `\n⚠  Not retiring "${placeholder.title}": only ${publishedCount - 1} of ${expectedTracks}` +
+        " tracks are published, and hiding it now would leave artists with an empty catalogue.",
+    );
+    return;
+  }
+
+  await prisma.course.update({
+    where: { slug: RETIRED_PLACEHOLDER_SLUG },
+    data: { isPublished: false },
+  });
+  console.log(
+    `\n✓ Retired the placeholder course "${placeholder.title}" (unpublished, not deleted).` +
+      "\n  The program is now the 8 Launchpad tracks, which is what the certificate counts.",
+  );
 }
 
 main()

@@ -46,7 +46,14 @@ async function main() {
     if (!exists) await prisma.mission.create({ data: m });
   }
 
-  // ---- Course: Music Marketing Foundations ----
+  // ---- Course: Music Marketing Foundations (RETIRED placeholder) ----
+  // This sample course existed only while the real Launchpad tracks had no
+  // content. They now ship in course-import/, so it is created UNPUBLISHED: it
+  // is not part of the program, and a published course counts toward the
+  // program certificate (issueProgramCertificate requires EVERY published
+  // course), so leaving it visible would silently make the program nine tracks
+  // long. The rows are kept rather than deleted so any existing progress and
+  // enrolments survive. import-tracks retires an already-published copy.
   const existing = await prisma.course.findUnique({ where: { slug: "marketing-foundations" } });
   if (!existing) {
     const course = await prisma.course.create({
@@ -55,7 +62,7 @@ async function main() {
         title: "Music Marketing Foundations",
         description: "Build the brand, content, and release habits that grow an independent artist career.",
         level: "beginner",
-        isPublished: true,
+        isPublished: false,
         orderIndex: 0,
       },
     });
