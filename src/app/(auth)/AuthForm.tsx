@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { readReferralCookie } from "@/components/ReferralCapture";
 
-export function AuthForm({ mode }: { mode: "login" | "signup" }) {
+export function AuthForm({ mode, next }: { mode: "login" | "signup"; next?: string | null }) {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -41,7 +41,8 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
       return;
     }
     if (res.ok) {
-      router.push("/dashboard");
+      // `next` is already validated as a same-site path by safeNextPath().
+      router.push(next ?? "/dashboard");
       router.refresh();
     } else {
       setError(data.error ?? "Something went wrong");
@@ -95,9 +96,9 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
 
         <p className="text-sm text-[var(--muted)] mt-5 text-center">
           {mode === "login" ? (
-            <>No account? <Link href="/signup" className="text-[var(--accent)]">Sign up</Link></>
+            <>No account? <Link href={next ? `/signup?next=${encodeURIComponent(next)}` : "/signup"} className="text-[var(--accent)]">Sign up</Link></>
           ) : (
-            <>Already have one? <Link href="/login" className="text-[var(--accent)]">Log in</Link></>
+            <>Already have one? <Link href={next ? `/login?next=${encodeURIComponent(next)}` : "/login"} className="text-[var(--accent)]">Log in</Link></>
           )}
         </p>
       </div>

@@ -19,7 +19,16 @@ export default async function AdminUsers({ searchParams }: { searchParams: Promi
       orderBy: pendingOnly ? { skoolRequestedAt: "asc" } : { createdAt: "desc" },
       skip: (page - 1) * PAGE_SIZE,
       take: PAGE_SIZE + 1,
-      include: { profile: { select: { stageName: true } }, level: { select: { totalXp: true } } },
+      include: {
+        profile: { select: { stageName: true } },
+        level: { select: { totalXp: true } },
+        // Riff-side progress, so a Skool admin can judge whether an artist is
+        // actually working the program before changing their tier or access.
+        subscription: { select: { plan: true, status: true } },
+        streak: { select: { currentLen: true } },
+        _count: { select: { badges: true } },
+        enrollments: { select: { completedAt: true } },
+      },
       // skoolMember / skoolRequestedAt are scalars — returned implicitly with the row.
     }),
     prisma.user.count({ where: { skoolRequestedAt: { not: null }, skoolMember: false } }),
@@ -51,21 +60,45 @@ export default async function AdminUsers({ searchParams }: { searchParams: Promi
       </form>
 
       <div className="card overflow-hidden">
-        <div className="grid grid-cols-[1fr_6rem_4rem_5rem_13rem] gap-2 px-4 py-2 text-xs text-[var(--muted)] border-b border-[var(--border)]">
-          <span>User</span><span>Role</span><span className="text-right">XP</span><span>Status</span><span className="text-right">Actions</span>
+        <div className="grid grid-cols-[1fr_5rem_5rem_3.5rem_3rem_3rem_4.5rem_13rem] gap-2 px-4 py-2 text-xs text-[var(--muted)] border-b border-[var(--border)]">
+          <span>User</span><span>Role</span><span>Tier</span><span className="text-right">XP</span>
+          <span className="text-right" title="Tracks completed">Trk</span>
+          <span className="text-right" title="Badges earned">Bdg</span>
+          <span className="text-right" title="Current day streak">Streak</span>
+          <span className="text-right">Actions</span>
         </div>
-        {pageUsers.map((u) => (
-          <div key={u.id} className="grid grid-cols-[1fr_6rem_4rem_5rem_13rem] gap-2 px-4 py-3 text-sm border-b border-[var(--border)] last:border-0 items-center">
-            <div className="truncate">
-              <div className="font-medium truncate">{u.profile?.stageName ?? u.email.split("@")[0]}</div>
-              <div className="text-xs text-[var(--muted)] truncate">{u.email}</div>
+        {pageUsers.map((u) => {
+          const plan = u.subscription?.plan ?? "free";
+          const tracksDone = u.enrollments.filter((e) => e.completedAt !== null).length;
+          return (
+            <div key={u.id} className="grid grid-cols-[1fr_5rem_5rem_3.5rem_3rem_3rem_4.5rem_13rem] gap-2 px-4 py-3 text-sm border-b border-[var(--border)] last:border-0 items-center">
+              <div className="truncate">
+                <div className="font-medium truncate">{u.profile?.stageName ?? u.email.split("@")[0]}</div>
+                <div className="text-xs text-[var(--muted)] truncate">{u.email}</div>
+                <div className="text-xs">
+                  <span className={u.status === "active" ? "text-[var(--success)]" : "text-[var(--brand-2)]"}>{u.status}</span>
+                  {u.skoolMember && <span className="text-[var(--accent)]"> · Skool</span>}
+                </div>
+              </div>
+              <span className="text-xs">{u.role}</span>
+              <span className={`text-xs font-medium ${plan === "free" ? "text-[var(--muted)]" : "text-[var(--brand)]"}`}>{plan}</span>
+              <span className="text-right tabular-nums">{u.level?.totalXp ?? 0}</span>
+              <span className="text-right tabular-nums">{tracksDone}</span>
+              <span className="text-right tabular-nums">{u._count.badges}</span>
+              <span className="text-right tabular-nums">{u.streak?.currentLen ?? 0}</span>
+              <div className="text-right">
+                <UserActions
+                  id={u.id}
+                  status={u.status}
+                  role={u.role}
+                  plan={plan}
+                  skoolMember={u.skoolMember}
+                  requested={!!u.skoolRequestedAt}
+                />
+              </div>
             </div>
-            <span className="text-xs">{u.role}</span>
-            <span className="text-right">{u.level?.totalXp ?? 0}</span>
-            <span className={`text-xs ${u.status === "active" ? "text-[var(--success)]" : "text-[var(--brand-2)]"}`}>{u.status}</span>
-            <div className="text-right"><UserActions id={u.id} status={u.status} role={u.role} skoolMember={u.skoolMember} requested={!!u.skoolRequestedAt} /></div>
-          </div>
-        ))}
+          );
+        })}
         {pageUsers.length === 0 && <div className="px-4 py-6 text-center text-[var(--muted)] text-sm">No users found.</div>}
       </div>
       <Pagination basePath="/admin/users" page={page} hasNext={hasNext} params={{ q }} />

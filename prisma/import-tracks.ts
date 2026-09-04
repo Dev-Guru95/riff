@@ -96,7 +96,12 @@ async function main() {
 
     // Published on import: an unpublished track is invisible in the catalogue,
     // and the whole point is that the Skool link has somewhere real to land.
-    await createCourseFromParsed(parsed.data, { slug, orderIndex: i, isPublished: true });
+    await createCourseFromParsed(parsed.data, {
+      slug,
+      orderIndex: i,
+      isPublished: true,
+      stripLessonContent: true,
+    });
     created++;
     console.log(`  + ${slug} (order ${i})`);
   }
@@ -117,6 +122,7 @@ async function main() {
   console.log("Published track order:");
   for (const c of published) console.log(`  ${c.orderIndex}. ${c.title}  →  /courses/${c.slug}`);
 
+  await stripTeachingText([...trackSlugs]);
   await retirePlaceholderCourse(published.length, trackSlugs.size);
 
   // Any OTHER non-Launchpad course is reported, never touched: an admin may have
@@ -206,6 +212,34 @@ function orderedTrackSlugs(): string[] {
     .filter((f) => /^\d+-.*\.json$/.test(f))
     .sort()
     .map((f) => slugify(JSON.parse(fs.readFileSync(path.join(IMPORT_DIR, f), "utf-8")).course.title));
+}
+
+/**
+ * Clear the Skool teaching text out of tracks that were imported with it.
+ *
+ * The first bulk import carried the lesson prose across, making Riff a mirror of
+ * Skool — the same paragraphs in two places, to be corrected in two places, and
+ * a learner reading the lesson twice. Riff holds the quizzes, the action steps
+ * and the points; the teaching stays in Skool.
+ *
+ * Scoped to Launchpad tracks by slug, so a course an admin uploaded through the
+ * import screen keeps its content. Idempotent: only rows that still have text
+ * are touched, so a normal deploy is a no-op.
+ */
+async function stripTeachingText(trackSlugs: string[]): Promise<void> {
+  const res = await prisma.lesson.updateMany({
+    where: {
+      module: { course: { slug: { in: trackSlugs } } },
+      NOT: { content: "" },
+    },
+    data: { content: "" },
+  });
+  if (res.count > 0) {
+    console.log(
+      `\n✓ Cleared duplicated Skool teaching text from ${res.count} lesson(s).` +
+        "\n  Riff now shows only the quiz and action steps for these tracks.",
+    );
+  }
 }
 
 /**

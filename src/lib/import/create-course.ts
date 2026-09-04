@@ -39,6 +39,16 @@ export type CreateCourseOptions = {
   /** Position in the program. Drives track order everywhere it is displayed. */
   orderIndex: number;
   isPublished?: boolean;
+  /**
+   * Drop the lesson prose, keeping only the quizzes and action steps.
+   *
+   * The Launchpad is taught in Skool and assessed here. Importing the teaching
+   * text as well made Riff a mirror of Skool — the same words in two places, to
+   * be corrected in two places. Set for the bulk track import; left off for the
+   * admin upload route, where an admin importing a standalone course does want
+   * its content.
+   */
+  stripLessonContent?: boolean;
 };
 
 export async function createCourseFromParsed(course: ParsedCourse, opts: CreateCourseOptions) {
@@ -63,7 +73,7 @@ export async function createCourseFromParsed(course: ParsedCourse, opts: CreateC
               });
               return {
                 title: l.title,
-                content: l.content,
+                content: opts.stripLessonContent ? "" : l.content,
                 estMinutes: l.estMinutes,
                 orderIndex: li,
                 ...(validQs.length && {

@@ -3,7 +3,21 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-export function UserActions({ id, status, role, skoolMember, requested }: { id: string; status: string; role: string; skoolMember: boolean; requested: boolean }) {
+export function UserActions({
+  id,
+  status,
+  role,
+  plan,
+  skoolMember,
+  requested,
+}: {
+  id: string;
+  status: string;
+  role: string;
+  plan: string;
+  skoolMember: boolean;
+  requested: boolean;
+}) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
@@ -20,6 +34,19 @@ export function UserActions({ id, status, role, skoolMember, requested }: { id: 
 
   return (
     <div className="flex gap-1 justify-end items-center">
+      {/* Tier, granted by hand. Writes straight to the subscription — no Stripe
+          charge — so an artist can be comped or moved between free and paid. */}
+      <select
+        className="bg-[var(--surface-2)] border border-[var(--border)] rounded-md text-xs px-1 py-1 outline-none"
+        value={plan}
+        disabled={loading}
+        onChange={(e) => patch({ plan: e.target.value })}
+        title="Change tier (no payment taken)"
+      >
+        <option value="free">free</option>
+        <option value="pro">pro</option>
+        <option value="premium">premium</option>
+      </select>
       <select
         className="bg-[var(--surface-2)] border border-[var(--border)] rounded-md text-xs px-1 py-1 outline-none"
         value={role}

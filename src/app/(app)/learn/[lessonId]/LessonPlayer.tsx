@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { TrackReturnButton } from "@/components/TrackReturnLink";
@@ -38,12 +38,43 @@ export function LessonPlayer({
   /** Set only on the final lesson of a track — hands the learner back to Skool. */
   returnLink?: TrackReturnLink | null;
 }) {
-  const [step, setStep] = useState<Step>("read");
+  const router = useRouter();
+  // Skool teaches; Riff assesses. Tracks imported under that split carry no
+  // lesson prose, so there is nothing to read and the artist should land
+  // straight on the task their Skool link sent them here to do.
+  const hasReading = lesson.content.trim().length > 0;
+  const [step, setStep] = useState<Step>(
+    hasReading ? "read" : quiz ? "quiz" : assignment ? "assignment" : "done",
+  );
   const [toast, setToast] = useState<string | null>(null);
+  const completed = useRef(false);
 
   function flash(msg: string) {
     setToast(msg);
     setTimeout(() => setToast(null), 3500);
+  }
+
+  /**
+   * Finish the lesson and show the completion screen.
+   *
+   * Completion used to be a side effect of the "Complete lesson" button on the
+   * reading step. With the prose gone that button no longer exists, so without
+   * this a stripped lesson could be fully answered and still never count —
+   * freezing track progress, XP and the certificate. The POST is idempotent
+   * (XP dedupes on refId), and the ref just avoids a pointless second call.
+   */
+  async function finish(msg: string) {
+    if (!completed.current) {
+      completed.current = true;
+      try {
+        await fetch(`/api/lessons/${lesson.id}/complete`, { method: "POST" });
+        router.refresh();
+      } catch {
+        // Best effort: never let a progress write swallow the artist's result.
+      }
+    }
+    flash(msg);
+    setStep("done");
   }
 
   return (
@@ -52,14 +83,16 @@ export function LessonPlayer({
         ← {lesson.courseTitle}
       </Link>
 
-      <Stepper step={step} hasQuiz={!!quiz} hasAssignment={!!assignment} />
+      <Stepper step={step} hasReading={hasReading} hasQuiz={!!quiz} hasAssignment={!!assignment} />
 
       {step === "read" && (
         <ReadStep
           lesson={lesson}
           onComplete={(msg) => {
-            flash(msg);
-            setStep(quiz ? "quiz" : assignment ? "assignment" : "done");
+            completed.current = true; // ReadStep already POSTed the completion
+            if (quiz) { flash(msg); setStep("quiz"); }
+            else if (assignment) { flash(msg); setStep("assignment"); }
+            else { flash(msg); setStep("done"); }
           }}
         />
       )}
@@ -68,14 +101,14 @@ export function LessonPlayer({
         <QuizStep
           quiz={quiz}
           onPass={(msg) => {
-            flash(msg);
-            setStep(assignment ? "assignment" : "done");
+            if (assignment) { flash(msg); setStep("assignment"); }
+            else void finish(msg);
           }}
         />
       )}
 
       {step === "assignment" && assignment && (
-        <AssignmentStep assignment={assignment} onDone={(msg) => { flash(msg); setStep("done"); }} />
+        <AssignmentStep assignment={assignment} onDone={(msg) => void finish(msg)} />
       )}
 
       {step === "done" && (
@@ -91,8 +124,20 @@ export function LessonPlayer({
   );
 }
 
-function Stepper({ step, hasQuiz, hasAssignment }: { step: Step; hasQuiz: boolean; hasAssignment: boolean }) {
-  const steps: { key: Step; label: string }[] = [{ key: "read", label: "Lesson" }];
+function Stepper({
+  step,
+  hasReading,
+  hasQuiz,
+  hasAssignment,
+}: {
+  step: Step;
+  hasReading: boolean;
+  hasQuiz: boolean;
+  hasAssignment: boolean;
+}) {
+  // "Lesson" only appears when there is something to read — otherwise the
+  // stepper advertised a step the artist can never be on.
+  const steps: { key: Step; label: string }[] = hasReading ? [{ key: "read", label: "Lesson" }] : [];
   if (hasQuiz) steps.push({ key: "quiz", label: "Quiz" });
   if (hasAssignment) steps.push({ key: "assignment", label: "Assignment" });
   steps.push({ key: "done", label: "Done" });

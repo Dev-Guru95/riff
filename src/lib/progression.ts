@@ -1,9 +1,17 @@
 import { prisma } from "./prisma";
 
 /**
- * Gated progression. A lesson is unlocked when the previous lesson (by global
- * order across the course) is completed. The first lesson of an enrolled course
- * is always available. Returns an ordered, status-annotated course tree.
+ * Ordered, status-annotated course tree.
+ *
+ * Nothing is locked. Riff holds the assessment, not the teaching: the sequence
+ * is taught and enforced in Skool, and every Skool track links straight to its
+ * quiz and action steps here. Gating those behind earlier Riff work made a link
+ * from Skool track 5 a dead end for anyone who had not already worked through
+ * tracks 1-4 in Riff — the learner was sent to do the course in the wrong place.
+ *
+ * Status is now a record of what the artist has done, not a permission: only
+ * `completed` and `in_progress` are ever stored, and everything else reads as
+ * `available`.
  */
 export async function getCourseTree(courseId: string, userId: string | null) {
   const course = await prisma.course.findUnique({
@@ -32,16 +40,13 @@ export async function getCourseTree(courseId: string, userId: string | null) {
     progress.forEach((p) => progressMap.set(p.lessonId, p.status));
   }
 
-  let prevCompleted = true; // first lesson available
   const statusByLesson = new Map<string, string>();
   for (const lesson of flat) {
     const stored = progressMap.get(lesson.id);
-    let status: string;
-    if (stored === "completed") status = "completed";
-    else if (prevCompleted) status = stored === "in_progress" ? "in_progress" : "available";
-    else status = "locked";
-    statusByLesson.set(lesson.id, status);
-    prevCompleted = status === "completed";
+    statusByLesson.set(
+      lesson.id,
+      stored === "completed" ? "completed" : stored === "in_progress" ? "in_progress" : "available",
+    );
   }
 
   const completedCount = flat.filter((l) => statusByLesson.get(l.id) === "completed").length;
@@ -71,15 +76,14 @@ export async function getCourseTree(courseId: string, userId: string | null) {
   };
 }
 
-/** Is a specific lesson unlocked for this user? */
-export async function isLessonUnlocked(lessonId: string, userId: string): Promise<boolean> {
-  const lesson = await prisma.lesson.findUnique({
-    where: { id: lessonId },
-    include: { module: { select: { courseId: true } } },
-  });
-  if (!lesson) return false;
-  const tree = await getCourseTree(lesson.module.courseId, userId);
-  const all = tree?.modules.flatMap((m) => m.lessons) ?? [];
-  const found = all.find((l) => l.id === lessonId);
-  return !!found && found.status !== "locked";
+/**
+ * Does this lesson exist and can this artist open it?
+ *
+ * Always yes for a real lesson. Kept as a named check rather than deleted at the
+ * call sites so the rule lives in one place: if per-track access ever needs
+ * gating (a paid tier, say), this is the seam to add it to.
+ */
+export async function isLessonUnlocked(lessonId: string, _userId: string): Promise<boolean> {
+  const lesson = await prisma.lesson.findUnique({ where: { id: lessonId }, select: { id: true } });
+  return !!lesson;
 }
