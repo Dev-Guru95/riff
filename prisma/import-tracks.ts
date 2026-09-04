@@ -16,16 +16,21 @@
 // never re-imports, because the import route appends "-2" to a duplicate slug
 // and that would break every link already published in Skool.
 //
-// Return links are deliberately NOT set here. Each track should hand the learner
-// back to the NEXT Skool track, and those URLs live in Skool, not in this repo.
-// resolveReturnLink() falls back to the community root so the loop still closes;
-// set the per-track URLs in Admin → Courses → "When this track is finished".
+// It also chains the tracks: each finished track is pointed at the NEXT Skool
+// track, read from course-import/skool-links.json. The Skool URLs are the one
+// thing that cannot be known from this repo, so a human supplies those once; the
+// off-by-one (track N sends to track N+1) is computed, not typed. Re-applied on
+// every deploy, because these settings are the easiest thing to lose to a
+// database rebuild and losing them breaks the loop without breaking anything
+// visible. An unfilled entry keeps resolveReturnLink()'s community-root
+// fallback, so a half-filled config never produces a dead link.
 
 import fs from "node:fs";
 import path from "node:path";
 import { PrismaClient } from "@prisma/client";
 import { parsedCourseSchema, validateCourse } from "../src/lib/import/types";
 import { createCourseFromParsed, slugify } from "../src/lib/import/create-course";
+import { chainTrackReturns } from "../src/lib/returnLink";
 
 const prisma = new PrismaClient();
 const IMPORT_DIR = path.join(process.cwd(), "course-import");
@@ -94,6 +99,8 @@ async function main() {
     console.log(`  + ${slug} (order ${i})`);
   }
 
+  await applyReturnLinks();
+
   const trackSlugs = new Set(
     files.map((f) => slugify(JSON.parse(fs.readFileSync(path.join(IMPORT_DIR, f), "utf-8")).course.title)),
   );
@@ -122,8 +129,70 @@ async function main() {
     console.warn("   Unpublish them in Admin → Courses if they should not be part of the program.");
   }
   console.log(
-    "\nNext: set each track's return link in Admin → Courses → \"When this track is finished\"" +
-      "\nso finishing a track hands the learner to the NEXT Skool track.",
+    "\nTo chain the tracks together, fill in course-import/skool-links.json with each" +
+      "\ntrack's Skool URL and redeploy — no admin clicking, and it survives a rebuild.",
+  );
+}
+
+/**
+ * Point each finished track at the NEXT Skool track, from
+ * course-import/skool-links.json.
+ *
+ * Re-applied on every deploy on purpose: these are the settings most easily lost
+ * to a database rebuild, and losing them silently breaks the Skool ⇄ Riff loop
+ * without breaking anything visible. Doing it here rather than in the admin
+ * screens also removes the off-by-one — the file records where each track LIVES,
+ * and the chaining works out where each track SENDS.
+ */
+async function applyReturnLinks(): Promise<void> {
+  const file = path.join(IMPORT_DIR, "skool-links.json");
+  if (!fs.existsSync(file)) {
+    console.log("import-tracks: no skool-links.json — tracks keep the community-root fallback.");
+    return;
+  }
+
+  const config = JSON.parse(fs.readFileSync(file, "utf-8"));
+  const tracks = await prisma.course.findMany({
+    where: { slug: { in: [...trackSlugsFromFiles()] } },
+    orderBy: { orderIndex: "asc" },
+    select: { id: true, slug: true, orderIndex: true, title: true },
+  });
+
+  const chained = chainTrackReturns(tracks.length, config.tracks ?? [], config.graduation);
+  if (chained.length === 0) {
+    console.log(
+      "import-tracks: skool-links.json has no usable URLs yet — every track keeps the" +
+        " community-root fallback. Fill it in to chain the tracks together.",
+    );
+    return;
+  }
+
+  let wired = 0;
+  for (const link of chained) {
+    const course = tracks[link.orderIndex];
+    if (!course) continue;
+    await prisma.course.update({
+      where: { id: course.id },
+      data: { returnUrl: link.url, returnLabel: link.label },
+    });
+    wired++;
+    console.log(`  → ${course.slug} finishes to: ${link.label}`);
+  }
+  const unwired = tracks.length - wired;
+  console.log(
+    `import-tracks: ${wired} track(s) chained to the next Skool track` +
+      (unwired > 0 ? `, ${unwired} still on the community-root fallback.` : "."),
+  );
+}
+
+/** Slugs the track files produce — used to scope updates to Launchpad tracks only. */
+function trackSlugsFromFiles(): Set<string> {
+  return new Set(
+    fs
+      .readdirSync(IMPORT_DIR)
+      .filter((f) => /^\d+-.*\.json$/.test(f))
+      .sort()
+      .map((f) => slugify(JSON.parse(fs.readFileSync(path.join(IMPORT_DIR, f), "utf-8")).course.title)),
   );
 }
 

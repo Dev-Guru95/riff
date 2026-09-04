@@ -69,3 +69,65 @@ export function resolveReturnLink(course: {
   // community root is worse than a generic one — it promises the wrong page.
   return { url: SKOOL_URL, label: DEFAULT_RETURN_LABEL, isFallback: true };
 }
+
+// ===== Chaining the tracks automatically =====
+//
+// Finishing Riff track N should hand the learner to Skool track N+1, because
+// that is where the next track is taught. Wiring that by hand is eight admin
+// edits that are easy to get off-by-one and are lost on any database rebuild.
+//
+// Only the Skool URLs themselves are unknowable from here, so those are the one
+// thing a human supplies (course-import/skool-links.json). The offset-by-one —
+// the part that is actually error-prone — is computed.
+
+export type SkoolTrackLink = { track: number; url: string };
+
+export type ChainedReturn = {
+  /** 0-based position of the Riff track this applies to. */
+  orderIndex: number;
+  url: string;
+  label: string;
+};
+
+/**
+ * Work out each track's return destination from an ordered list of Skool track
+ * URLs. Track N returns to track N+1; the final track returns to `graduation`
+ * (The Keys) when one is configured.
+ *
+ * Blank or unsafe URLs are skipped rather than written, so a partly-filled
+ * config wires up the tracks it can and leaves the rest on the community-root
+ * fallback — a half-finished list must never produce a dead link.
+ */
+export function chainTrackReturns(
+  trackCount: number,
+  skoolLinks: SkoolTrackLink[],
+  graduation?: { url?: string | null; label?: string | null } | null,
+): ChainedReturn[] {
+  const byTrack = new Map<number, string>();
+  for (const l of skoolLinks) {
+    const url = normalizeReturnUrl(l.url);
+    if (url && isSafeReturnUrl(url)) byTrack.set(l.track, url);
+  }
+
+  const out: ChainedReturn[] = [];
+  for (let i = 0; i < trackCount; i++) {
+    const isLast = i === trackCount - 1;
+    if (isLast) {
+      const url = normalizeReturnUrl(graduation?.url);
+      if (url && isSafeReturnUrl(url)) {
+        out.push({
+          orderIndex: i,
+          url,
+          label: normalizeReturnLabel(graduation?.label) ?? "Unlock The Keys",
+        });
+      }
+      continue;
+    }
+    // Track numbers in the config are 1-based; this track is i+1, so the next
+    // one to send them to is i+2.
+    const nextTrackNumber = i + 2;
+    const url = byTrack.get(nextTrackNumber);
+    if (url) out.push({ orderIndex: i, url, label: `Continue to Track ${nextTrackNumber}` });
+  }
+  return out;
+}

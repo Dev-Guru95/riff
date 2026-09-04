@@ -1,0 +1,34 @@
+{
+  "_readme": [
+    "Where each track is TAUGHT in Skool. Riff only holds the assessment, so",
+    "finishing a Riff track has to hand the learner back to the next Skool track.",
+    "",
+    "Fill in the `url` for each track: open the track in Skool and copy the address",
+    "bar. Paste it verbatim, including https://. Then commit and deploy — the",
+    "importer applies them on every deploy, so they survive a database rebuild and",
+    "never need re-entering by hand in the admin screens.",
+    "",
+    "You do NOT do the offset yourself. This file says where track N lives; the",
+    "importer works out that finishing Riff track N sends the learner to track N+1.",
+    "",
+    "Leave a url blank and that track keeps the safe fallback (the community root)",
+    "rather than getting a dead link — so a half-filled file is fine.",
+    "",
+    "`graduation` is where track 8 sends them: the Keys / graduation page. Blank",
+    "falls back to the community root."
+  ],
+  "tracks": [
+    { "track": 1, "name": "The Call to Create", "url": "" },
+    { "track": 2, "name": "The DNA of a Song", "url": "" },
+    { "track": 3, "name": "The Industry Map", "url": "" },
+    { "track": 4, "name": "Revenue Centers", "url": "" },
+    { "track": 5, "name": "Marketing & PR", "url": "" },
+    { "track": 6, "name": "AI in Music", "url": "" },
+    { "track": 7, "name": "SoundRig Music", "url": "" },
+    { "track": 8, "name": "Are You Serious?", "url": "" }
+  ],
+  "graduation": {
+    "url": "",
+    "label": "Unlock The Keys"
+  }
+}
