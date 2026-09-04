@@ -83,51 +83,56 @@ export function resolveReturnLink(course: {
 export type SkoolTrackLink = { track: number; url: string };
 
 export type ChainedReturn = {
-  /** 0-based position of the Riff track this applies to. */
-  orderIndex: number;
+  /** Slug of the Riff course this applies to. */
+  slug: string;
   url: string;
   label: string;
 };
 
 /**
- * Work out each track's return destination from an ordered list of Skool track
- * URLs. Track N returns to track N+1; the final track returns to `graduation`
- * (The Keys) when one is configured.
+ * Work out each track's return destination.
  *
+ * `orderedSlugs` is the program in order, derived from the numbered course files
+ * — position i is track number i+1. Keyed on slug rather than on database
+ * position on purpose: if a track failed to import or an admin reordered the
+ * catalogue, a positional mapping would silently wire a track to the wrong
+ * destination, and a count taken from the database would treat whichever track
+ * happened to be last as the graduating one.
+ *
+ * Track N returns to track N+1; the final track returns to `graduation`.
  * Blank or unsafe URLs are skipped rather than written, so a partly-filled
  * config wires up the tracks it can and leaves the rest on the community-root
  * fallback — a half-finished list must never produce a dead link.
  */
 export function chainTrackReturns(
-  trackCount: number,
+  orderedSlugs: string[],
   skoolLinks: SkoolTrackLink[],
   graduation?: { url?: string | null; label?: string | null } | null,
 ): ChainedReturn[] {
   const byTrack = new Map<number, string>();
   for (const l of skoolLinks) {
-    const url = normalizeReturnUrl(l.url);
-    if (url && isSafeReturnUrl(url)) byTrack.set(l.track, url);
+    // JSON is untyped: a track number that arrives as a string would silently
+    // never match a numeric lookup, so coerce and reject anything non-integer.
+    const track = Number(l?.track);
+    if (!Number.isInteger(track)) continue;
+    const url = normalizeReturnUrl(l?.url);
+    if (url && isSafeReturnUrl(url)) byTrack.set(track, url);
   }
 
   const out: ChainedReturn[] = [];
-  for (let i = 0; i < trackCount; i++) {
-    const isLast = i === trackCount - 1;
-    if (isLast) {
+  orderedSlugs.forEach((slug, i) => {
+    const isFinalTrack = i === orderedSlugs.length - 1;
+    if (isFinalTrack) {
       const url = normalizeReturnUrl(graduation?.url);
       if (url && isSafeReturnUrl(url)) {
-        out.push({
-          orderIndex: i,
-          url,
-          label: normalizeReturnLabel(graduation?.label) ?? "Unlock The Keys",
-        });
+        out.push({ slug, url, label: normalizeReturnLabel(graduation?.label) ?? "Unlock The Keys" });
       }
-      continue;
+      return;
     }
-    // Track numbers in the config are 1-based; this track is i+1, so the next
-    // one to send them to is i+2.
+    // Config track numbers are 1-based: this is track i+1, so send them to i+2.
     const nextTrackNumber = i + 2;
     const url = byTrack.get(nextTrackNumber);
-    if (url) out.push({ orderIndex: i, url, label: `Continue to Track ${nextTrackNumber}` });
-  }
+    if (url) out.push({ slug, url, label: `Continue to Track ${nextTrackNumber}` });
+  });
   return out;
 }

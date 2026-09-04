@@ -152,13 +152,12 @@ async function applyReturnLinks(): Promise<void> {
   }
 
   const config = JSON.parse(fs.readFileSync(file, "utf-8"));
-  const tracks = await prisma.course.findMany({
-    where: { slug: { in: [...trackSlugsFromFiles()] } },
-    orderBy: { orderIndex: "asc" },
-    select: { id: true, slug: true, orderIndex: true, title: true },
-  });
+  // Order comes from the numbered course files, NOT from the database: a track
+  // that failed to import must not shift the ones after it, and whichever track
+  // is last in the DB must not be mistaken for the graduating one.
+  const orderedSlugs = orderedTrackSlugs();
 
-  const chained = chainTrackReturns(tracks.length, config.tracks ?? [], config.graduation);
+  const chained = chainTrackReturns(orderedSlugs, config.tracks ?? [], config.graduation);
   if (chained.length === 0) {
     console.log(
       "import-tracks: skool-links.json has no usable URLs yet — every track keeps the" +
@@ -168,32 +167,40 @@ async function applyReturnLinks(): Promise<void> {
   }
 
   let wired = 0;
+  let absent = 0;
   for (const link of chained) {
-    const course = tracks[link.orderIndex];
-    if (!course) continue;
-    await prisma.course.update({
-      where: { id: course.id },
+    // updateMany, not update: a slug that is not in the database yet must be a
+    // no-op, not a crash that fails the whole deploy.
+    const res = await prisma.course.updateMany({
+      where: { slug: link.slug },
       data: { returnUrl: link.url, returnLabel: link.label },
     });
+    if (res.count === 0) {
+      absent++;
+      console.warn(`  ! ${link.slug} not in the database — skipped`);
+      continue;
+    }
     wired++;
-    console.log(`  → ${course.slug} finishes to: ${link.label}`);
+    console.log(`  → ${link.slug} finishes to: ${link.label}`);
   }
-  const unwired = tracks.length - wired;
+
+  const unwired = orderedSlugs.length - wired - absent;
   console.log(
     `import-tracks: ${wired} track(s) chained to the next Skool track` +
       (unwired > 0 ? `, ${unwired} still on the community-root fallback.` : "."),
   );
 }
 
-/** Slugs the track files produce — used to scope updates to Launchpad tracks only. */
-function trackSlugsFromFiles(): Set<string> {
-  return new Set(
-    fs
-      .readdirSync(IMPORT_DIR)
-      .filter((f) => /^\d+-.*\.json$/.test(f))
-      .sort()
-      .map((f) => slugify(JSON.parse(fs.readFileSync(path.join(IMPORT_DIR, f), "utf-8")).course.title)),
-  );
+/**
+ * The program's slugs in track order, straight from the numbered files.
+ * Position i is track number i+1 — the mapping the whole chain depends on.
+ */
+function orderedTrackSlugs(): string[] {
+  return fs
+    .readdirSync(IMPORT_DIR)
+    .filter((f) => /^\d+-.*\.json$/.test(f))
+    .sort()
+    .map((f) => slugify(JSON.parse(fs.readFileSync(path.join(IMPORT_DIR, f), "utf-8")).course.title));
 }
 
 main()
