@@ -1,11 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import type { FanDTO } from "@/lib/studio-growth";
+import { PageHeader, Breadcrumb, Avatar, EmptyState } from "@/components/ui";
+import { Icon } from "@/components/icons";
 
 type Data = { fans: FanDTO[]; segments: { tag: string; count: number }[]; total: number };
-const inp = "text-sm bg-[var(--surface-2)] border border-[var(--border)] rounded px-2 py-1.5 outline-none focus:border-[var(--brand)]";
+const inp = "field";
 
 async function api(url: string, method: string, body?: unknown) {
   const res = await fetch(url, { method, headers: body ? { "content-type": "application/json" } : undefined, body: body ? JSON.stringify(body) : undefined });
@@ -40,42 +41,61 @@ export function FansClient({ initial }: { initial: Data }) {
   function pick(tag: string | null) { setFilter(tag); reload(tag); }
 
   return (
-    <main className="max-w-3xl mx-auto px-4 py-8">
-      <Link href="/studio" className="text-sm text-[var(--muted)] hover:text-[var(--foreground)]">← Studio</Link>
-      <h1 className="text-2xl font-bold flex items-center gap-2 mt-1">👥 Fan CRM</h1>
-      <p className="text-sm text-[var(--muted)] mb-6">Your audience in one place — tag fans into segments you can target.</p>
+    <main className="max-w-3xl px-4 sm:px-6 lg:px-8 py-8">
+      <Breadcrumb href="/studio" label="Studio" />
+      <PageHeader
+        title="Fan CRM"
+        subtitle="Your audience in one place — tag fans into segments you can target."
+      />
 
-      <form onSubmit={add} className="card p-4 mb-4 grid gap-2 sm:grid-cols-[1fr_1fr_1fr_auto]">
+      <form onSubmit={add} className="card p-4 mb-5 grid gap-2 sm:grid-cols-[1fr_1fr_1fr_auto]">
         <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Name" className={inp} />
         <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email (optional)" className={inp} />
         <input value={tags} onChange={(e) => setTags(e.target.value)} placeholder="Tags (comma-sep)" className={inp} />
-        <button type="submit" className="btn btn-primary text-sm">Add fan</button>
+        <button type="submit" className="btn btn-primary text-sm shrink-0">Add</button>
       </form>
 
       {/* Segments */}
-      <div className="flex items-center gap-2 flex-wrap mb-4">
-        <span className="text-xs text-[var(--muted)]">Segments:</span>
-        <button onClick={() => pick(null)} className={`text-xs px-2 py-1 rounded-full ${!filter ? "bg-[var(--brand)] text-white" : "bg-[var(--surface-2)]"}`}>All ({data.total})</button>
+      <div className="flex items-center gap-1 flex-wrap mb-4">
+        <button onClick={() => pick(null)} className={`pill ${!filter ? "pill-active" : ""}`}>
+          All ({data.total})
+        </button>
         {data.segments.map((s) => (
-          <button key={s.tag} onClick={() => pick(s.tag)} className={`text-xs px-2 py-1 rounded-full ${filter === s.tag ? "bg-[var(--brand)] text-white" : "bg-[var(--surface-2)]"}`}>{s.tag} ({s.count})</button>
+          <button key={s.tag} onClick={() => pick(s.tag)} className={`pill ${filter === s.tag ? "pill-active" : ""}`}>
+            {s.tag} ({s.count})
+          </button>
         ))}
       </div>
 
       <div className="space-y-2">
         {data.fans.map((f) => (
           <div key={f.id} className="card p-3 flex items-center gap-3 group">
-            <span className="h-8 w-8 rounded-full bg-[var(--surface-2)] border border-[var(--border)] grid place-items-center text-[11px] font-bold shrink-0">
-              {f.name.split(/\s+/).map((w) => w[0]).join("").slice(0, 2).toUpperCase()}
-            </span>
+            <Avatar name={f.name} size={34} square />
             <div className="min-w-0 flex-1">
-              <div className="text-sm truncate">{f.name}</div>
+              <div className="text-sm font-medium truncate">{f.name}</div>
               <div className="text-xs text-[var(--muted)] truncate">{f.email || "no email"}</div>
             </div>
-            <input defaultValue={f.tags.join(", ")} onBlur={(e) => patchTags(f.id, e.target.value)} placeholder="tags" className={`w-40 ${inp}`} />
-            <button className="text-xs text-[var(--muted)] opacity-0 group-hover:opacity-100 hover:text-[var(--brand-2)]" onClick={() => del(f.id)}>✕</button>
+            <input
+              defaultValue={f.tags.join(", ")}
+              onBlur={(e) => patchTags(f.id, e.target.value)}
+              placeholder="tags"
+              className={`w-40 shrink-0 ${inp}`}
+            />
+            <button
+              aria-label={`Remove ${f.name}`}
+              className="text-[var(--muted)] opacity-0 group-hover:opacity-100 focus:opacity-100 hover:text-[var(--brand-2)] transition shrink-0"
+              onClick={() => del(f.id)}
+            >
+              <Icon name="close" size={15} />
+            </button>
           </div>
         ))}
-        {data.fans.length === 0 && <p className="text-sm text-[var(--muted)] text-center py-6">{filter ? "No fans in this segment." : "No fans yet — add your first."}</p>}
+        {data.fans.length === 0 && (
+          <EmptyState
+            icon="community"
+            title={filter ? "No fans in this segment." : "No fans yet — add your first."}
+          />
+        )}
       </div>
     </main>
   );

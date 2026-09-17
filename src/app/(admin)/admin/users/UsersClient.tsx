@@ -32,12 +32,15 @@ export function UserActions({
     router.refresh();
   }
 
+  const sel =
+    "bg-[var(--surface-2)] border border-[var(--border)] rounded-lg text-xs px-2 py-1.5 outline-none focus:border-[var(--brand)] disabled:opacity-50";
+
   return (
-    <div className="flex gap-1 justify-end items-center">
+    <div className="flex gap-1.5 justify-end items-center">
       {/* Tier, granted by hand. Writes straight to the subscription — no Stripe
           charge — so an artist can be comped or moved between free and paid. */}
       <select
-        className="bg-[var(--surface-2)] border border-[var(--border)] rounded-md text-xs px-1 py-1 outline-none"
+        className={sel}
         value={plan}
         disabled={loading}
         onChange={(e) => patch({ plan: e.target.value })}
@@ -48,7 +51,7 @@ export function UserActions({
         <option value="premium">premium</option>
       </select>
       <select
-        className="bg-[var(--surface-2)] border border-[var(--border)] rounded-md text-xs px-1 py-1 outline-none"
+        className={sel}
         value={role}
         disabled={loading}
         onChange={(e) => patch({ role: e.target.value })}
@@ -59,13 +62,14 @@ export function UserActions({
         <option value="moderator">moderator</option>
         <option value="admin">admin</option>
       </select>
+      {/* Purple call-to-action while unverified, settled green once confirmed. */}
       <button
-        className={`text-xs px-2 py-1 rounded-md ${
+        className={`text-xs font-semibold px-3 py-1.5 rounded-full transition disabled:opacity-50 ${
           skoolMember
-            ? "bg-[var(--brand)]/20 text-[var(--brand)]"
+            ? "border border-[var(--success)]/40 text-[var(--success)]"
             : requested
               ? "bg-[var(--brand)] text-white hover:opacity-90"
-              : "bg-[var(--surface-2)] hover:bg-[var(--border)]"
+              : "bg-[var(--surface-2)] border border-[var(--border)] hover:border-[var(--brand)]"
         }`}
         disabled={loading}
         title={
@@ -77,10 +81,10 @@ export function UserActions({
         }
         onClick={() => patch({ skoolMember: !skoolMember })}
       >
-        {skoolMember ? "Member ✓" : requested ? "Verify ⏳" : "Verify"}
+        {skoolMember ? "✓ Confirmed" : requested ? "Verify ⏳" : "Verify"}
       </button>
       <button
-        className="text-xs px-2 py-1 rounded-md bg-[var(--surface-2)] hover:bg-[var(--border)]"
+        className="text-xs font-medium px-3 py-1.5 rounded-full bg-[var(--surface-2)] border border-[var(--border)] hover:border-[var(--brand-2)] transition disabled:opacity-50"
         disabled={loading}
         onClick={() => patch({ status: status === "active" ? "suspended" : "active" })}
       >

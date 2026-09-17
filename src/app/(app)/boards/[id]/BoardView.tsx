@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { CardModal } from "./CardModal";
 import { MembersPanel, ArchivePanel, ActivityPanel } from "./BoardPanels";
 import { templateFor } from "@/lib/board-templates";
+import { Icon } from "@/components/icons";
 
 // The card currently being dragged (module-level; all board components live in
 // this file so a shared variable is simpler and typesafe vs. a window global).
@@ -249,14 +250,14 @@ function FilterBar({
   active: boolean;
 }) {
   const set = (k: keyof Filter, v: string) => setFilter((f) => ({ ...f, [k]: v }));
-  const sel = "bg-[var(--surface-2)] border border-[var(--border)] rounded-lg px-2 py-1.5 text-xs outline-none focus:border-[var(--brand)]";
+  const sel = "bg-[var(--surface-2)] border border-[var(--border)] rounded-lg px-3 py-1.5 text-xs outline-none focus:border-[var(--brand)]";
   return (
     <div className="px-4 pb-2 flex items-center gap-2 flex-wrap">
       <input
         value={filter.text}
         onChange={(e) => set("text", e.target.value)}
         placeholder="Filter cards…"
-        className="bg-[var(--surface-2)] border border-[var(--border)] rounded-lg px-3 py-1.5 outline-none focus:border-[var(--brand)] text-xs w-40"
+        className="bg-[var(--surface-2)] border border-[var(--border)] rounded-lg px-3 py-1.5 outline-none focus:border-[var(--brand)] text-xs w-44"
       />
       <select value={filter.label} onChange={(e) => set("label", e.target.value)} className={sel}>
         <option value="">All labels</option>
@@ -316,7 +317,9 @@ function BoardHeader({
 
   return (
     <div className="px-4 py-3 flex items-center gap-3 flex-wrap">
-      <Link href="/boards" className="text-sm text-[var(--muted)] hover:text-[var(--foreground)]">← Projects</Link>
+      <Link href="/boards" className="inline-flex items-center gap-1 text-sm text-[var(--muted)] hover:text-[var(--foreground)] transition">
+        <Icon name="chevronLeft" size={14} /> Projects
+      </Link>
       <span className="text-lg" title={templateFor(board.kind).name}>{templateFor(board.kind).icon}</span>
       {editing && can.manageBoard ? (
         <input
@@ -497,7 +500,9 @@ function ColumnView({
         <span className="text-xs text-[var(--muted)]">{filterActive ? `${visible.length} match` : col.cardTotal}</span>
         {can.manageColumns && (
           <div className="relative">
-            <button className="text-[var(--muted)] hover:text-[var(--foreground)] px-1" onClick={() => setMenu((m) => !m)}>⋯</button>
+            <button aria-label="Column actions" className="text-[var(--muted)] hover:text-[var(--foreground)] px-1" onClick={() => setMenu((m) => !m)}>
+              <Icon name="more" size={16} />
+            </button>
             {menu && (
               <div className="absolute right-0 top-6 z-10 card bg-[var(--surface-2)] py-1 text-sm w-32" onMouseLeave={() => setMenu(false)}>
                 <button className="block w-full text-left px-3 py-1.5 hover:bg-[var(--border)]" onClick={() => { setMenu(false); setRenaming(true); }}>Rename</button>
@@ -611,8 +616,14 @@ function AddCard({ columnId, onReload }: { columnId: string; onReload: () => voi
 
   if (!adding) {
     return (
-      <button className="text-sm text-[var(--muted)] hover:text-[var(--foreground)] text-left px-3 py-2" onClick={() => setAdding(true)}>
-        + Add a card
+      <button
+        className="m-2 flex items-center justify-center gap-2 rounded-lg bg-[var(--surface-2)] px-3 py-2 text-sm text-[var(--muted)] hover:text-[var(--foreground)] transition"
+        onClick={() => setAdding(true)}
+      >
+        <span className="grid place-items-center h-4 w-4 rounded-full bg-[var(--border)] text-[var(--foreground)]">
+          <Icon name="plus" size={10} strokeWidth={2.5} />
+        </span>
+        Add card
       </button>
     );
   }

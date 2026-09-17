@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ProgressBar, Stat } from "@/components/ui";
+import { ProgressBar, StatCard, Avatar } from "@/components/ui";
 import type { DashboardDTO } from "@/lib/boards";
 
 const COLOR_VAR: Record<string, string> = {
@@ -51,10 +51,10 @@ export function Dashboard({ data }: { data: DashboardDTO }) {
   return (
     <div className="mb-8">
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
-        <Stat icon="🗒️" value={data.openCount} label="Open tasks" />
-        <Stat icon="⏰" value={data.overdue.length} label="Overdue" />
-        <Stat icon="📅" value={data.dueToday.length} label="Due today" />
-        <Stat icon="✅" value={data.completedCount} label="Completed" />
+        <StatCard value={data.openCount} label="Open tasks" icon="kanban" />
+        <StatCard value={data.overdue.length} label="Overdue" icon="flame" />
+        <StatCard value={data.dueToday.length} label="Due today" icon="calendar" />
+        <StatCard value={data.completedCount} label="Completed" icon="check" />
       </div>
 
       <div className="grid gap-3 md:grid-cols-3 mb-4">
@@ -100,9 +100,7 @@ export function Dashboard({ data }: { data: DashboardDTO }) {
               <div className="space-y-1.5">
                 {data.workload.map((w) => (
                   <div key={w.userId} className="flex items-center gap-2 text-sm">
-                    <span className="h-6 w-6 rounded-full bg-[var(--surface-2)] border border-[var(--border)] grid place-items-center text-[9px] font-bold">
-                      {w.name.split(/\s+/).map((x) => x[0]).join("").slice(0, 2).toUpperCase()}
-                    </span>
+                    <Avatar name={w.name} size={24} />
                     <span className="flex-1 truncate">{w.name}</span>
                     <span className="text-xs text-[var(--muted)]">{w.open} open</span>
                   </div>

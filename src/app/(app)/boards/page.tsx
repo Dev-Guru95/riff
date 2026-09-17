@@ -3,6 +3,7 @@ import { listBoardsForUser, loadDashboard } from "@/lib/boards";
 import { BoardsClient } from "./BoardsClient";
 import { Dashboard } from "./Dashboard";
 import { GlobalSearch } from "./GlobalSearch";
+import { PageHeader } from "@/components/ui";
 
 export const metadata = { title: "Projects — Riff" };
 
@@ -13,13 +14,8 @@ export default async function BoardsPage() {
     loadDashboard(session.id),
   ]);
   return (
-    <main className="max-w-5xl mx-auto px-4 py-8">
-      <div className="flex items-center justify-between gap-4 mb-1">
-        <h1 className="text-2xl font-bold flex items-center gap-2">🗂️ Projects</h1>
-      </div>
-      <p className="text-sm text-[var(--muted)] mb-4">
-        Plan and track your work on Kanban boards — right inside Riff.
-      </p>
+    <main className="max-w-5xl px-4 sm:px-6 lg:px-8 py-8">
+      <PageHeader title="Projects" subtitle="Plan and track your work on kanban boards" />
 
       <div className="mb-6">
         <GlobalSearch />
@@ -27,7 +23,7 @@ export default async function BoardsPage() {
 
       <Dashboard data={dashboard} />
 
-      <h2 className="text-sm font-semibold text-[var(--muted)] mb-3">Your boards</h2>
+      <h2 className="text-sm font-semibold mb-3">Your boards</h2>
       <BoardsClient initialBoards={boards} />
     </main>
   );

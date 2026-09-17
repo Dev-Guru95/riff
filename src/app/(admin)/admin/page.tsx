@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getKpis, getSignupsBySource } from "@/lib/analytics";
+import { PageHeader, StatCard, GoalBar } from "@/components/ui";
+import { Icon, type IconName } from "@/components/icons";
 
 export default async function AdminOverview() {
   const kpis = await getKpis(30);
@@ -28,32 +30,28 @@ export default async function AdminOverview() {
   const completionRate = totalEnroll ? Math.round((completedEnroll / totalEnroll) * 100) : 0;
   const activationRate = users ? Math.round((usersWithProgress.length / users) * 100) : 0;
 
-  const cards = [
-    { label: "Artists", value: users, icon: "👥" },
-    { label: "Courses", value: courses, icon: "🎓" },
-    { label: "Lessons", value: lessons, icon: "📚" },
-    { label: "Submissions", value: submissions, icon: "📝" },
-    { label: "Quiz attempts", value: attempts, icon: "🧠" },
-    { label: "Course completion", value: `${completionRate}%`, icon: "✅" },
+  const cards: { label: string; value: React.ReactNode; icon: IconName }[] = [
+    { label: "Artists", value: users, icon: "community" },
+    { label: "Courses", value: courses, icon: "graduation" },
+    { label: "Lessons", value: lessons, icon: "book" },
+    { label: "Submissions", value: submissions, icon: "clipboard" },
+    { label: "Quiz attempts", value: attempts, icon: "target" },
+    { label: "Course completion", value: `${completionRate}%`, icon: "check" },
   ];
 
   return (
-    <div className="max-w-4xl space-y-6">
-      <h1 className="text-2xl font-bold">Overview</h1>
+    <div className="max-w-5xl">
+      <PageHeader title="Overview" subtitle="Your audience in one place" />
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
         {cards.map((c) => (
-          <div key={c.label} className="card p-4">
-            <div className="text-2xl mb-1">{c.icon}</div>
-            <div className="text-2xl font-bold">{c.value}</div>
-            <div className="text-xs text-[var(--muted)]">{c.label}</div>
-          </div>
+          <StatCard key={c.label} value={c.value} label={c.label} icon={c.icon} />
         ))}
       </div>
 
-      <section className="card p-5">
-        <h2 className="text-sm font-semibold text-[var(--muted)] uppercase tracking-wide mb-4">Activity — last 30 days (event-tracked)</h2>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+      <section className="card p-5 mb-4">
+        <h2 className="text-sm font-semibold mb-4">Activity (last 30 days)</h2>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <Kpi label="Active users" value={kpis.activeUsers} />
           <Kpi label="Lessons done" value={kpis.lessonCompletions} />
           <Kpi label="Quiz passes" value={kpis.quizPasses} />
@@ -65,18 +63,31 @@ export default async function AdminOverview() {
         </div>
       </section>
 
-      <div className="grid sm:grid-cols-2 gap-4">
+      <div className="grid lg:grid-cols-2 gap-4">
         <div className="card p-5">
-          <h2 className="text-sm font-semibold text-[var(--muted)] uppercase tracking-wide mb-4">Engagement funnel</h2>
-          <FunnelRow label="Signed up" value={users} max={users} />
-          <FunnelRow label="Enrolled" value={enrolledUsers.length} max={users} />
-          <FunnelRow label="Activated (≥1 lesson)" value={usersWithProgress.length} max={users} />
-          <FunnelRow label="Completed a course" value={completedEnroll} max={users} />
-          <p className="text-xs text-[var(--muted)] mt-3">Activation rate: <strong>{activationRate}%</strong></p>
+          <h2 className="text-sm font-semibold mb-4">Engagement funnel</h2>
+          <div className="space-y-3">
+            <GoalBar label={<FunnelLabel text="Signed up" value={users} />} pct={pct(users, users)} />
+            <GoalBar label={<FunnelLabel text="Enrolled" value={enrolledUsers.length} />} pct={pct(enrolledUsers.length, users)} />
+            <GoalBar
+              label={<FunnelLabel text="Activated (≥1 lesson)" value={usersWithProgress.length} />}
+              pct={pct(usersWithProgress.length, users)}
+            />
+            <GoalBar label={<FunnelLabel text="Completed a course" value={completedEnroll} />} pct={pct(completedEnroll, users)} />
+          </div>
+          <p className="text-xs text-[var(--muted)] mt-4">
+            Activation rate: <strong className="text-[var(--foreground)]">{activationRate}%</strong>
+          </p>
         </div>
 
         <div className="card p-5">
-          <h2 className="text-sm font-semibold text-[var(--muted)] uppercase tracking-wide mb-4">Signup source</h2>
+          <h2 className="text-sm font-semibold mb-4">Critical</h2>
+          <AttentionRow label="Submissions flagged for review" value={flagged} href="/admin/submissions" />
+          <AttentionRow label="AI content suggestions pending" value={pendingContent} href="/admin/content" />
+        </div>
+
+        <div className="card p-5 lg:col-span-2">
+          <h2 className="text-sm font-semibold mb-4">Signup source</h2>
           {signupSources.length === 0 ? (
             <p className="text-sm text-[var(--muted)]">No signups yet.</p>
           ) : (
@@ -84,7 +95,7 @@ export default async function AdminOverview() {
               {signupSources.map((s) => (
                 <li key={s.source ?? "direct"} className="flex items-center justify-between text-sm">
                   <span className={s.source ? "" : "text-[var(--muted)]"}>{s.source ?? "Direct / untagged"}</span>
-                  <span className="font-bold">{s.count}</span>
+                  <span className="font-bold tabular-nums">{s.count}</span>
                 </li>
               ))}
             </ul>
@@ -93,41 +104,45 @@ export default async function AdminOverview() {
             Tagged by the <code>?ref=</code> on the link the artist arrived through.
           </p>
         </div>
-
-        <div className="card p-5">
-          <h2 className="text-sm font-semibold text-[var(--muted)] uppercase tracking-wide mb-4">Needs attention</h2>
-          <AttentionRow label="Submissions flagged for review" value={flagged} href="/admin/submissions" />
-          <AttentionRow label="AI content suggestions pending" value={pendingContent} href="/admin/content" />
-        </div>
       </div>
     </div>
   );
 }
 
-function Kpi({ label, value }: { label: string; value: number }) {
+const pct = (value: number, max: number) => (max ? Math.round((value / max) * 100) : 0);
+
+// Keeps the absolute count visible next to each funnel stage, not just the %.
+function FunnelLabel({ text, value }: { text: string; value: number }) {
   return (
-    <div className="bg-[var(--surface-2)] rounded-lg p-3">
-      <div className="text-xl font-bold">{value}</div>
-      <div className="text-xs text-[var(--muted)]">{label}</div>
-    </div>
+    <span className="flex items-center justify-between gap-2">
+      <span>{text}</span>
+      <span className="text-xs text-[var(--muted)] tabular-nums">{value}</span>
+    </span>
   );
 }
 
-function FunnelRow({ label, value, max }: { label: string; value: number; max: number }) {
-  const pct = max ? Math.round((value / max) * 100) : 0;
+function Kpi({ label, value }: { label: string; value: number }) {
   return (
-    <div className="mb-3">
-      <div className="flex justify-between text-sm mb-1"><span>{label}</span><span className="text-[var(--muted)]">{value}</span></div>
-      <div className="progress-track h-2"><div className="progress-fill" style={{ width: `${pct}%` }} /></div>
+    <div className="border border-[var(--border)] rounded-lg p-3 text-center">
+      <div className="text-lg font-bold tabular-nums">{value}</div>
+      <div className="text-xs text-[var(--muted)] mt-0.5">{label}</div>
     </div>
   );
 }
 
 function AttentionRow({ label, value, href }: { label: string; value: number; href: string }) {
   return (
-    <Link href={href} className="flex items-center justify-between py-2 border-b border-[var(--border)] last:border-0 hover:text-[var(--accent)] transition">
-      <span className="text-sm">{label}</span>
-      <span className={`text-sm font-bold px-2 py-0.5 rounded-full ${value > 0 ? "bg-[var(--brand)] text-white" : "text-[var(--muted)]"}`}>{value}</span>
+    <Link
+      href={href}
+      className="flex items-center justify-between gap-3 py-2.5 border-b border-[var(--border)] last:border-0 group"
+    >
+      <span className="text-sm text-[var(--muted)] group-hover:text-[var(--foreground)] transition">{label}</span>
+      <span className="flex items-center gap-2 shrink-0">
+        <span className={`text-sm font-bold tabular-nums ${value > 0 ? "text-[var(--brand)]" : "text-[var(--muted)]"}`}>
+          {value}
+        </span>
+        <Icon name="chevronRight" size={14} className="text-[var(--muted)]" />
+      </span>
     </Link>
   );
 }

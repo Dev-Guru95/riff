@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { PageHeader, EmptyState, Chip } from "@/components/ui";
 import { ReportActions } from "./ModerationClient";
 
 export default async function ModerationPage({ searchParams }: { searchParams: Promise<{ status?: string }> }) {
@@ -22,20 +23,23 @@ export default async function ModerationPage({ searchParams }: { searchParams: P
   );
 
   const tabs = [
-    { key: "open", label: "Open" },
-    { key: "resolved", label: "Resolved" },
-    { key: "dismissed", label: "Dismissed" },
     { key: "all", label: "All" },
+    { key: "open", label: "Open" },
+    { key: "dismissed", label: "Dismissed" },
+    { key: "resolved", label: "Resolved" },
   ];
 
   return (
-    <div className="max-w-3xl space-y-5">
-      <h1 className="text-2xl font-bold">Moderation</h1>
-      <p className="text-sm text-[var(--muted)]">Reported threads, posts, and users. Resolve, dismiss, or remove content.</p>
+    <div className="max-w-3xl">
+      <PageHeader title="Moderation" subtitle="Reported threads, posts, and users." />
 
-      <div className="flex gap-2">
+      <div className="flex gap-1 mb-5 overflow-x-auto">
         {tabs.map((t) => (
-          <a key={t.key} href={`/admin/moderation?status=${t.key}`} className={`text-sm px-3 py-1.5 rounded-lg ${filter === t.key ? "bg-[var(--brand)] text-white" : "bg-[var(--surface-2)] text-[var(--muted)]"}`}>
+          <a
+            key={t.key}
+            href={`/admin/moderation?status=${t.key}`}
+            className={`pill ${filter === t.key ? "pill-active" : ""}`}
+          >
             {t.label}
           </a>
         ))}
@@ -43,17 +47,27 @@ export default async function ModerationPage({ searchParams }: { searchParams: P
 
       <div className="space-y-3">
         {enriched.map((r) => (
-          <div key={r.id} className="card p-4">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-xs px-2 py-0.5 rounded-full bg-[var(--surface-2)]">{r.targetType}</span>
-              <span className="text-xs text-[var(--muted)]">{new Date(r.createdAt).toLocaleString()}</span>
+          <div key={r.id} className="card p-5">
+            <div className="text-sm font-semibold mb-3">Reason: {r.reason}</div>
+            <div className="text-sm bg-[var(--surface-2)] border border-[var(--border)] rounded-lg px-3 py-2.5 text-[var(--muted)] mb-4">
+              {r.preview}
             </div>
-            <div className="text-sm font-medium">Reason: {r.reason}</div>
-            <div className="text-sm bg-[var(--surface-2)] rounded-lg p-2 my-2 text-[var(--muted)]">{r.preview}</div>
-            {r.status === "open" ? <ReportActions id={r.id} /> : <span className="text-xs text-[var(--muted)]">{r.status}</span>}
+            <div className="flex items-center justify-between gap-4 flex-wrap">
+              {r.status === "open" ? (
+                <ReportActions id={r.id} />
+              ) : (
+                <span className="text-xs text-[var(--muted)] capitalize">{r.status}</span>
+              )}
+              <div className="flex items-center gap-2 shrink-0">
+                <Chip>{r.targetType}</Chip>
+                <span className="text-xs text-[var(--muted)]">{new Date(r.createdAt).toLocaleString()}</span>
+              </div>
+            </div>
           </div>
         ))}
-        {enriched.length === 0 && <p className="text-[var(--muted)] text-sm">Nothing here. 🎉</p>}
+        {enriched.length === 0 && (
+          <EmptyState title="Howdy! Nothing to see here." hint="No reports match this filter." />
+        )}
       </div>
     </div>
   );

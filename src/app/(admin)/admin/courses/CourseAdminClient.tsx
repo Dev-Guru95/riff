@@ -1,17 +1,45 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { Icon } from "@/components/icons";
 
 export function CreateCourseForm() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  // The redesign fronts this form with a split button whose menu also offers
+  // the importer (/admin/import), which no longer has its own sidebar entry.
+  const [menuOpen, setMenuOpen] = useState(false);
+  const wrapRef = useRef<HTMLDivElement>(null);
   const [title, setTitle] = useState("");
   const [slug, setSlug] = useState("");
   const [description, setDescription] = useState("");
   const [level, setLevel] = useState("beginner");
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // Dismiss the menu / form panel on Escape or an outside click, the way a
+  // native menu behaves. Only wired up while something is actually open.
+  useEffect(() => {
+    if (!menuOpen && !open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      setMenuOpen(false);
+      setOpen(false);
+    };
+    const onDown = (e: MouseEvent) => {
+      if (wrapRef.current?.contains(e.target as Node)) return;
+      setMenuOpen(false);
+      setOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    document.addEventListener("mousedown", onDown);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.removeEventListener("mousedown", onDown);
+    };
+  }, [menuOpen, open]);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -32,12 +60,52 @@ export function CreateCourseForm() {
     }
   }
 
-  if (!open) {
-    return <button className="btn btn-primary" onClick={() => setOpen(true)}>+ New course</button>;
-  }
-
   return (
-    <form onSubmit={submit} className="card p-5 space-y-3">
+    <div className="relative" ref={wrapRef}>
+      <button
+        type="button"
+        className="btn btn-primary"
+        aria-haspopup="menu"
+        aria-expanded={menuOpen}
+        onClick={() => {
+          setMenuOpen((v) => !v);
+          setOpen(false);
+        }}
+      >
+        New course <Icon name="chevronDown" size={14} />
+      </button>
+
+      {menuOpen && (
+        <div
+          role="menu"
+          className="absolute right-0 top-full mt-2 z-30 card p-1 w-44 shadow-lg shadow-black/40"
+        >
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => {
+              setMenuOpen(false);
+              setOpen(true);
+            }}
+            className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-left hover:bg-[var(--surface-2)] transition"
+          >
+            <Icon name="pencil" size={15} /> Start fresh
+          </button>
+          <Link
+            role="menuitem"
+            href="/admin/import"
+            className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm hover:bg-[var(--surface-2)] transition"
+          >
+            <Icon name="download" size={15} /> Import
+          </Link>
+        </div>
+      )}
+
+      {open && (
+    <form
+      onSubmit={submit}
+      className="absolute right-0 top-full mt-2 z-30 card p-5 space-y-3 shadow-lg shadow-black/40 text-left w-[min(24rem,calc(100vw-2rem))]"
+    >
       <h2 className="font-semibold">New course</h2>
       <div className="grid sm:grid-cols-2 gap-3">
         <AdminInput label="Title" value={title} onChange={(v) => { setTitle(v); if (!slug) setSlug(slugify(v)); }} required minLength={3} />
@@ -59,6 +127,8 @@ export function CreateCourseForm() {
       </div>
       <AdminInputStyles />
     </form>
+      )}
+    </div>
   );
 }
 

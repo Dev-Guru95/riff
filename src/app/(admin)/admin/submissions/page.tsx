@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { PageHeader, EmptyState } from "@/components/ui";
 import { OverrideForm } from "./ReviewClient";
 
 export default async function ReviewQueue({ searchParams }: { searchParams: Promise<{ status?: string }> }) {
@@ -14,19 +15,25 @@ export default async function ReviewQueue({ searchParams }: { searchParams: Prom
   });
 
   const tabs = [
-    { key: "flagged", label: "Flagged" },
-    { key: "reviewed", label: "Reviewed" },
     { key: "all", label: "All" },
+    { key: "reviewed", label: "Reviewed" },
+    { key: "flagged", label: "Flagged" },
   ];
 
   return (
-    <div className="max-w-3xl space-y-5">
-      <h1 className="text-2xl font-bold">Review Queue</h1>
-      <p className="text-sm text-[var(--muted)]">Low-confidence AI reviews are flagged here for a human to confirm or override.</p>
+    <div className="max-w-3xl">
+      <PageHeader
+        title="Review Queue"
+        subtitle="Low confidence AI reviews are flagged here for a human to confirm or override"
+      />
 
-      <div className="flex gap-2">
+      <div className="flex gap-1 mb-5 overflow-x-auto">
         {tabs.map((t) => (
-          <a key={t.key} href={`/admin/submissions?status=${t.key}`} className={`text-sm px-3 py-1.5 rounded-lg ${filter === t.key ? "bg-[var(--brand)] text-white" : "bg-[var(--surface-2)] text-[var(--muted)]"}`}>
+          <a
+            key={t.key}
+            href={`/admin/submissions?status=${t.key}`}
+            className={`pill ${filter === t.key ? "pill-active" : ""}`}
+          >
             {t.label}
           </a>
         ))}
@@ -48,7 +55,7 @@ export default async function ReviewQueue({ searchParams }: { searchParams: Prom
               </div>
             </div>
             {(s.textContent || s.externalLink) && (
-              <div className="text-sm bg-[var(--surface-2)] rounded-lg p-3 mb-3">
+              <div className="text-sm bg-[var(--surface-2)] border border-[var(--border)] rounded-lg p-3 mb-3">
                 {s.textContent && <p>{s.textContent}</p>}
                 {s.externalLink && <a href={s.externalLink} className="text-[var(--accent)] text-xs" target="_blank" rel="noreferrer">{s.externalLink}</a>}
               </div>
@@ -56,7 +63,9 @@ export default async function ReviewQueue({ searchParams }: { searchParams: Prom
             <OverrideForm id={s.id} currentScore={s.aiScore ?? 70} passMark={s.assignment.minPassingScore} alreadyReviewed={s.humanReviewed} />
           </div>
         ))}
-        {submissions.length === 0 && <p className="text-[var(--muted)] text-sm">Nothing here. 🎉</p>}
+        {submissions.length === 0 && (
+          <EmptyState title="Howdy! Nothing to see here." hint="No submissions match this filter." />
+        )}
       </div>
     </div>
   );

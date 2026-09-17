@@ -19,10 +19,24 @@ export function ReportActions({ id }: { id: string }) {
   }
 
   return (
-    <div className="flex gap-2">
-      <button className="btn btn-primary py-1.5 px-3 text-xs" disabled={loading} onClick={() => act("delete_content")}>Remove content</button>
-      <button className="btn btn-ghost py-1.5 px-3 text-xs" disabled={loading} onClick={() => act("resolve")}>Resolve</button>
-      <button className="btn btn-ghost py-1.5 px-3 text-xs" disabled={loading} onClick={() => act("dismiss")}>Dismiss</button>
+    <div className="flex items-center gap-3">
+      <button className="btn btn-primary py-1.5 px-4 text-xs" disabled={loading} onClick={() => act("resolve")}>
+        Resolve
+      </button>
+      <button
+        className="text-xs font-semibold text-[var(--muted)] hover:text-[var(--foreground)] transition disabled:opacity-50"
+        disabled={loading}
+        onClick={() => act("dismiss")}
+      >
+        Dismiss
+      </button>
+      <button
+        className="text-xs font-semibold text-[var(--brand-2)] hover:opacity-80 transition disabled:opacity-50"
+        disabled={loading}
+        onClick={() => act("delete_content")}
+      >
+        Remove content
+      </button>
     </div>
   );
 }
