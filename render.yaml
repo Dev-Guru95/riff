@@ -41,7 +41,14 @@ services:
     # ADMIN_PASSWORD are both set, so it is safe to leave here permanently.
     # Set both, deploy once, then clear them — re-setting them later doubles as
     # an admin password reset without ever putting the password in git.
-    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm exec prisma generate && pnpm run build && pnpm exec tsx prisma/db-doctor.ts && pnpm exec prisma migrate deploy && pnpm exec prisma db seed && pnpm exec tsx prisma/import-tracks.ts && pnpm exec tsx prisma/create-admin.ts
+    # `corepack enable` on its own died on 2026-09-17 with
+    # `EROFS: read-only file system, unlink '/usr/bin/pnpm'` — Render's image now
+    # ships pnpm in /usr/bin and mounts that path read-only, so corepack cannot
+    # replace the shim. Installing the shims into a writable dir and putting it
+    # first on PATH keeps pnpm pinned to the `packageManager` version (9.12.0);
+    # dropping corepack instead would hand us the image's own pnpm, which is the
+    # ERR_PNPM_IGNORED_BUILDS trap (prisma engines, sharp) documented below.
+    buildCommand: mkdir -p "$HOME/.corepack" && corepack enable --install-directory "$HOME/.corepack" && export PATH="$HOME/.corepack:$PATH" && pnpm install --frozen-lockfile && pnpm exec prisma generate && pnpm run build && pnpm exec tsx prisma/db-doctor.ts && pnpm exec prisma migrate deploy && pnpm exec prisma db seed && pnpm exec tsx prisma/import-tracks.ts && pnpm exec tsx prisma/create-admin.ts
 
     startCommand: pnpm run start
 
