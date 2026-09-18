@@ -15,20 +15,58 @@
     "rather than getting a dead link — so a half-filled file is fine.",
     "",
     "`graduation` is where track 8 sends them: the Keys / graduation page. Blank",
-    "falls back to the community root."
+    "falls back to the community root.",
+    "",
+    "URLs supplied 2026-09-18. All nine point at the same classroom",
+    "(soundrig-music-skool-2426/classroom/ee8fba23); the `md` query parameter is",
+    "what selects the individual lesson, so the links differ only in that value.",
+    "Track 1's own URL is recorded for completeness — the chaining never reads it,",
+    "since no Riff track returns to track 1."
   ],
   "tracks": [
-    { "track": 1, "name": "The Call to Create", "url": "" },
-    { "track": 2, "name": "The DNA of a Song", "url": "" },
-    { "track": 3, "name": "The Industry Map", "url": "" },
-    { "track": 4, "name": "Revenue Centers", "url": "" },
-    { "track": 5, "name": "Marketing & PR", "url": "" },
-    { "track": 6, "name": "AI in Music", "url": "" },
-    { "track": 7, "name": "SoundRig Music", "url": "" },
-    { "track": 8, "name": "Are You Serious?", "url": "" }
+    {
+      "track": 1,
+      "name": "The Call to Create",
+      "url": "https://www.skool.com/soundrig-music-skool-2426/classroom/ee8fba23?md=726144edb8b64f2d84853462caaf5c58"
+    },
+    {
+      "track": 2,
+      "name": "The DNA of a Song",
+      "url": "https://www.skool.com/soundrig-music-skool-2426/classroom/ee8fba23?md=842646ae46bc4c479c1f1079fa9c6c69"
+    },
+    {
+      "track": 3,
+      "name": "The Industry Map",
+      "url": "https://www.skool.com/soundrig-music-skool-2426/classroom/ee8fba23?md=5231ee11cbde41089512991560c06f1e"
+    },
+    {
+      "track": 4,
+      "name": "Revenue Centers",
+      "url": "https://www.skool.com/soundrig-music-skool-2426/classroom/ee8fba23?md=1835313dfee24f6381086ae189f8c702"
+    },
+    {
+      "track": 5,
+      "name": "Marketing & PR",
+      "url": "https://www.skool.com/soundrig-music-skool-2426/classroom/ee8fba23?md=c1480e18f2064b40bda6aba40b0fe6e9"
+    },
+    {
+      "track": 6,
+      "name": "AI in Music",
+      "url": "https://www.skool.com/soundrig-music-skool-2426/classroom/ee8fba23?md=8c33695bbb6349759f16be0e1632556f"
+    },
+    {
+      "track": 7,
+      "name": "SoundRig Music",
+      "url": "https://www.skool.com/soundrig-music-skool-2426/classroom/ee8fba23?md=2fc1caed129e4380870e125d231f6384"
+    },
+    {
+      "track": 8,
+      "name": "Are You Serious?",
+      "url": "https://www.skool.com/soundrig-music-skool-2426/classroom/ee8fba23?md=f2f8bedca98e426185c70527d7d2fce9"
+    }
   ],
   "graduation": {
-    "url": "",
+    "url": "https://www.skool.com/soundrig-music-skool-2426/classroom/ee8fba23?md=7547948b71c14808bbb71bdeae52d645",
     "label": "Unlock The Keys"
   }
 }
