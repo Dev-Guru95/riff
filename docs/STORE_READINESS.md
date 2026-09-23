@@ -2,9 +2,11 @@
 
 **Date:** 2026-09-23 · **Build:** `com.riff.app` 1.0.0 (versionCode 1) · minSdk 26 / targetSdk 36
 
-**Verdict: the app would be REJECTED from Google Play today.** Three blockers,
-all fixable, none requiring changes to the Android app itself — they are backend
-and store-listing gaps. Details and effort estimates below.
+**Original verdict (sweep):** would be REJECTED from Google Play — three blockers.
+
+**Current status:** blockers 1 and 2 are **implemented and deployed**. One
+blocker remains (payments), and it is a business decision rather than a defect.
+See §9 for what changed.
 
 ---
 
@@ -240,3 +242,91 @@ Not rejections, but the submission cannot be completed without them:
 the product is missing two legally-required features (account deletion, privacy
 policy) that its website is also missing, plus a payments decision. Realistically
 **one to two days** of backend work clears all three.
+
+
+---
+
+## 9. Remediation — what was implemented
+
+### Blocker 1: Account deletion — DONE
+
+| Piece | Location |
+|---|---|
+| Deletion logic | `src/lib/account.ts` |
+| API | `DELETE /api/account` — requires password re-entry **and** the typed word `DELETE` |
+| In-app entry point | `/settings` → "Delete my account" (Settings added to the main nav so it is discoverable, as Play requires) |
+| Public URL for Play Console | **`https://riff-app.onrender.com/account/deletion`** |
+| Post-deletion page | `/account/deleted` (public — the session is gone by then) |
+
+**No schema migration was needed.** Every `User` relation already declared
+`onDelete: Cascade`, so `user.delete()` clears the bulk of the 66 models.
+
+**Six tables do not cascade** and would have silently outlived the account,
+keeping personal data about someone who asked to be forgotten. They store
+`userId` as a plain `String` with no relation, so Prisma does not know it is a
+foreign key. All six are now deleted explicitly, in the same transaction:
+
+`Notification` · `AnalyticsEvent` · `CouponRedemption` · `LeaderboardSnapshot` ·
+`Report` (all three of `reporterId`, `reviewedById`, and `targetId` where
+`targetType = "user"`) · `UserBlock` (both `blockerId` and `blockedId`)
+
+Two safeguards:
+
+- **Last admin is protected.** Deleting the only admin account is refused with a
+  409, since it would lock everyone out of the admin area.
+- **Stripe subscription is cancelled first**, so nobody keeps paying for a
+  product they can no longer open. Deliberately best-effort — a payment provider
+  outage must not block a legal right to erasure — with the failure logged and
+  the user told to check their statement.
+
+**Design decision worth knowing:** community threads and posts are *deleted*,
+not anonymised, because they cascade. That is the strongest privacy posture and
+what the policy wants, but it means replies to that person lose their context.
+Anonymising instead would need a schema migration making `Post.userId` nullable
+with `onDelete: SetNull`. Say the word if you would prefer that.
+
+### Blocker 2: Privacy policy — DONE
+
+Published at **`https://riff-app.onrender.com/privacy`** — public, static, no
+auth, so a reviewer can open it directly.
+
+Written from what the code actually does rather than from a template. It names
+**DeepSeek** as the recipient of coach conversations and assignment text (which
+a generic template would have missed, and which the Data Safety form must also
+declare), and **Stripe** as the holder of payment records that cannot be erased.
+
+> ⚠️ **One thing you must do before submitting:** the policy carries a
+> placeholder — `[LEGAL ENTITY NAME], [REGISTERED ADDRESS]`. I will not invent a
+> legal identity for you. Fill it in, and have a lawyer review the document if
+> this is going to be a real commercial product.
+
+### Blocker 3: Payments — still open
+
+Unchanged, and a business decision rather than a bug. Option B (hide purchase
+flows when the `RiffAndroid` User-Agent is present) remains the ~1 hour route to
+compliance. Nothing has been changed here without your call on it.
+
+### Also fixed
+
+The `CAMERA` permission was removed — see §6. It was breaking the very feature
+it appeared to enable.
+
+### Verified live against production (2026-09-23)
+
+Deploy landed in ~105s; the full flow was then exercised end to end against
+`riff-app.onrender.com` with a throwaway account:
+
+| # | Test | Result |
+|---|---|---|
+| A | `/account/deletion` and `/privacy` reachable **without auth** | ✅ both `200` — what a reviewer does |
+| B | Create throwaway account | ✅ `201` |
+| C | Sign in, load `/dashboard` | ✅ `200` |
+| D | Delete with **wrong password** | ✅ `401` *"That password is not correct"* — refused |
+| E | Delete **without typing `DELETE`** | ✅ `422` validation error — refused |
+| F | Delete with correct credentials | ✅ `200` `{"deleted":true,"billingNeedsAttention":false}` |
+| G | Log in again with those credentials | ✅ `401` *"Invalid email or password"* — **the account is genuinely gone** |
+| H | Reuse the old session cookie | ✅ `307` → `/login` — session no longer valid |
+
+G is the one that matters: the account is actually erased, not merely flagged
+inactive. D and E confirm the irreversible action cannot be triggered by a
+borrowed session or a forged post.
