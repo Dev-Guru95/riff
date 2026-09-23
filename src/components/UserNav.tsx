@@ -28,6 +28,10 @@ const LINKS: NavItem[] = [
   { href: "/community", label: "Community", icon: "community" },
   { href: "/leaderboard", label: "Ranks", icon: "trophy" },
   { href: "/pricing", label: "Plans", icon: "card" },
+  // Settings must be reachable from the app shell, not only by typing the URL:
+  // Play's User Data policy requires account deletion to be discoverable from
+  // inside the app, and this is the route that leads to it.
+  { href: "/settings", label: "Settings", icon: "settings" },
 ];
 
 // "/boards" should stay lit on "/boards/abc", but "/" must not match everything.
