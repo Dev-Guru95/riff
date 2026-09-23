@@ -158,3 +158,56 @@ body {
 .markdown-body pre code { background: none; border: none; padding: 0; }
 .markdown-body strong { font-weight: 700; }
 .markdown-body em { font-style: italic; }
+
+/* ---------------------------------------------------------------------------
+   Touch / Android app shell
+   The layout itself is already mobile-first (every grid is `grid-cols-2
+   sm:grid-cols-N`), so nothing here changes structure. These rules fix the
+   ergonomics that only show up on a real touch screen, and they apply to the
+   mobile web as much as to the Android WebView — one codebase, both surfaces.
+   --------------------------------------------------------------------------- */
+
+html {
+  /* Stop Android/WebKit inflating body text on rotation, which silently breaks
+     the carefully sized type scale. */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  /* Keep overscroll inside the page. Without this the WebView rubber-bands and
+     competes with the native pull-to-refresh gesture in the Android shell. */
+  overscroll-behavior-y: contain;
+  /* A long unbroken string (a pasted URL in a comment, a card title) must wrap
+     rather than force the whole page to scroll sideways. */
+  overflow-wrap: break-word;
+}
+
+@media (pointer: coarse) {
+  /* Android's accessibility guidance is a 48dp target; 44px is the practical
+     floor once the surrounding gap is counted. Only min-height is set, so the
+     existing padding utilities still control the resting size. */
+  .btn,
+  .pill {
+    min-height: 44px;
+  }
+
+  /* Inputs below 16px make mobile browsers zoom the viewport on focus, which
+     jumps the layout mid-typing and then leaves the page zoomed in. */
+  .field {
+    font-size: 16px;
+  }
+
+  /* The default translucent-blue tap flash fights the dark theme; replace it
+     with a deliberate pressed state instead of leaving no feedback at all. */
+  a,
+  button,
+  .btn,
+  .pill {
+    -webkit-tap-highlight-color: transparent;
+  }
+  .btn:active,
+  .pill:active {
+    transform: scale(0.97);
+  }
+}

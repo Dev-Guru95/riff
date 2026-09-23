@@ -28,7 +28,7 @@ export function CreateCouponForm() {
   }
 
   return (
-    <form onSubmit={submit} className="card p-4 grid sm:grid-cols-[1fr_1fr_6rem_1fr_auto] gap-2 items-end">
+    <form onSubmit={submit} className="card p-4 grid sm:grid-cols-[1fr_1fr_6rem_6rem_1fr_auto] gap-2 items-end">
       <Field label="Code"><input className="ci" value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} placeholder="SUMMER25" /></Field>
       <Field label="Type">
         <select className="ci" value={type} onChange={(e) => setType(e.target.value)}>
@@ -36,6 +36,9 @@ export function CreateCouponForm() {
         </select>
       </Field>
       <Field label="Value"><input type="number" className="ci" value={value} onChange={(e) => setValue(Number(e.target.value))} /></Field>
+      {/* Without this field the value stayed at its initial 0, so every coupon
+          was created unlimited no matter what the admin intended. */}
+      <Field label="Max uses"><input type="number" min={0} className="ci" value={maxRedemptions} onChange={(e) => setMax(Math.max(0, Number(e.target.value) || 0))} title="0 = unlimited" /></Field>
       <Field label="Description"><input className="ci" value={description} onChange={(e) => setDescription(e.target.value)} /></Field>
       <button className="btn btn-primary" disabled={loading || !code}>Create</button>
       {err && <p className="text-sm text-[var(--brand-2)] col-span-full">{err}</p>}
