@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Mirrors the CSS custom properties in src/app/globals.css so native chrome
+     (splash, status bar, refresh spinner) is the same palette as the web UI. -->
+<resources>
+    <color name="background">#0a0a0f</color>
+    <color name="surface">#14141c</color>
+    <color name="foreground">#ededf2</color>
+    <color name="muted">#9a9ab0</color>
+    <color name="brand">#8b5cf6</color>
+    <color name="brand_2">#ec4899</color>
+    <color name="accent">#22d3ee</color>
+</resources>

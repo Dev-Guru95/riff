@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Riff</string>
+    <string name="offline_title">No connection</string>
+    <string name="offline_body">Riff can\'t reach the server. Check your internet connection and try again.</string>
+    <string name="error_title">Something went wrong</string>
+    <string name="error_body">We couldn\'t load that screen. Please try again.</string>
+    <string name="server_error_body">The server is taking too long to respond. It may be waking up — give it a moment and retry.</string>
+    <string name="retry">Try again</string>
+    <string name="exit_confirm">Press back again to exit</string>
+    <string name="download_started">Download started</string>
+    <string name="download_failed">Download failed</string>
+    <string name="notif_channel_name">Riff notifications</string>
+    <string name="notif_channel_desc">New activity on your account</string>
+</resources>
