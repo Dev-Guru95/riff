@@ -5,8 +5,15 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <!-- Notification polling surfaces unread counts while the app is backgrounded. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <!-- Camera is optional: it backs the "take a photo" branch of the file chooser. -->
-    <uses-permission android:name="android.permission.CAMERA" />
+    <!-- No CAMERA permission on purpose. Capture is delegated to the installed
+         camera app via ACTION_IMAGE_CAPTURE, which needs no permission of ours.
+         Worse, declaring it is actively harmful: once an app declares CAMERA,
+         Android throws SecurityException on ACTION_IMAGE_CAPTURE until the user
+         grants it at runtime — so declaring it without requesting it broke the
+         very feature it looked like it was enabling. Fewer permissions also
+         means less Play Console review scrutiny.
+         If page JavaScript ever needs getUserMedia (no code does today), this
+         permission and a runtime request both have to come back. -->
     <uses-feature android:name="android.hardware.camera" android:required="false" />
 
     <!-- Package visibility (Android 11+). Without this, resolveActivity() for the
