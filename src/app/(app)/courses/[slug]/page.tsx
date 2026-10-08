@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { requirePageSession } from "@/lib/auth";
 import { getCourseTree } from "@/lib/progression";
 import { trackBadgeMeta } from "@/lib/gamification";
 import { badgeAsset } from "@/lib/assets";
@@ -13,7 +13,7 @@ import { resolveReturnLink } from "@/lib/returnLink";
 
 export default async function CourseDetail({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const session = (await getSession())!;
+  const session = await requirePageSession();
   const course = await prisma.course.findUnique({ where: { slug } });
   if (!course) notFound();
 

@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { prisma } from "./prisma";
@@ -68,6 +69,19 @@ export async function getCurrentUser() {
   const session = await getSession();
   if (!session) return null;
   return prisma.user.findUnique({ where: { id: session.id } });
+}
+
+/**
+ * Session for a signed-in page, redirecting to /login when there is none.
+ *
+ * Layouts and pages render in parallel, so the (app) layout's redirect does not
+ * guarantee a page has a session by the time it runs. Asserting non-null there
+ * threw "Cannot read properties of null (reading 'id')" on every logged-out hit.
+ */
+export async function requirePageSession(): Promise<SessionUser> {
+  const session = await getSession();
+  if (!session) redirect("/login");
+  return session;
 }
 
 export async function requireUser(): Promise<SessionUser> {

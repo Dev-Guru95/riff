@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { requirePageSession } from "@/lib/auth";
 import { ProgressBar } from "@/components/ui";
 
 export default async function CoursesPage() {
-  const session = (await getSession())!;
+  const session = await requirePageSession();
   const courses = await prisma.course.findMany({
     where: { isPublished: true },
     // slug is the tiebreaker so two courses sharing an orderIndex (the seeded

@@ -1,10 +1,10 @@
-import { getSession } from "@/lib/auth";
+import { requirePageSession } from "@/lib/auth";
 import { getPlan } from "@/lib/entitlements";
 import { isStripeConfigured, PLANS } from "@/lib/stripe";
 import { UpgradeButton } from "./PricingClient";
 
 export default async function PricingPage() {
-  const session = (await getSession())!;
+  const session = await requirePageSession();
   const currentPlan = await getPlan(session.id);
   const configured = isStripeConfigured();
 

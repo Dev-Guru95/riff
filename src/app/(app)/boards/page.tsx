@@ -1,4 +1,4 @@
-import { getSession } from "@/lib/auth";
+import { requirePageSession } from "@/lib/auth";
 import { listBoardsForUser, loadDashboard } from "@/lib/boards";
 import { BoardsClient } from "./BoardsClient";
 import { Dashboard } from "./Dashboard";
@@ -8,7 +8,7 @@ import { PageHeader } from "@/components/ui";
 export const metadata = { title: "Projects — Riff" };
 
 export default async function BoardsPage() {
-  const session = (await getSession())!;
+  const session = await requirePageSession();
   const [boards, dashboard] = await Promise.all([
     listBoardsForUser(session.id),
     loadDashboard(session.id),

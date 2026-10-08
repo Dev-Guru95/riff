@@ -1,10 +1,10 @@
 import { notFound } from "next/navigation";
-import { getSession } from "@/lib/auth";
+import { requirePageSession } from "@/lib/auth";
 import { builderFor, listDrafts } from "@/lib/studio";
 import { AiBuilder } from "./AiBuilder";
 
 export default async function BuilderPage({ params }: { params: Promise<{ kind: string }> }) {
-  const session = (await getSession())!;
+  const session = await requirePageSession();
   const { kind } = await params;
   const builder = builderFor(kind);
   if (!builder) notFound();

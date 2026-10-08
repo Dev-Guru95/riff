@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getSession } from "@/lib/auth";
+import { requirePageSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getCommunityStatus } from "@/lib/community";
 import { CoachChat } from "./CoachChat";
@@ -9,7 +9,7 @@ import { CoachChat } from "./CoachChat";
 // redirected — a redirect to /community lit up the wrong sidebar item and read
 // as a broken link.
 export default async function CoachPage() {
-  const session = (await getSession())!;
+  const session = await requirePageSession();
   const status = await getCommunityStatus(session.id);
   if (status !== "member") return <CoachLocked pending={status === "pending"} />;
 

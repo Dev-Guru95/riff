@@ -1,12 +1,12 @@
 import Link from "next/link";
-import { getSession } from "@/lib/auth";
+import { requirePageSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getEntitlements } from "@/lib/entitlements";
 import { PLANS } from "@/lib/stripe";
 import { ManageBillingButton } from "./BillingClient";
 
 export default async function BillingSettings() {
-  const session = (await getSession())!;
+  const session = await requirePageSession();
   const [ent, sub] = await Promise.all([
     getEntitlements(session.id),
     prisma.subscription.findUnique({ where: { userId: session.id } }),

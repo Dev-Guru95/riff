@@ -1,9 +1,9 @@
-import { getSession } from "@/lib/auth";
+import { requirePageSession } from "@/lib/auth";
 import { getMissionsForUser } from "@/lib/missions";
 import { MissionCard } from "./MissionsClient";
 
 export default async function MissionsPage() {
-  const session = (await getSession())!;
+  const session = await requirePageSession();
   const missions = await getMissionsForUser(session.id);
   const completed = missions.filter((m) => m.status === "completed").length;
 

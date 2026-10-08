@@ -1,4 +1,4 @@
-import { getSession } from "@/lib/auth";
+import { requirePageSession } from "@/lib/auth";
 import { computeLeaderboard } from "@/lib/leaderboard";
 import { buildShare } from "@/lib/share";
 import { Pagination } from "@/components/Pagination";
@@ -13,7 +13,7 @@ const PAGE_SIZE = 50;
 const COLS = "grid-cols-[3rem_4rem_1fr_5rem_5rem_4rem]";
 
 export default async function LeaderboardPage({ searchParams }: { searchParams: Promise<{ page?: string }> }) {
-  const session = (await getSession())!;
+  const session = await requirePageSession();
   const page = Math.max(1, parseInt((await searchParams).page ?? "1", 10) || 1);
   const all = await computeLeaderboard({ scope: "global" });
   const rows = all.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);

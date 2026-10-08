@@ -1,13 +1,13 @@
 import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { requirePageSession } from "@/lib/auth";
 import { isLessonUnlocked } from "@/lib/progression";
 import { resolveReturnLink } from "@/lib/returnLink";
 import { LessonPlayer } from "./LessonPlayer";
 
 export default async function LearnPage({ params }: { params: Promise<{ lessonId: string }> }) {
   const { lessonId } = await params;
-  const session = (await getSession())!;
+  const session = await requirePageSession();
 
   const lesson = await prisma.lesson.findUnique({
     where: { id: lessonId },

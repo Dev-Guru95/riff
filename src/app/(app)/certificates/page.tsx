@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getSession } from "@/lib/auth";
+import { requirePageSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getProgramProgress } from "@/lib/certificates";
 import { PROGRAM_KEY, PROGRAM_TITLE } from "@/lib/constants";
@@ -8,7 +8,7 @@ import { ShareToSkool } from "@/components/ShareToSkool";
 import { CertificateArtwork } from "@/components/CertificateArtwork";
 
 export default async function CertificatesPage() {
-  const session = (await getSession())!;
+  const session = await requirePageSession();
   const [cert, profile, progress] = await Promise.all([
     prisma.certificate.findUnique({
       where: { userId_programKey: { userId: session.id, programKey: PROGRAM_KEY } },

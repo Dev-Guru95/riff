@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getSession } from "@/lib/auth";
+import { requirePageSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { resolveLevel } from "@/lib/constants";
 import { listFinance } from "@/lib/studio-tools";
@@ -12,7 +12,7 @@ export const metadata = { title: "Career Dashboard — Riff" };
 const money = (cents: number) => `$${(cents / 100).toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
 
 export default async function CareerDashboardPage() {
-  const session = (await getSession())!;
+  const session = await requirePageSession();
   const uid = session.id;
   const [level, streak, finance, goals, fanCount, boardCount, openTasks, badgeCount, gigCount] = await Promise.all([
     prisma.userLevel.findUnique({ where: { userId: uid } }),

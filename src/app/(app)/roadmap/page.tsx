@@ -1,9 +1,9 @@
-import { getSession } from "@/lib/auth";
+import { requirePageSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { RoadmapClient } from "./RoadmapClient";
 
 export default async function RoadmapPage() {
-  const session = (await getSession())!;
+  const session = await requirePageSession();
   const roadmaps = await prisma.roadmap.findMany({
     where: { userId: session.id, isCurrent: true },
     orderBy: { createdAt: "desc" },
