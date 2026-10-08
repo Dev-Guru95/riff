@@ -49,10 +49,11 @@ export function CommunityOnboarding({ alreadyRequested }: { alreadyRequested: bo
     <main className="max-w-2xl mx-auto px-4 py-10">
       <div className="text-center mb-8">
         <div className="text-5xl mb-3">🤝</div>
-        <h1 className="text-3xl font-bold">Join the Soundring Community</h1>
+        <h1 className="text-3xl font-bold">Join the SoundRig Community</h1>
         <p className="text-[var(--muted)] mt-2 max-w-lg mx-auto">
-          Riff is where you learn. Our community lives on Skool — join to unlock your AI Coach,
-          accountability, challenges, live events, and the people who’ll keep you moving.
+          Riff is SoundRig’s learning app — lessons, quizzes and tools live here. The SoundRig
+          community lives on Skool — join to unlock your AI Coach, accountability, challenges, live
+          events, and the people who’ll keep you moving.
         </p>
       </div>
 

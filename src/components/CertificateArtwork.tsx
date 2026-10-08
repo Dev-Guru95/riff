@@ -35,7 +35,7 @@ export function CertificateArtwork({
         <div className="text-sm opacity-85">has completed the</div>
         <div className="text-xl font-semibold mt-1">{title}</div>
         <div className="text-xs opacity-70 mt-6">
-          {date} · #{serial.slice(0, 10)} · Soundring · Riff
+          {date} · #{serial.slice(0, 10)} · SoundRig · Riff
         </div>
       </div>
     </div>

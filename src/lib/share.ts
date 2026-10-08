@@ -37,42 +37,42 @@ export function buildShare(input: ShareInput): SharePayload {
     xp: {
       emoji: "⚡",
       headline: `${input.value} XP earned`,
-      caption: `${who} just earned ${input.value} XP on Riff! ⚡ Grinding the business side of my music career. #Soundring`,
+      caption: `${who} just earned ${input.value} XP on Riff! ⚡ Grinding the business side of my music career. #SoundRig`,
     },
     level: {
       emoji: "🚀",
       headline: `Leveled up to ${input.value}`,
-      caption: `Level up! ${who} just reached ${input.value} on Riff 🚀 The music business grind is paying off. #Soundring`,
+      caption: `Level up! ${who} just reached ${input.value} on Riff 🚀 The music business grind is paying off. #SoundRig`,
     },
     badge: {
       emoji: "🏅",
       headline: `Badge unlocked: ${input.value}`,
-      caption: `${who} just unlocked the "${input.value}" badge on Riff 🏅 ${input.detail ?? ""}`.trim() + " #Soundring",
+      caption: `${who} just unlocked the "${input.value}" badge on Riff 🏅 ${input.detail ?? ""}`.trim() + " #SoundRig",
     },
     streak: {
       emoji: "🔥",
       headline: `${input.value}-day streak`,
-      caption: `${verb("I'm", `${who} is`)} on a ${input.value}-day streak on Riff 🔥 Showing up every single day. Who's with me? #Soundring`,
+      caption: `${verb("I'm", `${who} is`)} on a ${input.value}-day streak on Riff 🔥 Showing up every single day. Who's with me? #SoundRig`,
     },
     certificate: {
       emoji: "🎓",
       headline: `Certified: ${input.value}`,
-      caption: `${verb("I", `${who}`)} just completed "${input.value}" on Riff and earned my certificate! 🎓 On to the next one. #Soundring`,
+      caption: `${verb("I", `${who}`)} just completed "${input.value}" on Riff and earned my certificate! 🎓 On to the next one. #SoundRig`,
     },
     leaderboard: {
       emoji: "🏆",
       headline: `Ranked #${input.value}`,
-      caption: `${verb("I", `${who}`)} hit #${input.value} on the Riff leaderboard 🏆 ${input.detail ?? "Climbing every week."} #Soundring`,
+      caption: `${verb("I", `${who}`)} hit #${input.value} on the Riff leaderboard 🏆 ${input.detail ?? "Climbing every week."} #SoundRig`,
     },
     milestone: {
       emoji: "🎯",
       headline: `Milestone: ${input.value}`,
-      caption: `Milestone unlocked on Riff: ${input.value} 🎯 ${input.detail ?? ""}`.trim() + " #Soundring",
+      caption: `Milestone unlocked on Riff: ${input.value} 🎯 ${input.detail ?? ""}`.trim() + " #SoundRig",
     },
     challenge: {
       emoji: "✅",
       headline: `Challenge done: ${input.value}`,
-      caption: `${verb("I", `${who}`)} just completed the "${input.value}" challenge on Riff ✅ ${input.detail ?? ""}`.trim() + " #Soundring",
+      caption: `${verb("I", `${who}`)} just completed the "${input.value}" challenge on Riff ✅ ${input.detail ?? ""}`.trim() + " #SoundRig",
     },
   };
 

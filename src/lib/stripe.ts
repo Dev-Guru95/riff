@@ -16,7 +16,7 @@ export const PLANS: Record<PlanKey, { name: string; priceMonthly: number; priceI
   free: {
     name: "Free",
     priceMonthly: 0,
-    features: ["First course module", "5 coach messages/day", "1 social connection", "Monthly audit (1 platform)", "Community (read)"],
+    features: ["First course module", "AI Coach (Skool members)", "1 social connection", "Monthly audit (1 platform)", "Community (read)"],
   },
   pro: {
     name: "Pro",

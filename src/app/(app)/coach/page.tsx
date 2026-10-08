@@ -1,14 +1,17 @@
-import { redirect } from "next/navigation";
+import Link from "next/link";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { isSkoolMember } from "@/lib/community";
+import { getCommunityStatus } from "@/lib/community";
 import { CoachChat } from "./CoachChat";
 
 // AI Coach is a community-gated Pro feature: available once the artist joins the
-// Skool community. Non-members are routed to the community onboarding.
+// Skool community. Non-members see a locked state here rather than being
+// redirected — a redirect to /community lit up the wrong sidebar item and read
+// as a broken link.
 export default async function CoachPage() {
   const session = (await getSession())!;
-  if (!(await isSkoolMember(session.id))) redirect("/community");
+  const status = await getCommunityStatus(session.id);
+  if (status !== "member") return <CoachLocked pending={status === "pending"} />;
 
   // Use the most recent thread, or create one.
   let thread = await prisma.coachThread.findFirst({
@@ -35,6 +38,28 @@ export default async function CoachPage() {
         threadId={thread.id}
         initialMessages={thread.messages.map((m) => ({ id: m.id, role: m.role, content: m.content }))}
       />
+    </main>
+  );
+}
+
+function CoachLocked({ pending }: { pending: boolean }) {
+  return (
+    <main className="max-w-xl mx-auto px-4 py-16 text-center">
+      <div className="text-5xl mb-3">🔒</div>
+      <h1 className="text-2xl font-bold">AI Artist Coach</h1>
+      <p className="text-[var(--muted)] mt-2">
+        A coach that knows your goals, genre, progress and audit scores. It unlocks when you join the
+        SoundRig community on Skool.
+      </p>
+      {pending ? (
+        <p className="text-sm mt-6">
+          ⏳ Your membership is being verified — your coach unlocks as soon as it&apos;s approved.
+        </p>
+      ) : (
+        <Link href="/community" className="btn btn-primary mt-6 inline-block">
+          Join the community to unlock
+        </Link>
+      )}
     </main>
   );
 }

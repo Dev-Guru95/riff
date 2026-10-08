@@ -1,7 +1,7 @@
 // Typed string-constant unions (portable across SQLite/Postgres; on Postgres
 // these become native enums).
 
-// The official Soundring Skool community. Community + AI Coach unlock by joining.
+// The official SoundRig Skool community. Community + AI Coach unlock by joining.
 // Override the destination via NEXT_PUBLIC_SKOOL_URL.
 export const SKOOL_URL =
   process.env.NEXT_PUBLIC_SKOOL_URL || "https://www.skool.com/soundrig-music-skool-2426";
@@ -37,7 +37,7 @@ export type UiColor = (typeof UI_COLORS)[number];
 // earns the single program certificate + the capstone badge. `PROGRAM_KEY` is
 // the seam for supporting multiple programs later.
 export const PROGRAM_KEY = "riff";
-export const PROGRAM_TITLE = "Soundring Artist Program";
+export const PROGRAM_TITLE = "SoundRig Artist Program";
 export const PROGRAM_BADGE_KEY = "program_graduate";
 
 /** Stable, env-portable key for a course's track-completion badge (slug-based,

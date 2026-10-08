@@ -10,7 +10,8 @@ export const POST = withRoute(async (req: Request) => {
   const session = await getSession();
   if (!session) return fail("Not authenticated", 401);
   if (!isStripeConfigured() || !stripe) {
-    return fail("Billing is not configured. Set STRIPE_SECRET_KEY and price IDs.", 503);
+    console.warn("billing/checkout: Stripe is not configured — set STRIPE_SECRET_KEY and price IDs.");
+    return fail("Upgrades aren't available yet.", 503);
   }
   const body = await parseBody(req, schema);
   if (body.error) return body.error;

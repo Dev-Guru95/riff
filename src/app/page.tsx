@@ -39,6 +39,9 @@ export default async function Home() {
           <Link href="/signup" className="btn btn-primary px-6 py-3 text-base">Start free</Link>
           <Link href="/login" className="btn btn-ghost px-6 py-3 text-base">I have an account</Link>
         </div>
+        <p className="text-sm text-[var(--muted)] mt-6">
+          Riff is the learning app from SoundRig. Learn here, then connect with the SoundRig community on Skool.
+        </p>
       </section>
 
       <section className="max-w-5xl mx-auto px-4 pb-24 grid sm:grid-cols-3 gap-4">

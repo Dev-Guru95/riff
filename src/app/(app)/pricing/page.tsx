@@ -15,12 +15,13 @@ export default async function PricingPage() {
       <h1 className="text-2xl font-bold mb-1">Plans</h1>
       <p className="text-sm text-[var(--muted)] mb-6">Upgrade to unlock all courses, unlimited coaching, and full audits.</p>
 
+      {/* Setup details (which Stripe env vars are missing) belong in the server
+          log, not in front of artists. */}
       {!configured && (
-        <div className="card p-4 mb-6 border-[var(--warning)]">
+        <div className="card p-4 mb-6">
           <p className="text-sm">
-            💳 <strong>Billing isn&apos;t configured yet.</strong> Set <code>STRIPE_SECRET_KEY</code>,
-            <code> STRIPE_PRICE_PRO</code>, <code>STRIPE_PRICE_PREMIUM</code>, and <code>STRIPE_WEBHOOK_SECRET</code> in
-            your environment to enable checkout. The flow below is fully wired and will work once keys are added.
+            💳 <strong>Upgrades are opening soon.</strong> Paid plans aren&apos;t available to purchase just yet —
+            keep learning on Free and we&apos;ll let you know the moment they go live.
           </p>
         </div>
       )}

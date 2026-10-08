@@ -67,7 +67,7 @@ export function ShareToSkool({
             >
               <div className="text-5xl mb-2">{share.emoji}</div>
               <div className="text-lg font-bold leading-tight">{share.headline}</div>
-              <div className="text-xs opacity-80 mt-2">on Riff · Soundring</div>
+              <div className="text-xs opacity-80 mt-2">on Riff · SoundRig</div>
             </div>
 
             <p className="text-xs text-[var(--muted)] mb-1">Your post</p>

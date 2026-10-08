@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import {
   trackBadgeKey,
   PROGRAM_BADGE_KEY,
+  PROGRAM_TITLE,
   BADGE_ORDER_CAPSTONE,
   journeyBadgeOrder,
   trackBadgeOrder,
@@ -26,7 +27,7 @@ async function main() {
     { key: "first_submission", name: "On The Record", description: "Get your first assignment reviewed.", icon: "🎙️", tier: "bronze" },
     { key: "streak_7", name: "Consistency King", description: "Reach a 7-day streak.", icon: "🔥", tier: "gold" },
     { key: "mission_marathon", name: "Mission Marathon", description: "Complete 10 missions.", icon: "🏃", tier: "platinum" },
-    { key: PROGRAM_BADGE_KEY, name: "Program Graduate", description: "Complete the entire Soundring Artist Program.", icon: "🎓", tier: "platinum" },
+    { key: PROGRAM_BADGE_KEY, name: "Program Graduate", description: "Complete the entire SoundRig Artist Program.", icon: "🎓", tier: "platinum" },
   ].map((b) => ({
     ...b,
     orderIndex: b.key === PROGRAM_BADGE_KEY ? BADGE_ORDER_CAPSTONE : journeyBadgeOrder(b.key),
@@ -36,15 +37,23 @@ async function main() {
   }
 
   // ---- Missions ----
-  const missions = [
-    { title: "Define Your Brand Pillars", description: "Write 3 words that describe your artist brand and explain each.", category: "branding", xpReward: 120 },
-    { title: "7-Day Posting Challenge", description: "Post once a day for 7 days on your main platform.", category: "content", xpReward: 200 },
-    { title: "Engage 10 Fans", description: "Reply meaningfully to 10 comments or DMs this week.", category: "engagement", xpReward: 100 },
-  ];
-  for (const m of missions) {
-    const exists = await prisma.mission.findFirst({ where: { title: m.title } });
-    if (!exists) await prisma.mission.create({ data: m });
-  }
+  // Missions come only from the weekly rotation (ensureWeeklyMissions). The seed
+  // used to create three with no weekKey and no activeTo, which stayed active
+  // forever and duplicated any rotation pick sharing a title ("Define Your
+  // Brand Pillars" showed twice). Expire those legacy rows rather than delete
+  // them, so users' completion history on them survives.
+  await prisma.mission.updateMany({
+    where: { weekKey: null, activeTo: null },
+    data: { activeTo: new Date() },
+  });
+
+  // ---- Brand rename ----
+  // "Soundring" was a misspelling of SoundRig. Certificates store their title at
+  // issue time, so ones already issued are corrected here (no-op once done).
+  await prisma.certificate.updateMany({
+    where: { title: "Soundring Artist Program" },
+    data: { title: PROGRAM_TITLE },
+  });
 
   // ---- Course: Music Marketing Foundations (RETIRED placeholder) ----
   // This sample course existed only while the real Launchpad tracks had no

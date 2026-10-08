@@ -30,19 +30,24 @@ function isoWeekKey(d: Date): string {
  */
 export async function ensureWeeklyMissions(now = new Date()): Promise<void> {
   const weekKey = isoWeekKey(now);
-  const existing = await prisma.mission.count({ where: { weekKey } });
-  if (existing > 0) return;
+  if ((await prisma.mission.count({ where: { weekKey } })) > 0) return;
 
   // Rotate: pick 3 missions offset by the week number so the slate varies.
   const weekNum = parseInt(weekKey.split("-W")[1], 10);
   const picks = [0, 1, 2].map((i) => MISSION_POOL[(weekNum + i) % MISSION_POOL.length]);
   const activeTo = new Date(now.getTime() + 7 * 86_400_000);
 
-  for (const p of picks) {
-    await prisma.mission.create({
-      data: { ...p, weekKey, activeFrom: now, activeTo },
+  // Two first visits of a new week can both see a count of 0; without a lock
+  // each creates a full set and every mission shows twice. The transaction-
+  // scoped advisory lock serialises them, and the re-count inside it makes the
+  // second one a no-op.
+  await prisma.$transaction(async (tx) => {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`missions:${weekKey}`}::text))`;
+    if ((await tx.mission.count({ where: { weekKey } })) > 0) return;
+    await tx.mission.createMany({
+      data: picks.map((p) => ({ ...p, weekKey, activeFrom: now, activeTo })),
     });
-  }
+  });
 }
 
 /** Active missions joined with this user's status. */

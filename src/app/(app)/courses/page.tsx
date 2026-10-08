@@ -33,7 +33,7 @@ export default async function CoursesPage() {
               </div>
               <h2 className="text-lg font-semibold">{c.title}</h2>
               <p className="text-sm text-[var(--muted)] mt-1 mb-4">{c.description}</p>
-              <div className="text-xs text-[var(--muted)] mb-2">{c.modules.length} modules · {lessonCount} lessons</div>
+              <div className="text-xs text-[var(--muted)] mb-2">{c.modules.length} {c.modules.length === 1 ? "module" : "modules"} · {lessonCount} {lessonCount === 1 ? "lesson" : "lessons"}</div>
               {enrolled && (
                 <>
                   <ProgressBar pct={enrolled.progressPct} />

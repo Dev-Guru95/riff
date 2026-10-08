@@ -26,7 +26,7 @@ export function UpgradeButton({ plan, disabled }: { plan: "pro" | "premium"; dis
   return (
     <div>
       <button className="btn btn-primary w-full" onClick={upgrade} disabled={loading || disabled}>
-        {loading ? "Redirecting…" : disabled ? "Unavailable" : `Upgrade to ${plan}`}
+        {loading ? "Redirecting…" : disabled ? "Coming soon" : `Upgrade to ${plan}`}
       </button>
       {err && <p className="text-xs text-[var(--brand-2)] mt-1">{err}</p>}
     </div>

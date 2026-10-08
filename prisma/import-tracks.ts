@@ -82,6 +82,13 @@ async function main() {
 
     if (existing) {
       skipped++;
+      // Level is display metadata only (no slug or link depends on it), so the
+      // JSON is applied on every run — otherwise an edited level never reaches
+      // a database that already holds the track.
+      if (existing.level !== parsed.data.level) {
+        await prisma.course.update({ where: { slug }, data: { level: parsed.data.level } });
+        console.log(`  ~ ${slug} level → ${parsed.data.level}`);
+      }
       if (REPUBLISH) {
         await prisma.course.update({
           where: { slug },

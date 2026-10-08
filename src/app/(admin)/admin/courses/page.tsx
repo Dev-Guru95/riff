@@ -32,7 +32,7 @@ export default async function AdminCourses() {
                   <span className="text-xs text-[var(--muted)]">v{c.version}</span>
                 </div>
                 <div className="text-xs text-[var(--muted)] mt-1">
-                  {c._count.modules} modules &middot; {lessons} lessons
+                  {c._count.modules} {c._count.modules === 1 ? "module" : "modules"} &middot; {lessons} {lessons === 1 ? "lesson" : "lessons"}
                 </div>
               </div>
               <div className="flex items-center gap-3 shrink-0">
