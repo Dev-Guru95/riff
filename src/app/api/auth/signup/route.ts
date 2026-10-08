@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { hashPassword, setSession } from "@/lib/auth";
+import { hashPassword, setSession, isNativeClient } from "@/lib/auth";
 import { parseBody, ok, fail, tooMany, withRoute } from "@/lib/api";
 import { rateLimit, clientIp, LIMITS } from "@/lib/ratelimit";
 import { track } from "@/lib/analytics";
@@ -54,6 +54,6 @@ export const POST = withRoute(async (req: Request) => {
   }
 
   await track("signup", user.id, referralSource ? { ref: referralSource } : {});
-  await setSession({ id: user.id, email: user.email, role: user.role });
-  return ok({ id: user.id, email: user.email }, 201);
+  const token = await setSession({ id: user.id, email: user.email, role: user.role });
+  return ok({ id: user.id, email: user.email, ...(isNativeClient(req) ? { role: user.role, token } : {}) }, 201);
 });

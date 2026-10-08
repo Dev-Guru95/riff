@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { verifyPassword, setSession } from "@/lib/auth";
+import { verifyPassword, setSession, isNativeClient } from "@/lib/auth";
 import { verifyMfaCode } from "@/lib/mfa";
 import { parseBody, ok, fail, tooMany, withRoute } from "@/lib/api";
 import { rateLimit, clientIp, LIMITS } from "@/lib/ratelimit";
@@ -28,6 +28,6 @@ export const POST = withRoute(async (req: Request) => {
   }
 
   await prisma.user.update({ where: { id: user.id }, data: { lastActiveAt: new Date() } });
-  await setSession({ id: user.id, email: user.email, role: user.role });
-  return ok({ id: user.id, email: user.email, role: user.role });
+  const token = await setSession({ id: user.id, email: user.email, role: user.role });
+  return ok({ id: user.id, email: user.email, role: user.role, ...(isNativeClient(req) ? { token } : {}) });
 });

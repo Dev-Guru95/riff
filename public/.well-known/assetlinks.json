@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.riff.app",
+      "sha256_cert_fingerprints": [
+        "66:F0:93:1F:BE:7C:D8:CD:A5:EB:49:6A:D1:75:7B:5B:08:47:6C:FE:BA:53:71:CF:38:D9:C0:57:5C:71:E3:F3"
+      ]
+    }
+  }
+]

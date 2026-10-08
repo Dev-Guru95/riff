@@ -1,4 +1,4 @@
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
@@ -35,7 +35,35 @@ export function signToken(user: SessionUser) {
   return jwt.sign(user, SECRET, { expiresIn: MAX_AGE });
 }
 
-export async function setSession(user: SessionUser) {
+/**
+ * Header a native client (the Expo app in mobile/) sends so login/signup hand the
+ * session token back in the JSON body. Browsers never send it, so the web keeps
+ * receiving only the httpOnly cookie.
+ */
+export const NATIVE_CLIENT_HEADER = "x-riff-client";
+
+export function isNativeClient(req: Request) {
+  return req.headers.get(NATIVE_CLIENT_HEADER) === "native";
+}
+
+/** Extract the token from an `Authorization: Bearer <jwt>` header value. */
+export function bearerToken(value: string | null | undefined): string | null {
+  if (!value) return null;
+  const m = /^Bearer\s+(\S+)$/i.exec(value.trim());
+  return m ? m[1] : null;
+}
+
+export function verifyToken(token: string): SessionUser | null {
+  try {
+    const decoded = jwt.verify(token, SECRET) as SessionUser & { iat: number; exp: number };
+    return { id: decoded.id, email: decoded.email, role: decoded.role };
+  } catch {
+    return null;
+  }
+}
+
+/** Sets the session cookie and returns the token (native clients get it in the body). */
+export async function setSession(user: SessionUser): Promise<string> {
   const token = signToken(user);
   const store = await cookies();
   store.set(COOKIE, token, {
@@ -45,6 +73,7 @@ export async function setSession(user: SessionUser) {
     maxAge: MAX_AGE,
     path: "/",
   });
+  return token;
 }
 
 export async function clearSession() {
@@ -52,16 +81,19 @@ export async function clearSession() {
   store.delete(COOKIE);
 }
 
+// The same JWT is accepted from the web's cookie or a native client's
+// `Authorization: Bearer` header. A bearer value that isn't a valid session token
+// (e.g. the cron route's CRON_SECRET) is ignored and the cookie is tried instead.
 export async function getSession(): Promise<SessionUser | null> {
+  const bearer = bearerToken((await headers()).get("authorization"));
+  if (bearer) {
+    const fromHeader = verifyToken(bearer);
+    if (fromHeader) return fromHeader;
+  }
   const store = await cookies();
   const token = store.get(COOKIE)?.value;
   if (!token) return null;
-  try {
-    const decoded = jwt.verify(token, SECRET) as SessionUser & { iat: number; exp: number };
-    return { id: decoded.id, email: decoded.email, role: decoded.role };
-  } catch {
-    return null;
-  }
+  return verifyToken(token);
 }
 
 // Full user record for the current session (or null).
