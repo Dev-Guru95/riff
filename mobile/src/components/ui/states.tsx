@@ -11,23 +11,36 @@ import { Button } from "./Button";
 import { Icon, type IconName } from "./Icon";
 import { Text } from "./Text";
 
+/** The web's EmptyState: 40px line icon, muted text-sm title, text-xs hint, optional action. */
 export function EmptyState({
   title,
   body,
+  hint,
   icon = "cactus",
   action,
 }: {
   title: string;
+  /** Secondary line (the web's `hint`). */
   body?: string;
+  hint?: string;
   icon?: IconName;
-  action?: { label: string; onPress: () => void };
+  action?: { label: string; onPress: () => void } | React.ReactElement;
 }) {
+  const sub = hint ?? body;
   return (
-    <View style={s.center}>
+    <View style={s.empty}>
       <Icon name={icon} size={40} strokeWidth={1.25} color={colors.muted} />
-      <Text variant="heading" style={s.centerText}>{title}</Text>
-      {body ? <Text variant="small" style={s.centerText}>{body}</Text> : null}
-      {action ? <Button title={action.label} onPress={action.onPress} variant="ghost" style={{ alignSelf: "center" }} /> : null}
+      <Text variant="small" style={[s.centerText, { marginTop: 12 }]}>{title}</Text>
+      {sub ? <Text variant="caption" style={[s.centerText, { marginTop: 4 }]}>{sub}</Text> : null}
+      {action ? (
+        <View style={{ marginTop: 16 }}>
+          {"label" in action && "onPress" in action && typeof action.onPress === "function" ? (
+            <Button title={action.label} onPress={action.onPress} variant="ghost" style={{ alignSelf: "center" }} />
+          ) : (
+            (action as React.ReactElement)
+          )}
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -111,4 +124,5 @@ export function QueryView<T>({
 const s = StyleSheet.create({
   center: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24, gap: 10, minHeight: 240 },
   centerText: { textAlign: "center", maxWidth: 320 },
+  empty: { alignItems: "center", justifyContent: "center", paddingVertical: 64, paddingHorizontal: 16 },
 });

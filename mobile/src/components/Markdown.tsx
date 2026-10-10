@@ -6,7 +6,7 @@
 //                  **bold**, *italic*, `code`, and http(s)/mailto links only.
 //  - <LessonText>  mirrors the lesson player: one paragraph per line, **bold** only.
 
-import { Linking, StyleSheet, View } from "react-native";
+import { Linking, Platform, StyleSheet, View } from "react-native";
 
 import { colors, fonts } from "@/theme/tokens";
 import { Text } from "./ui/Text";
@@ -113,7 +113,13 @@ export function Markdown({ children }: { children: string }) {
     <View style={styles.body}>
       {parseBlocks(children).map((b, i) => {
         if (b.kind === "h")
-          return <InlineText key={i} src={b.text} style={{ fontFamily: fonts.semibold, fontSize: H_SIZE[b.level - 1], lineHeight: H_SIZE[b.level - 1]! * 1.35 }} />;
+          return (
+            <InlineText
+              key={i}
+              src={b.text}
+              style={{ fontFamily: b.level === 3 ? fonts.semibold : fonts.bold, fontSize: H_SIZE[b.level - 1], lineHeight: H_SIZE[b.level - 1]! * 1.35, marginTop: 4 }}
+            />
+          );
         if (b.kind === "pre")
           return (
             <View key={i} style={styles.pre}>
@@ -165,10 +171,11 @@ const styles = StyleSheet.create({
   body: { gap: 8 },
   p: { fontSize: 14, lineHeight: 14 * 1.55, color: colors.foreground, fontFamily: fonts.regular },
   lesson: { fontSize: 16, lineHeight: 26, color: colors.foreground, fontFamily: fonts.regular },
-  code: { fontFamily: fonts.medium, backgroundColor: colors.surface2, color: colors.accent },
+  // .markdown-body code: surface-2 background, inherited colour, 0.85em.
+  code: { backgroundColor: colors.surface2, fontSize: 12, fontFamily: Platform.select({ ios: "Menlo", default: "monospace" }) },
   link: { color: colors.accent, textDecorationLine: "underline" },
   pre: { backgroundColor: colors.surface2, borderRadius: 8, padding: 12, borderWidth: 1, borderColor: colors.border },
-  preText: { fontSize: 13, lineHeight: 19, color: colors.foreground },
+  preText: { fontSize: 12, lineHeight: 18, color: colors.foreground, fontFamily: Platform.select({ ios: "Menlo", default: "monospace" }) },
   li: { flexDirection: "row", gap: 8 },
   bullet: { color: colors.muted, minWidth: 14 },
 });

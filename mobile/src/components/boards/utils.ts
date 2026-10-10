@@ -32,12 +32,35 @@ export const LABEL_COLOR: Record<string, string> = {
 };
 export const labelColor = (c: string) => LABEL_COLOR[c] ?? colors.brand;
 
+/** Web PRIORITY_STYLE (BoardView.tsx): dot colour + label. */
 export const PRIORITY: Record<string, { color: string; label: string }> = {
   low: { color: colors.muted, label: "Low" },
   medium: { color: colors.accent, label: "Medium" },
   high: { color: colors.warning, label: "High" },
   urgent: { color: colors.brand2, label: "Urgent" },
 };
+
+/** The order the web's priority <select>s list them in. */
+export const PRIORITY_OPTIONS = ["low", "medium", "high", "urgent"] as const;
+export const PRIORITY_FILTER_OPTIONS = ["urgent", "high", "medium", "low"] as const;
+
+/** Web initials(): first letter of each whitespace-separated word, max 2. */
+export function initials(name: string) {
+  return name
+    .split(/\s+/)
+    .map((w) => w[0] ?? "")
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+}
+
+/** Dashboard "Recently active" relative time (web Dashboard.tsx rel()). */
+export function relTime(iso: string) {
+  const h = Math.floor((Date.now() - new Date(iso).getTime()) / 3_600_000);
+  if (h < 1) return "just now";
+  if (h < 24) return `${h}h ago`;
+  return `${Math.floor(h / 24)}d ago`;
+}
 
 /** Same ranks as the server's ROLE_RANK (src/lib/boards.ts). */
 export const ROLE_RANK: Record<BoardRole, number> = { owner: 4, admin: 3, manager: 2, member: 1, guest: 0 };

@@ -53,7 +53,10 @@ const FRIENDLY: Record<ApiErrorKind, string> = {
 /** A message safe to show a user: the server's own text when it sent one. */
 export function errorMessage(err: unknown): string {
   if (err instanceof ApiError) {
-    if (err.kind === "network" || err.kind === "timeout" || err.kind === "server") return FRIENDLY[err.kind];
+    if (err.kind === "network" || err.kind === "timeout") return FRIENDLY[err.kind];
+    // A 5xx is only shown verbatim when the server itself wrote the message
+    // (e.g. 503 "Upgrades aren't available yet."), as the web does with `data.error`.
+    if (err.kind === "server") return typeof err.body?.error === "string" && err.body.error ? err.body.error : FRIENDLY.server;
     return err.message || FRIENDLY[err.kind];
   }
   return FRIENDLY.server;

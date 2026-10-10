@@ -1,69 +1,96 @@
-// Everything in the web sidebar that isn't a bottom tab, in the web's order,
-// plus the account footer (avatar, name, plan, log out).
+// The web's UserNav drawer (src/components/UserNav.tsx) minus the four links
+// that are bottom tabs (Home, Courses, Coach, Projects): the remaining links in
+// the web's order, Admin for staff, then the account footer (avatar, name,
+// plan, Log out).
 
-import { Alert, View } from "react-native";
+import { useState } from "react";
+import { Pressable, StyleSheet, View } from "react-native";
 import { router, type Href } from "expo-router";
 
 import { useAuth } from "@/auth/AuthProvider";
-import { Avatar, Card, Divider, ListRow, Screen, Text, type IconName } from "@/components/ui";
+import { Avatar, Button, Icon, Screen, Text, type IconName } from "@/components/ui";
+import { colors, radius, TOUCH } from "@/theme/tokens";
 
-const ITEMS: { href: string; icon: IconName; title: string; subtitle: string }[] = [
-  { href: "/missions", icon: "target", title: "Missions", subtitle: "Weekly challenges" },
-  { href: "/studio", icon: "disc", title: "Studio", subtitle: "Brand, merch, gigs, fans, finance" },
-  { href: "/audit", icon: "layers", title: "Audit", subtitle: "Track real social growth" },
-  { href: "/roadmap", icon: "route", title: "Roadmap", subtitle: "30/90-day plans" },
-  { href: "/community", icon: "community", title: "Community", subtitle: "Join on Skool" },
-  { href: "/leaderboard", icon: "trophy", title: "Ranks", subtitle: "Global leaderboard" },
-  { href: "/certificates", icon: "graduation", title: "Certificates", subtitle: "Your credentials" },
-  { href: "/pricing", icon: "card", title: "Plans", subtitle: "Upgrade your plan" },
-  { href: "/search", icon: "search", title: "Search", subtitle: "Boards, cards and tasks" },
-  { href: "/settings", icon: "settings", title: "Settings", subtitle: "Account, billing, delete account" },
+type NavItem = { href: string; label: string; icon: IconName };
+
+const LINKS: NavItem[] = [
+  { href: "/missions", label: "Missions", icon: "target" },
+  { href: "/studio", label: "Studio", icon: "disc" },
+  { href: "/audit", label: "Audit", icon: "layers" },
+  { href: "/roadmap", label: "Roadmap", icon: "route" },
+  { href: "/community", label: "Community", icon: "community" },
+  { href: "/leaderboard", label: "Ranks", icon: "trophy" },
+  { href: "/pricing", label: "Plans", icon: "card" },
+  // Account deletion must be discoverable from inside the app (Play policy).
+  { href: "/settings", label: "Settings", icon: "settings" },
 ];
+
+function NavLink({ item }: { item: NavItem }) {
+  return (
+    <Pressable
+      accessibilityRole="link"
+      onPress={() => router.push(item.href as Href)}
+      style={({ pressed }) => [styles.link, pressed && styles.linkPressed]}
+    >
+      {({ pressed }) => (
+        <>
+          <Icon name={item.icon} size={17} color={pressed ? colors.foreground : colors.muted} />
+          <Text variant="small" color={pressed ? colors.foreground : colors.muted}>{item.label}</Text>
+        </>
+      )}
+    </Pressable>
+  );
+}
 
 export default function More() {
   const { user, isStaff, logout } = useAuth();
-  const name = user?.profile?.stageName || user?.user.email.split("@")[0] || "Artist";
+  const [loggingOut, setLoggingOut] = useState(false);
+  const email = user?.user.email;
+  const displayName = user?.profile?.stageName ?? email?.split("@")[0] ?? "artist";
+  const links = isStaff ? [...LINKS, { href: "/admin", label: "Admin", icon: "shield" as const }] : LINKS;
 
   return (
-    <Screen>
-      <Card style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-        <Avatar name={name} size={44} />
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <Text weight="semibold" numberOfLines={1}>{name}</Text>
-          <Text variant="caption" numberOfLines={1}>
-            {isStaff ? user?.user.role : `${user?.plan ?? "free"} plan`} · {user?.user.email}
-          </Text>
-        </View>
-      </Card>
+    <Screen contentStyle={{ gap: 2, paddingHorizontal: 12 }}>
+      {links.map((item) => (
+        <NavLink key={item.href} item={item} />
+      ))}
 
-      <Card padded={false} style={{ overflow: "hidden" }}>
-        {ITEMS.map((item, i) => (
-          <View key={item.href}>
-            {i > 0 ? <Divider /> : null}
-            <ListRow icon={item.icon} title={item.title} subtitle={item.subtitle} onPress={() => router.push(item.href as Href)} />
+      <View style={styles.footer}>
+        <View style={styles.account}>
+          <Avatar name={displayName} size={32} />
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Text weight="semibold" numberOfLines={1}>{displayName}</Text>
+            <Text variant="caption" numberOfLines={1} style={{ textTransform: "capitalize" }}>{user?.plan ?? "free"}</Text>
           </View>
-        ))}
-      </Card>
-
-      {isStaff ? (
-        <Card padded={false} style={{ overflow: "hidden" }}>
-          <ListRow icon="shield" title="Admin" subtitle="Courses, review queue, users, moderation" onPress={() => router.push("/admin" as Href)} />
-        </Card>
-      ) : null}
-
-      <Card padded={false} style={{ overflow: "hidden" }}>
-        <ListRow
-          icon="logout"
-          title="Log out"
-          destructive
-          onPress={() =>
-            Alert.alert("Log out?", "You'll need to log in again on this device.", [
-              { text: "Cancel", style: "cancel" },
-              { text: "Log out", style: "destructive", onPress: () => void logout() },
-            ])
-          }
-        />
-      </Card>
+        </View>
+        <View style={{ paddingHorizontal: 4, paddingTop: 8 }}>
+          <Button
+            title="Log out"
+            variant="ghost"
+            size="sm"
+            loading={loggingOut}
+            onPress={() => {
+              setLoggingOut(true);
+              void logout();
+            }}
+          />
+        </View>
+      </View>
     </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  link: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    minHeight: TOUCH,
+    borderRadius: radius.md,
+  },
+  linkPressed: { backgroundColor: colors.surface2 },
+  footer: { marginTop: 8, paddingTop: 12, borderTopWidth: 1, borderTopColor: colors.border },
+  account: { flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 8, paddingVertical: 6 },
+});

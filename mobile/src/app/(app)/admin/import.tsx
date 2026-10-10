@@ -1,70 +1,111 @@
-// Course import — a mobile take on the web's /admin/import (ImportClient.tsx):
-// pick a .docx/.pdf → POST /api/admin/import/parse (multipart `file`, ≤15 MB,
-// no DB write) → review the extracted outline → POST /api/admin/import
-// { course, sourceFile }. Admin only (server-checked).
-//
-// The web lets you edit every module, lesson and question before importing.
-// On a phone we keep the review to the course title, description and level;
-// the full outline can be edited afterwards in the course editor.
+// Import Course — the web's /admin/import (ImportClient.tsx): 1 · Upload a .docx
+// or .pdf → POST /api/admin/import/parse (multipart `file`, ≤15 MB, no DB write);
+// 2 · Review & edit every module, lesson, question and assignment with live
+// validation; 3 · Done → POST /api/admin/import { course, sourceFile }.
+// Admin only (server-checked).
 
 import { useState } from "react";
-import { View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { router, Stack, type Href } from "expo-router";
 import * as DocumentPicker from "expo-document-picker";
 
 import { upload } from "@/api/client";
-import { errorMessage } from "@/api/errors";
+import { ApiError, errorMessage, isOfflineError } from "@/api/errors";
 import { useStaffAccess } from "@/components/admin/access";
-import { Label, OptionPicker, ViewOnlyNote } from "@/components/admin/controls";
+import { CardTitle, ViewOnlyNote } from "@/components/admin/controls";
 import { COURSES_PATH } from "@/components/admin/CourseEditor";
-import { useAdminAction } from "@/components/admin/useAdminAction";
-import { Button, Card, Chip, Divider, Field, Screen, Text, useToast } from "@/components/ui";
-import { colors } from "@/theme/tokens";
+import { PreviewStep, type ParseMeta } from "@/components/admin/ImportEditor";
+import { clone, type ImportDone, type ParseResponse, type ParsedCourse } from "@/components/admin/importModel";
+import { useAdminCall } from "@/components/admin/useAdminAction";
+import { Button, Card, Screen, Text } from "@/components/ui";
+import { colors, radius } from "@/theme/tokens";
+
+type Step = "upload" | "preview" | "done";
 
 const MAX_BYTES = 15 * 1024 * 1024;
 const DOCX = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 
-type Level = "beginner" | "intermediate" | "advanced";
-const LEVELS: { value: Level; label: string }[] = [
-  { value: "beginner", label: "Beginner" },
-  { value: "intermediate", label: "Intermediate" },
-  { value: "advanced", label: "Advanced" },
-];
+function Stepper({ step }: { step: Step }) {
+  const steps: [Step, string][] = [
+    ["upload", "1 · Upload"],
+    ["preview", "2 · Review & edit"],
+    ["done", "3 · Done"],
+  ];
+  const idx = steps.findIndex(([s]) => s === step);
+  return (
+    <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+      {steps.map(([s, label], i) => (
+        <View key={s} style={[styles.step, { borderColor: i <= idx ? colors.brand : colors.border }]} accessibilityState={{ selected: s === step }}>
+          <Text variant="caption" color={i <= idx ? colors.brand : colors.muted}>{label}</Text>
+        </View>
+      ))}
+    </View>
+  );
+}
 
-// Subset of src/lib/import/types.ts ParsedCourse we read; the rest is passed
-// back to the server untouched.
-type ParsedCourse = {
-  title: string;
-  description: string;
-  level: Level;
-  objectives: string[];
-  durationText: string;
-  modules: { title: string; lessons: { title: string; questions: unknown[]; assignment: unknown | null }[] }[];
-  [k: string]: unknown;
-};
-type ParseResult = {
-  course: ParsedCourse;
-  method: "ai" | "heuristic";
-  format: string;
-  truncated: boolean;
-  sourceFile: string;
-  errors: string[];
-  warnings: string[];
-};
-type ImportResult = { id: string; slug: string; title: string; counts: { modules: number; lessons: number; questions: number; assignments: number } };
+function UploadStep({ busy, onPick }: { busy: boolean; onPick: () => void }) {
+  return (
+    <Card style={styles.drop}>
+      <Text style={{ fontSize: 36, lineHeight: 44, marginBottom: 12 }}>📄</Text>
+      <Text weight="semibold" style={{ marginBottom: 4, textAlign: "center" }}>{busy ? "Reading & extracting…" : "Choose a .docx or .pdf"}</Text>
+      <Text variant="caption" style={{ marginBottom: 20, textAlign: "center" }}>
+        Modules, lessons, quizzes, true/false and short-answer questions are detected automatically.
+      </Text>
+      <Button title={busy ? "Working…" : "Choose file"} onPress={onPick} disabled={busy} style={{ alignSelf: "center" }} />
+      <Text variant="caption" style={{ marginTop: 16, textAlign: "center" }}>
+        Legacy .doc isn&apos;t supported — save it as .docx first. Max 15 MB.
+      </Text>
+    </Card>
+  );
+}
+
+function DoneStep({ done, onAnother }: { done: ImportDone; onAnother: () => void }) {
+  return (
+    <Card style={{ padding: 28, gap: 16, alignItems: "center" }}>
+      <Text style={{ fontSize: 36, lineHeight: 44 }}>✅</Text>
+      <View style={{ gap: 4 }}>
+        <CardTitle size={16} style={{ fontSize: 18, lineHeight: 28, textAlign: "center" }}>Imported “{done.title}”</CardTitle>
+        <Text variant="small" style={{ textAlign: "center" }}>
+          {done.counts.modules} modules · {done.counts.lessons} lessons · {done.counts.questions} questions · {done.counts.assignments} assignments. Created as
+          a draft — review and publish it from Courses.
+        </Text>
+      </View>
+      <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "center", gap: 12 }}>
+        <Button title="Open course" onPress={() => router.push(`/admin/courses/${done.id}` as Href)} />
+        <Button title="Import another" variant="ghost" onPress={onAnother} />
+      </View>
+    </Card>
+  );
+}
 
 export default function ImportCourse() {
-  const toast = useToast();
   const { role, can } = useStaffAccess();
-  const { run, busy: importing } = useAdminAction([COURSES_PATH, "/api/mobile/admin/overview"]);
+  const { call, busy: importing } = useAdminCall([COURSES_PATH, "/api/mobile/admin/overview"]);
+  const [step, setStep] = useState<Step>("upload");
   const [parsing, setParsing] = useState(false);
-  const [parsed, setParsed] = useState<ParseResult | null>(null);
-  const [course, setCourse] = useState<ParsedCourse | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const [course, setCourse] = useState<ParsedCourse | null>(null);
+  const [meta, setMeta] = useState<ParseMeta | null>(null);
+  const [done, setDone] = useState<ImportDone | null>(null);
+  const busy = parsing || importing;
 
-  async function pick() {
+  function mutate(fn: (c: ParsedCourse) => void) {
+    setCourse((prev) => {
+      if (!prev) return prev;
+      const c = clone(prev);
+      fn(c);
+      return c;
+    });
+  }
+
+  async function onPick() {
     setErr(null);
-    const picked = await DocumentPicker.getDocumentAsync({ type: [DOCX, "application/pdf"], copyToCacheDirectory: true });
+    let picked: DocumentPicker.DocumentPickerResult;
+    try {
+      picked = await DocumentPicker.getDocumentAsync({ type: [DOCX, "application/pdf"], copyToCacheDirectory: true });
+    } catch {
+      return setErr("Couldn't open the file picker.");
+    }
     if (picked.canceled) return;
     const file = picked.assets[0];
     if (!file) return;
@@ -72,102 +113,87 @@ export default function ImportCourse() {
     const isPdf = /\.pdf$/i.test(file.name) || file.mimeType === "application/pdf";
     setParsing(true);
     try {
-      const res = await upload<ParseResult>("/api/admin/import/parse", {
+      const data = await upload<ParseResponse>("/api/admin/import/parse", {
         uri: file.uri,
         name: file.name,
         mimeType: file.mimeType ?? (isPdf ? "application/pdf" : DOCX),
       });
-      setParsed(res);
-      setCourse(res.course);
+      setCourse(data.course);
+      setMeta({ method: data.method, format: data.format, truncated: data.truncated, sourceFile: data.sourceFile });
+      setStep("preview");
     } catch (e) {
-      setErr(errorMessage(e));
+      setErr(
+        isOfflineError(e)
+          ? "Upload failed. Check your connection and try again."
+          : e instanceof ApiError && typeof e.body?.error === "string"
+            ? e.body.error
+            : e instanceof ApiError && e.kind !== "server"
+              ? errorMessage(e)
+              : "Failed to parse the document.",
+      );
     } finally {
       setParsing(false);
     }
   }
 
-  async function doImport() {
-    if (!course || !parsed) return;
-    if (!course.title.trim()) return toast("The course needs a title.", "error");
-    const res = await run<ImportResult>("/api/admin/import", "POST", { course: { ...course, title: course.title.trim() }, sourceFile: parsed.sourceFile }, "Course imported as a draft");
-    if (res?.id) router.replace(`/admin/courses/${res.id}` as Href);
+  async function onImport() {
+    if (!course) return;
+    setErr(null);
+    const res = await call<ImportDone>("/api/admin/import", "POST", { course, sourceFile: meta?.sourceFile ?? "" });
+    if (res.ok) {
+      setDone(res.data);
+      setStep("done");
+    } else if (res.error) {
+      const issues = res.body?.issues;
+      setErr(Array.isArray(issues) ? issues.join(" · ") : res.error || "Import failed.");
+    }
   }
 
-  if (!can("admin")) {
-    return (
-      <Screen>
-        <Stack.Screen options={{ title: "Import course" }} />
-        <ViewOnlyNote role={role} needs="admin" />
-      </Screen>
-    );
+  function reset() {
+    setCourse(null);
+    setMeta(null);
+    setDone(null);
+    setErr(null);
+    setStep("upload");
   }
-
-  const lessons = course?.modules.reduce((n, m) => n + m.lessons.length, 0) ?? 0;
-  const questions = course?.modules.reduce((n, m) => n + m.lessons.reduce((k, l) => k + (l.questions?.length ?? 0), 0), 0) ?? 0;
-  const blocked = (parsed?.errors.length ?? 0) > 0;
 
   return (
-    <Screen>
-      <Stack.Screen options={{ title: "Import course" }} />
-      <Text variant="small">Upload a Word (.docx) or PDF course outline. Riff extracts modules, lessons and quizzes for you to review before anything is saved.</Text>
+    <Screen contentStyle={{ gap: 24 }}>
+      <Stack.Screen options={{ title: "Import Course" }} />
+      <View style={{ gap: 4 }}>
+        <Text variant="title" accessibilityRole="header">Import Course</Text>
+        <Text variant="small">
+          Upload a Word (.docx) or PDF file. The system extracts the course, modules, lessons, quizzes and questions for you to review before
+          saving.
+        </Text>
+      </View>
 
-      <Card style={{ gap: 10 }}>
-        <Button title={parsed ? "Choose a different file" : "Choose .docx or .pdf"} icon="download" variant={parsed ? "ghost" : "primary"} onPress={pick} loading={parsing} fullWidth />
-        {parsing ? <Text variant="caption">Reading the document… this can take up to a minute.</Text> : null}
-        {err ? <Text variant="caption" color={colors.danger}>{err}</Text> : null}
-      </Card>
-
-      {parsed && course ? (
+      {!can("admin") ? (
+        <ViewOnlyNote role={role} needs="admin" />
+      ) : (
         <>
-          <Card style={{ gap: 12 }}>
-            <Label right={<Chip label={parsed.method === "ai" ? "AI parsed" : "Heuristic"} tone="accent" />}>{parsed.sourceFile}</Label>
-            {parsed.truncated ? <Text variant="caption" color={colors.warning}>The document was long and was truncated while parsing.</Text> : null}
-            <Field label="Course title" value={course.title} onChangeText={(t) => setCourse({ ...course, title: t })} />
-            <Field label="Description" value={course.description} onChangeText={(t) => setCourse({ ...course, description: t })} multiline />
-            <OptionPicker label="Level" value={course.level} options={LEVELS} onChange={(level) => setCourse({ ...course, level })} />
-            <Text variant="caption">
-              {course.modules.length} modules · {lessons} lessons · {questions} questions
-            </Text>
-          </Card>
+          <Stepper step={step} />
 
-          {parsed.errors.length ? (
-            <Card style={{ gap: 6, borderColor: colors.danger }}>
-              <Text variant="label" color={colors.danger}>Must fix before importing</Text>
-              {parsed.errors.map((e) => (
-                <Text key={e} variant="caption">• {e}</Text>
-              ))}
-              <Text variant="caption">Fix these in the document, or import it on the website where every lesson can be edited.</Text>
-            </Card>
-          ) : null}
-          {parsed.warnings.length ? (
-            <Card style={{ gap: 6 }}>
-              <Text variant="label" color={colors.warning}>Warnings</Text>
-              {parsed.warnings.map((w) => (
-                <Text key={w} variant="caption">• {w}</Text>
-              ))}
+          {err ? (
+            <Card style={{ borderColor: colors.danger }}>
+              <Text color={colors.danger} accessibilityLiveRegion="polite">{err}</Text>
             </Card>
           ) : null}
 
-          <Card style={{ gap: 10 }}>
-            <Text variant="label">Outline</Text>
-            {course.modules.map((m, mi) => (
-              <View key={mi} style={{ gap: 4 }}>
-                {mi > 0 ? <Divider /> : null}
-                <Text weight="semibold">Module {mi + 1}: {m.title}</Text>
-                {m.lessons.map((l, li) => (
-                  <Text key={li} variant="caption">
-                    {li + 1}. {l.title}
-                    {l.questions?.length ? ` · ${l.questions.length}q` : ""}
-                    {l.assignment ? " · assignment" : ""}
-                  </Text>
-                ))}
-              </View>
-            ))}
-          </Card>
+          {step === "upload" ? <UploadStep busy={busy} onPick={onPick} /> : null}
 
-          <Button title="Import as draft" onPress={doImport} loading={importing} disabled={blocked} fullWidth />
+          {step === "preview" && course && meta ? (
+            <PreviewStep course={course} meta={meta} busy={busy} mutate={mutate} onCancel={reset} onImport={onImport} />
+          ) : null}
+
+          {step === "done" && done ? <DoneStep done={done} onAnother={reset} /> : null}
         </>
-      ) : null}
+      )}
     </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  step: { paddingHorizontal: 12, paddingVertical: 4, borderRadius: radius.pill, borderWidth: 1 },
+  drop: { padding: 40, alignItems: "center", borderWidth: 2, borderStyle: "dashed", borderColor: colors.border },
+});

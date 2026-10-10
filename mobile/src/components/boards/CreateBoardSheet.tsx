@@ -7,6 +7,7 @@ import { router, type Href } from "expo-router";
 
 import { Button, Field, Text } from "@/components/ui";
 import { colors, radius } from "@/theme/tokens";
+import { MY_TASKS_PATH } from "./MyTasks";
 import { Sheet } from "./Sheet";
 import { useBoardAction } from "./useBoardAction";
 import { BOARD_TEMPLATES, templateFor } from "./utils";
@@ -25,13 +26,14 @@ export function CreateBoardSheet({ visible, onClose }: { visible: boolean; onClo
   }
 
   async function create() {
+    if (busy) return;
     const t = title.trim();
     if (!t) {
       setError("Give the board a name");
       return;
     }
     setError(null);
-    const res = await run<{ id: string }>("/api/boards", { body: { title: t, kind }, invalidates: ["/api/boards"], alertErrors: true });
+    const res = await run<{ id: string }>("/api/boards", { body: { title: t, kind }, invalidates: ["/api/boards", MY_TASKS_PATH], alertErrors: true });
     if (res?.id) {
       close();
       setTimeout(() => router.push(`/boards/${res.id}` as Href), 350);
@@ -71,16 +73,16 @@ export function CreateBoardSheet({ visible, onClose }: { visible: boolean; onClo
         })}
       </View>
       <Field
-        label="Board name"
         value={title}
         onChangeText={setTitle}
         maxLength={120}
         placeholder="Board name"
+        accessibilityLabel="Board name"
         error={error}
         returnKeyType="done"
         onSubmitEditing={() => void create()}
       />
-      <Button title={`Create ${templateFor(kind).name}`} onPress={() => void create()} loading={busy} fullWidth />
+      <Button title={busy ? "Creating…" : `Create ${templateFor(kind).name}`} onPress={() => void create()} loading={busy} fullWidth />
     </Sheet>
   );
 }

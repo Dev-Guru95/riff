@@ -31,9 +31,16 @@ const NATIVE_PREFIXES = [
 /** Map a website path to an app route, or null when the app has no such screen. */
 export function routeForWebPath(path: string): string | null {
   const clean = path.replace(API_URL, "").split("#")[0] ?? "";
-  if (clean === "/" || clean === "/dashboard" || clean.startsWith("/dashboard?")) return "/";
-  if (NATIVE_PREFIXES.some((p) => clean === p.replace(/\/$/, "") || clean.startsWith(p))) return clean;
-  return null;
+  const pathname = clean.split("?")[0] ?? "";
+  if (pathname === "" || pathname === "/" || pathname === "/dashboard") return "/";
+  // The web retired its in-app forums: /community/<forum> and
+  // /community/thread/<id> redirect to the /community gateway.
+  if (pathname.startsWith("/community/")) return "/community";
+  // "/learn/" only matches with an id after it; the others match the page and below.
+  const native = NATIVE_PREFIXES.some((p) =>
+    p.endsWith("/") ? pathname.startsWith(p) && pathname.length > p.length : pathname === p || pathname.startsWith(`${p}/`),
+  );
+  return native ? clean : null;
 }
 
 /**

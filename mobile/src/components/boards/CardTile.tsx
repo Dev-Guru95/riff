@@ -1,12 +1,14 @@
-// One card in a column: label bars, title, then the meta row (priority, due,
-// completion, checklist, comment/attachment counts, assignees) like the web's CardTile.
+// One card in a column, like the web's CardTile (BoardView.tsx): label bars,
+// title, then the meta row — priority dot, 📅 due, completion %, ☑ checklist,
+// 💬 comments, 📎 attachments and up to three assignee initials.
 
 import { memo } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 
-import { Avatar, Icon, Text } from "@/components/ui";
+import { Text } from "@/components/ui";
 import { colors, radius } from "@/theme/tokens";
 import type { BoardCardDTO } from "@/types/boards";
+import { Initials } from "./bits";
 import { fmtDate, isOverdue, labelColor, PRIORITY } from "./utils";
 
 export const CardTile = memo(function CardTile({
@@ -47,39 +49,23 @@ export const CardTile = memo(function CardTile({
           </View>
         ) : null}
         {card.dueDate ? (
-          <View style={styles.metaItem}>
-            <Icon name="calendar" size={12} color={overdue ? colors.danger : colors.muted} />
-            <Text variant="caption" color={overdue ? colors.danger : undefined} weight={overdue ? "medium" : undefined}>
-              {fmtDate(card.dueDate)}
-            </Text>
-          </View>
+          <Text variant="caption" color={overdue ? colors.brand2 : undefined} weight={overdue ? "medium" : undefined}>
+            📅 {fmtDate(card.dueDate)}
+          </Text>
         ) : null}
         {card.completion > 0 ? <Text variant="caption">{card.completion}%</Text> : null}
         {card.checklist.total > 0 ? (
-          <View style={styles.metaItem}>
-            <Icon name="check" size={12} color={checklistDone ? colors.success : colors.muted} />
-            <Text variant="caption" color={checklistDone ? colors.success : undefined}>
-              {card.checklist.done}/{card.checklist.total}
-            </Text>
-          </View>
+          <Text variant="caption" color={checklistDone ? colors.success : undefined}>
+            ☑ {card.checklist.done}/{card.checklist.total}
+          </Text>
         ) : null}
-        {card.counts.comments > 0 ? (
-          <View style={styles.metaItem}>
-            <Icon name="chat" size={12} color={colors.muted} />
-            <Text variant="caption">{card.counts.comments}</Text>
-          </View>
-        ) : null}
-        {card.counts.attachments > 0 ? (
-          <View style={styles.metaItem}>
-            <Icon name="clipboard" size={12} color={colors.muted} />
-            <Text variant="caption">{card.counts.attachments}</Text>
-          </View>
-        ) : null}
+        {card.counts.comments > 0 ? <Text variant="caption">💬 {card.counts.comments}</Text> : null}
+        {card.counts.attachments > 0 ? <Text variant="caption">📎 {card.counts.attachments}</Text> : null}
         {card.assignees.length > 0 ? (
           <View style={styles.assignees}>
-            {card.assignees.slice(0, 3).map((a) => (
-              <View key={a.userId} style={{ marginLeft: -4 }}>
-                <Avatar name={a.name} size={22} />
+            {card.assignees.slice(0, 3).map((a, i) => (
+              <View key={a.userId} style={{ marginLeft: i === 0 ? 0 : -4 }}>
+                <Initials name={a.name} size={20} background={colors.surface} />
               </View>
             ))}
           </View>
@@ -95,14 +81,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: radius.card,
-    padding: 12,
-    gap: 6,
+    padding: 10,
     minHeight: 48,
   },
-  labels: { flexDirection: "row", flexWrap: "wrap", gap: 4 },
+  labels: { flexDirection: "row", flexWrap: "wrap", gap: 4, marginBottom: 6 },
   labelBar: { height: 6, width: 32, borderRadius: radius.pill },
-  meta: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 10 },
+  meta: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", columnGap: 8, rowGap: 4, marginTop: 8 },
   metaItem: { flexDirection: "row", alignItems: "center", gap: 4 },
   dot: { width: 8, height: 8, borderRadius: 4 },
-  assignees: { flexDirection: "row", marginLeft: "auto", paddingLeft: 4 },
+  assignees: { flexDirection: "row", marginLeft: "auto" },
 });

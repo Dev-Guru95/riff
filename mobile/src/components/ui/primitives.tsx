@@ -55,9 +55,31 @@ const TONE: Record<Tone, string> = {
   accent: colors.accent,
 };
 
-/** `.chip` status badge: tone-coloured text with a 40%-alpha border. */
-export function Chip({ label, tone = "muted", icon }: { label: string; tone?: Tone; icon?: IconName }) {
+/**
+ * `.chip` status badge: tone-coloured text with a 40%-alpha border (default).
+ * `variant="tag"` is the web's borderless inline tag
+ * (`text-xs px-2 py-0.5 rounded-full bg-surface-2`).
+ */
+export function Chip({
+  label,
+  tone = "muted",
+  icon,
+  variant = "chip",
+}: {
+  label: string;
+  tone?: Tone;
+  icon?: IconName;
+  variant?: "chip" | "tag";
+}) {
   const c = TONE[tone];
+  if (variant === "tag") {
+    return (
+      <View style={styles.tag}>
+        {icon ? <Icon name={icon} size={12} color={c} /> : null}
+        <Text style={[styles.tagText, { color: tone === "muted" ? colors.foreground : c }]}>{label}</Text>
+      </View>
+    );
+  }
   return (
     <View style={[styles.chip, tone !== "muted" && { borderColor: tint(c) }]}>
       {icon ? <Icon name={icon} size={11} color={c} /> : null}
@@ -86,7 +108,7 @@ export const Field = forwardRef<TextInput, TextInputProps & { label?: string; er
     const [focused, setFocused] = useState(false);
     return (
       <View style={styles.fieldWrap}>
-        {label ? <Text variant="caption" weight="medium" style={styles.fieldLabel}>{label}</Text> : null}
+        {label ? <Text variant="caption" style={styles.fieldLabel}>{label}</Text> : null}
         <TextInput
           ref={ref}
           placeholderTextColor={colors.muted}
@@ -129,10 +151,11 @@ export function ProgressBar({ pct, height = 8 }: { pct: number; height?: number 
   );
 }
 
-/** SVG ring (stroke 6, surface2 track, brand arc, round caps). */
-export function ProgressRing({ pct, size = 72, label }: { pct: number; size?: number; label?: string }) {
+/** SVG ring, as the web's ProgressRing: r = (size-8)/2, stroke 6, surface2
+ *  track, brand arc with round caps, "<pct>%" (text-sm bold) by default. */
+export function ProgressRing({ pct, size = 64, label }: { pct: number; size?: number; label?: string }) {
   const stroke = 6;
-  const r = (size - stroke) / 2;
+  const r = (size - 8) / 2;
   const c = 2 * Math.PI * r;
   const p = Math.max(0, Math.min(100, pct));
   return (
@@ -153,37 +176,62 @@ export function ProgressRing({ pct, size = 72, label }: { pct: number; size?: nu
           origin={`${size / 2}, ${size / 2}`}
         />
       </Svg>
-      {label ? <Text variant="caption" weight="semibold" color={colors.foreground}>{label}</Text> : null}
+      <Text style={styles.ringLabel}>{label ?? `${pct}%`}</Text>
     </View>
   );
 }
 
-/** StatCard: value 20 bold, label 12 muted, icon top-right. */
-export function StatCard({ value, label, icon }: { value: string | number; label: string; icon?: IconName }) {
+/** StatCard: value (text-xl bold) with the muted label beneath, line icon top-right.
+ *  Pressable (the web's `href` variant, brand border on press) when given onPress. */
+export function StatCard({
+  value,
+  label,
+  icon,
+  onPress,
+}: {
+  value: string | number;
+  label: string;
+  icon?: IconName;
+  onPress?: () => void;
+}) {
+  const inner = (
+    <>
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Text style={styles.statValue} numberOfLines={1} adjustsFontSizeToFit>{String(value)}</Text>
+        <Text variant="caption" numberOfLines={2} style={{ marginTop: 6 }}>{label}</Text>
+      </View>
+      {icon ? <Icon name={icon} size={18} color={colors.muted} /> : null}
+    </>
+  );
+  if (!onPress) return <View style={[styles.card, styles.cardPad, styles.stat]}>{inner}</View>;
   return (
-    <View style={[styles.card, styles.cardPad, styles.stat]}>
-      {icon ? (
-        <View style={styles.statIcon}>
-          <Icon name={icon} size={18} color={colors.muted} />
-        </View>
-      ) : null}
-      <Text style={styles.statValue} numberOfLines={1} adjustsFontSizeToFit>{String(value)}</Text>
-      <Text variant="caption" numberOfLines={1}>{label}</Text>
-    </View>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${value} ${label}`}
+      onPress={onPress}
+      style={({ pressed }) => [styles.card, styles.cardPad, styles.stat, pressed && styles.cardPressed]}
+    >
+      {inner}
+    </Pressable>
   );
 }
 
-/** Initials avatar on surface2 with a border. */
-export function Avatar({ name, size = 36 }: { name: string; size?: number }) {
+/** Initials avatar (the web's Avatar): surface2, border, muted semibold initials. */
+export function Avatar({ name, size = 32, square }: { name: string; size?: number; square?: boolean }) {
   const initials = name
-    .split(/[\s@._-]+/)
+    .trim()
+    .split(/\s+/)
     .filter(Boolean)
     .slice(0, 2)
-    .map((s) => s[0]!.toUpperCase())
+    .map((w) => w[0]?.toUpperCase() ?? "")
     .join("");
   return (
-    <View style={[styles.avatar, { width: size, height: size, borderRadius: size / 2 }]}>
-      <Text style={{ fontFamily: fonts.semibold, fontSize: size * 0.36, color: colors.foreground }}>{initials || "?"}</Text>
+    <View
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+      style={[styles.avatar, { width: size, height: size, borderRadius: square ? radius.md : size / 2 }]}
+    >
+      <Text style={{ fontFamily: fonts.semibold, fontSize: size * 0.36, lineHeight: size * 0.5, color: colors.muted }}>{initials || "?"}</Text>
     </View>
   );
 }
@@ -242,18 +290,29 @@ export const styles = StyleSheet.create({
     backgroundColor: colors.surface2,
   },
   chipText: { fontSize: 11, lineHeight: 15, fontFamily: fonts.medium },
-  pill: { minHeight: 36, paddingVertical: 6, paddingHorizontal: 14, borderRadius: radius.pill, justifyContent: "center" },
+  tag: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    alignSelf: "flex-start",
+    paddingVertical: 2,
+    paddingHorizontal: 8,
+    borderRadius: radius.pill,
+    backgroundColor: colors.surface2,
+  },
+  tagText: { fontSize: 12, lineHeight: 16, fontFamily: fonts.regular },
+  pill: { minHeight: TOUCH, paddingVertical: 5, paddingHorizontal: 12, borderRadius: radius.pill, justifyContent: "center" },
   pillActive: { backgroundColor: colors.surface2 },
-  pillText: { fontSize: 13, fontFamily: fonts.medium, color: colors.muted },
+  pillText: { fontSize: 13, lineHeight: 18, fontFamily: fonts.medium, color: colors.muted },
   pillTextActive: { fontFamily: fonts.semibold, color: colors.foreground },
-  fieldWrap: { gap: 6 },
-  fieldLabel: { color: colors.foreground },
+  fieldWrap: { gap: 4 },
+  fieldLabel: { color: colors.muted },
   field: {
     backgroundColor: colors.surface2,
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: radius.field,
-    paddingVertical: 10,
+    paddingVertical: 8,
     paddingHorizontal: 12,
     fontSize: 16,
     fontFamily: fonts.regular,
@@ -262,9 +321,9 @@ export const styles = StyleSheet.create({
   },
   fieldMulti: { minHeight: 110, textAlignVertical: "top" },
   track: { backgroundColor: colors.surface2, borderRadius: radius.pill, overflow: "hidden", width: "100%" },
-  stat: { flex: 1, minWidth: 0, gap: 2 },
-  statIcon: { position: "absolute", top: 12, right: 12 },
-  statValue: { fontSize: 20, lineHeight: 26, fontFamily: fonts.bold, color: colors.foreground },
+  stat: { flex: 1, minWidth: 0, flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", gap: 12 },
+  statValue: { fontSize: 20, lineHeight: 22, fontFamily: fonts.bold, color: colors.foreground },
+  ringLabel: { fontSize: 14, lineHeight: 20, fontFamily: fonts.bold, color: colors.foreground },
   avatar: { backgroundColor: colors.surface2, borderWidth: 1, borderColor: colors.border, alignItems: "center", justifyContent: "center" },
   row: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 12, paddingHorizontal: 16, minHeight: 52 },
 });

@@ -10,7 +10,9 @@ import { colors, fonts, gradients, radius, TOUCH } from "@/theme/tokens";
 import { Icon, type IconName } from "./Icon";
 import { Text } from "./Text";
 
-type Variant = "primary" | "ghost" | "danger" | "link";
+/** primary = .btn-primary; ghost = .btn-ghost; danger = ghost with a pink border;
+ *  destructive = solid brand-2 (the web's "Permanently delete"); link = bare text. */
+type Variant = "primary" | "ghost" | "danger" | "destructive" | "link";
 type Size = "md" | "sm";
 
 export function Button({
@@ -37,7 +39,7 @@ export function Button({
   accessibilityLabel?: string;
 }) {
   const inactive = disabled || loading;
-  const fg = variant === "primary" ? colors.white : variant === "danger" ? colors.danger : variant === "link" ? colors.accent : colors.foreground;
+  const fg = variant === "primary" || variant === "destructive" ? colors.white : variant === "danger" ? colors.danger : variant === "link" ? colors.accent : colors.foreground;
   const content = (
     <View style={[styles.inner, size === "sm" && styles.innerSm]}>
       {loading ? <ActivityIndicator size="small" color={fg} /> : icon ? <Icon name={icon} size={16} color={fg} /> : null}
@@ -63,6 +65,7 @@ export function Button({
         fullWidth && styles.full,
         variant === "ghost" && styles.ghost,
         variant === "danger" && styles.dangerBox,
+        variant === "destructive" && styles.destructiveBox,
         variant === "link" && styles.linkBox,
         { opacity: inactive ? 0.45 : pressed && variant === "primary" ? 0.9 : 1, transform: [{ scale: pressed ? 0.97 : 1 }] },
         style,
@@ -89,5 +92,6 @@ const styles = StyleSheet.create({
   labelSm: { fontSize: 13 },
   ghost: { backgroundColor: colors.surface2, borderWidth: 1, borderColor: colors.border },
   dangerBox: { backgroundColor: colors.surface2, borderWidth: 1, borderColor: colors.danger + "66" },
+  destructiveBox: { backgroundColor: colors.brand2 },
   linkBox: { backgroundColor: "transparent" },
 });

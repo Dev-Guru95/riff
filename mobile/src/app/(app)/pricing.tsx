@@ -37,16 +37,16 @@ export default function Pricing() {
               const isCurrent = d.currentPlan === p.key;
               const highlight = p.key === "pro";
               return (
-                <Card key={p.key} style={[{ gap: 4 }, highlight && { borderColor: colors.brand }]}>
+                <Card key={p.key} style={[{ padding: 24 }, highlight && { borderColor: colors.brand }]}>
                   {highlight ? (
-                    <Text variant="caption" weight="semibold" color={colors.brand}>MOST POPULAR</Text>
+                    <Text variant="caption" weight="semibold" color={colors.brand} style={{ marginBottom: 4 }}>MOST POPULAR</Text>
                   ) : null}
                   <Text variant="heading" weight="bold">{p.name}</Text>
-                  <Text style={{ fontSize: 30, lineHeight: 38, fontFamily: fonts.bold, color: colors.foreground }}>
+                  <Text style={{ fontSize: 30, lineHeight: 36, fontFamily: fonts.bold, color: colors.foreground, marginVertical: 8 }}>
                     ${p.priceMonthly}
                     <Text variant="small">/mo</Text>
                   </Text>
-                  <View style={{ gap: 6, marginVertical: 10 }}>
+                  <View style={{ gap: 6, marginVertical: 16 }}>
                     {p.features.map((f) => (
                       <View key={f} style={{ flexDirection: "row", gap: 8 }}>
                         <Text color={colors.success}>✓</Text>
@@ -55,9 +55,9 @@ export default function Pricing() {
                     ))}
                   </View>
                   {isCurrent ? (
-                    <Button title="Current plan" variant="ghost" fullWidth disabled />
+                    <Button title="Current plan" variant="ghost" fullWidth disabled style={{ opacity: 0.7 }} />
                   ) : p.key === "free" ? (
-                    <Button title="Free" variant="ghost" fullWidth disabled />
+                    <Button title="Free" variant="ghost" fullWidth disabled style={{ opacity: 0.5 }} />
                   ) : (
                     <Button
                       fullWidth

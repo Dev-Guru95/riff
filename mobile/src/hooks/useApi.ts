@@ -5,7 +5,7 @@
 import { useCallback } from "react";
 import { useMutation, useQuery, useQueryClient, type UseQueryOptions } from "@tanstack/react-query";
 
-import { api, get, type RequestOptions } from "@/api/client";
+import { api, type RequestOptions } from "@/api/client";
 import { errorMessage } from "@/api/errors";
 import { useToast } from "@/components/ui/Toast";
 
@@ -16,11 +16,14 @@ export function useApiQuery<T>(
   query?: Query,
   options?: Omit<UseQueryOptions<T>, "queryKey" | "queryFn">,
 ) {
+  // `enabled` is applied after the caller's options: a null path must never
+  // fetch, even when the caller passes enabled: true.
+  const callerEnabled = typeof options?.enabled === "boolean" ? options.enabled : true;
   return useQuery<T>({
-    queryKey: query ? [path, query] : [path],
-    queryFn: () => get<T>(path!, query),
-    enabled: !!path && (options?.enabled ?? true),
     ...options,
+    queryKey: query ? [path, query] : [path],
+    queryFn: ({ signal }) => api<T>(path!, { query, signal }),
+    enabled: !!path && callerEnabled,
   });
 }
 

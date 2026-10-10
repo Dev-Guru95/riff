@@ -1,181 +1,188 @@
-// Broadcasts — the web's /studio/broadcasts (BroadcastsClient.tsx).
+// Broadcasts — the web's /studio/broadcasts (BroadcastsClient.tsx). The web's
+// two columns stack at phone width: the broadcast list, then the composer.
 // Data: GET /api/studio/broadcasts; POST { subject } to create;
 // PATCH/DELETE /api/studio/broadcasts/[id]; POST /api/studio/broadcasts/[id]/send
 // (records the send and audience size — no email provider is connected).
 
 import { useState } from "react";
-import { Alert, View } from "react-native";
+import { Alert, Pressable, View } from "react-native";
 import { Stack } from "expo-router";
 
-import { AddBar, Sheet } from "@/components/studio/shared";
-import { Markdown } from "@/components/Markdown";
-import { Button, Card, Chip, EmptyState, Field, PageHeader, Pill, QueryView, Screen, Text } from "@/components/ui";
-import { useApiMutation, useApiQuery } from "@/hooks/useApi";
-import { colors, tint } from "@/theme/tokens";
+import { MarkdownEditor } from "@/components/studio/MarkdownEditor";
+import { AddRow, Input, useStudioWrite } from "@/components/studio/shared";
+import { Button, Card, PageHeader, QueryView, Screen, Text } from "@/components/ui";
+import { useApiQuery, useInvalidate } from "@/hooks/useApi";
+import { colors, radius, tint, TOUCH } from "@/theme/tokens";
 import type { BroadcastDTO, BroadcastsResponse, CreatedResponse, SendBroadcastResponse } from "@/types/studio";
 
 const PATH = "/api/studio/broadcasts";
+type Draft = { id: string; subject: string; body: string; segment: string };
 
-function Composer({ item, onClose }: { item: BroadcastDTO; onClose: () => void }) {
-  const sent = !!item.sentAt;
-  const [subject, setSubject] = useState(item.subject);
-  const [body, setBody] = useState(item.body);
-  const [segment, setSegment] = useState(item.segment);
-  const [preview, setPreview] = useState(sent);
-  const dirty = !sent && (subject !== item.subject || body !== item.body || segment !== item.segment);
-  const url = `${PATH}/${item.id}`;
+function Composer({ items }: { items: BroadcastDTO[] }) {
+  const write = useStudioWrite<BroadcastsResponse>([PATH]);
+  const invalidate = useInvalidate();
+  // undefined = not chosen yet → the first unsent broadcast, as the web opens with.
+  const [activeId, setActiveId] = useState<string | null | undefined>(undefined);
+  const [edit, setEdit] = useState<Draft | null>(null);
+  const [busy, setBusy] = useState(false);
 
-  const save = useApiMutation({ invalidates: [PATH] });
-  const send = useApiMutation<SendBroadcastResponse>({ invalidates: [PATH] });
-  const remove = useApiMutation({ invalidates: [PATH], success: "Broadcast deleted", onSuccess: onClose });
-  const busy = save.isPending || send.isPending || remove.isPending;
-  const payload = { subject: subject.trim() || item.subject, body, segment: segment.trim() };
+  const effectiveId = activeId === undefined ? (items.find((b) => !b.sentAt)?.id ?? null) : activeId;
+  const active = items.find((b) => b.id === effectiveId) ?? null;
+  const cur: Draft | null = active ? (edit && edit.id === active.id ? edit : { id: active.id, subject: active.subject, body: active.body, segment: active.segment }) : null;
+  const sent = !!active?.sentAt;
+  const dirty = !!active && !!cur && !sent && (cur.subject !== active.subject || cur.body !== active.body || cur.segment !== active.segment);
+  const change = (patch: Partial<Draft>) => cur && setEdit({ ...cur, ...patch });
+  const payload = (d: Draft) => ({ subject: d.subject, body: d.body, segment: d.segment });
 
-  // Like the web, unsaved edits are saved when you leave the draft.
-  async function close() {
-    if (dirty) {
-      try {
-        await save.mutateAsync({ path: url, method: "PATCH", body: payload });
-      } catch {
-        return; // keep the sheet open; the error shows inline
-      }
-    }
-    onClose();
+  async function select(b: BroadcastDTO) {
+    // Auto-save the current draft's edits before switching so they aren't lost.
+    if (dirty && cur) await write(`${PATH}/${cur.id}`, "PATCH", payload(cur), undefined, { reload: true });
+    setActiveId(b.id);
+    setEdit(null);
   }
 
-  async function doSend() {
-    try {
-      await save.mutateAsync({ path: url, method: "PATCH", body: payload });
-      const { recipientCount } = await send.mutateAsync({ path: `${url}/send`, method: "POST" });
+  async function create(subject: string) {
+    const res = await write<CreatedResponse>(PATH, "POST", { subject }, undefined, { reload: true });
+    if (res?.id) {
+      if (dirty && cur) await write(`${PATH}/${cur.id}`, "PATCH", payload(cur), undefined, { reload: true });
+      setActiveId(res.id);
+      setEdit(null);
+    }
+  }
+
+  async function save() {
+    if (!cur || busy) return;
+    setBusy(true);
+    const ok = await write(`${PATH}/${cur.id}`, "PATCH", payload(cur), undefined, { reload: true });
+    if (ok !== undefined) setEdit(null);
+    setBusy(false);
+  }
+
+  async function send() {
+    if (!cur || busy) return;
+    setBusy(true);
+    const saved = await write(`${PATH}/${cur.id}`, "PATCH", payload(cur));
+    const res = saved === undefined ? undefined : await write<SendBroadcastResponse>(`${PATH}/${cur.id}/send`, "POST");
+    if (res) {
       Alert.alert(
         "Recorded",
-        `Recorded — this broadcast targets ${recipientCount} fan(s) with an email. (Connect an email provider to actually deliver.)`,
+        `Recorded — this broadcast targets ${res.recipientCount} fan(s) with an email. (Connect an email provider to actually deliver.)`,
       );
-      onClose();
-    } catch {
-      // shown inline
+      await invalidate(PATH);
+      setEdit(null);
     }
+    setBusy(false);
+  }
+
+  function del(id: string) {
+    if (id === effectiveId) {
+      setActiveId(null);
+      setEdit(null);
+    }
+    void write(`${PATH}/${id}`, "DELETE", undefined, (old) => ({ broadcasts: old.broadcasts.filter((b) => b.id !== id) }));
   }
 
   return (
-    <Sheet visible title={sent ? "Sent broadcast" : "Edit broadcast"} onClose={() => void close()} error={save.error ?? send.error ?? remove.error}>
-      <Field label="Subject" value={subject} onChangeText={setSubject} editable={!sent} maxLength={160} style={sent ? { opacity: 0.7 } : undefined} />
-      <Field
-        label="Segment (fan tag, blank = all)"
-        value={segment}
-        onChangeText={setSegment}
-        editable={!sent}
-        placeholder="all fans"
-        autoCapitalize="none"
-        maxLength={30}
-        style={sent ? { opacity: 0.7 } : undefined}
-      />
-      {!sent ? (
-        <View style={{ flexDirection: "row", gap: 6 }} accessibilityRole="tablist">
-          <Pill label="Write" active={!preview} onPress={() => setPreview(false)} />
-          <Pill label="Preview" active={preview} onPress={() => setPreview(true)} />
+    <>
+      <View>
+        <View style={{ marginBottom: 12 }}>
+          <AddRow placeholder="New broadcast" buttonTitle="+" maxLength={160} onAdd={(s) => void create(s)} />
         </View>
-      ) : null}
-      {preview ? (
-        <Card>{body.trim() ? <Markdown>{body}</Markdown> : <Text variant="small">Nothing to preview.</Text>}</Card>
-      ) : (
-        <Field value={body} onChangeText={setBody} multiline placeholder="Write your update…" maxLength={20000} style={{ minHeight: 200 }} accessibilityLabel="Message body" />
-      )}
+        <View style={{ gap: 4 }}>
+          {items.map((b) => {
+            const on = b.id === effectiveId;
+            return (
+              <Pressable
+                key={b.id}
+                accessibilityRole="button"
+                accessibilityState={{ selected: on }}
+                accessibilityLabel={`${b.subject}, ${b.sentAt ? `sent to ${b.recipientCount}` : "draft"}`}
+                onPress={() => void select(b)}
+                style={({ pressed }) => [
+                  { flexDirection: "row", alignItems: "center", gap: 8, minHeight: TOUCH, paddingHorizontal: 12, borderRadius: radius.md },
+                  (on || pressed) && { backgroundColor: colors.surface2 },
+                ]}
+              >
+                <Text style={{ flex: 1 }} numberOfLines={1}>{b.subject}</Text>
+                {b.sentAt ? (
+                  <Text style={{ fontSize: 10, lineHeight: 14 }} color={colors.success}>sent · {b.recipientCount}</Text>
+                ) : (
+                  <Text style={{ fontSize: 10, lineHeight: 14 }} color={colors.muted}>draft</Text>
+                )}
+              </Pressable>
+            );
+          })}
+          {items.length === 0 ? <Text variant="caption" style={{ paddingHorizontal: 4 }}>No broadcasts yet.</Text> : null}
+        </View>
+      </View>
 
-      {sent ? (
-        <Text color={colors.success}>
-          Sent to {item.recipientCount} fan(s) · {new Date(item.sentAt!).toLocaleDateString()}
-        </Text>
-      ) : (
-        <View style={{ flexDirection: "row", gap: 8 }}>
-          <Button
-            title="Send"
-            loading={send.isPending}
-            disabled={busy}
-            style={{ flex: 1 }}
-            onPress={() =>
-              Alert.alert("Send this broadcast?", segment.trim() ? `To fans tagged “${segment.trim()}”.` : "To all fans.", [
-                { text: "Cancel", style: "cancel" },
-                { text: "Send", onPress: () => void doSend() },
-              ])
-            }
+      {active && cur ? (
+        <View style={{ gap: 8 }}>
+          <Input
+            value={cur.subject}
+            editable={!sent}
+            onChangeText={(t) => change({ subject: t })}
+            maxLength={160}
+            large
+            weight="semibold"
+            accessibilityLabel="Subject"
           />
-          <Button
-            title="Save draft"
-            variant="ghost"
-            loading={save.isPending && !send.isPending}
-            disabled={busy}
-            style={{ flex: 1 }}
-            onPress={() => save.mutate({ path: url, method: "PATCH", body: payload }, { onSuccess: onClose })}
-          />
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <Text variant="caption" style={{ flexShrink: 1 }}>Segment (fan tag, blank = all)</Text>
+            <Input
+              value={cur.segment}
+              editable={!sent}
+              onChangeText={(t) => change({ segment: t })}
+              placeholder="all fans"
+              autoCapitalize="none"
+              maxLength={30}
+              accessibilityLabel="Segment (fan tag, blank = all)"
+              style={{ flex: 1 }}
+            />
+          </View>
+          <MarkdownEditor value={cur.body} onChange={(t) => change({ body: t })} disabled={sent} placeholder="Write your update…" />
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 4 }}>
+            {sent ? (
+              <Text color={colors.success} style={{ flexShrink: 1 }}>
+                Sent to {active.recipientCount} fan(s) · {new Date(active.sentAt!).toLocaleDateString()}
+              </Text>
+            ) : (
+              <>
+                <Button title="Send" disabled={busy} onPress={() => void send()} />
+                <Button title="Save draft" variant="ghost" disabled={busy} onPress={() => void save()} />
+              </>
+            )}
+            <Button
+              title="Delete"
+              variant="danger"
+              onPress={() => del(active.id)}
+              style={{ marginLeft: "auto", borderColor: colors.border }}
+            />
+          </View>
         </View>
+      ) : (
+        <Card style={{ padding: 40, alignItems: "center" }}>
+          <Text variant="small">Select or create a broadcast.</Text>
+        </Card>
       )}
-      <Button
-        title="Delete"
-        variant="danger"
-        fullWidth
-        disabled={busy}
-        onPress={() =>
-          Alert.alert("Delete this broadcast?", item.subject, [
-            { text: "Cancel", style: "cancel" },
-            { text: "Delete", style: "destructive", onPress: () => remove.mutate({ path: url, method: "DELETE" }) },
-          ])
-        }
-      />
-    </Sheet>
+    </>
   );
 }
 
 export default function Broadcasts() {
   const query = useApiQuery<BroadcastsResponse>(PATH);
-  const create = useApiMutation<CreatedResponse>({ invalidates: [PATH] });
-  const [active, setActive] = useState<BroadcastDTO | null>(null);
 
   return (
     <Screen onRefresh={query.refetch}>
       <Stack.Screen options={{ title: "Broadcasts" }} />
       <PageHeader title="📣 Broadcasts" subtitle="Compose updates for your fans and target them by segment." />
-      <View style={{ padding: 12, borderRadius: 12, borderWidth: 1, borderColor: tint(colors.warning), backgroundColor: tint(colors.warning, 0.05) }}>
+      <View style={{ padding: 12, borderRadius: radius.card, borderWidth: 1, borderColor: colors.border, backgroundColor: tint(colors.warning, 0.05), marginTop: -12 }}>
         <Text variant="caption" color={colors.warning}>
           ⚠️ Email delivery is not connected yet. Sending records the broadcast and its audience size; hook up an email provider to actually
           deliver (mirrors how billing/social degrade until keys are set).
         </Text>
       </View>
-
-      <AddBar
-        placeholder="New broadcast"
-        maxLength={160}
-        buttonTitle="+"
-        loading={create.isPending}
-        onAdd={async (subject) => {
-          const { id } = await create.mutateAsync({ path: PATH, body: { subject } });
-          setActive({ id, subject, body: "", segment: "", recipientCount: 0, sentAt: null });
-        }}
-      />
-
-      <QueryView
-        query={query}
-        isEmpty={(d) => d.broadcasts.length === 0}
-        empty={<EmptyState icon="inbox" title="No broadcasts yet." body="Select or create a broadcast." />}
-      >
-        {(d) => (
-          <View style={{ gap: 8 }}>
-            {d.broadcasts.map((b) => (
-              <Card
-                key={b.id}
-                onPress={() => setActive(b)}
-                accessibilityLabel={`${b.subject}, ${b.sentAt ? `sent to ${b.recipientCount}` : "draft"}`}
-                style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
-              >
-                <Text weight="medium" style={{ flex: 1 }} numberOfLines={2}>{b.subject}</Text>
-                {b.sentAt ? <Chip label={`sent · ${b.recipientCount}`} tone="success" /> : <Chip label="draft" />}
-              </Card>
-            ))}
-          </View>
-        )}
-      </QueryView>
-
-      {active ? <Composer key={active.id} item={active} onClose={() => setActive(null)} /> : null}
+      <QueryView query={query}>{(d) => <Composer items={d.broadcasts} />}</QueryView>
     </Screen>
   );
 }

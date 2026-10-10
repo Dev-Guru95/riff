@@ -1,71 +1,80 @@
-// Admin overview — the web's /admin (admin/page.tsx) plus its sidebar nav,
-// stacked into one column. Data: GET /api/mobile/admin/overview.
+// Admin overview — the web's /admin (src/app/(admin)/admin/page.tsx) at phone
+// width: 2-column stat tiles, the 30-day activity KPIs, the engagement funnel
+// (GoalBar rows), "Critical" attention rows and signup sources, in that order.
+// Section nav lives in the shell's menu (AdminNav). Data: GET /api/mobile/admin/overview.
 
-import { View } from "react-native";
+import { Pressable, View } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { router, Stack, type Href } from "expo-router";
 
-import { ADMIN_SECTIONS, useStaffAccess } from "@/components/admin/access";
-import { Button, Card, Chip, Divider, Icon, ListRow, ProgressBar, QueryView, Screen, Section, StatCard, Text, type IconName } from "@/components/ui";
+import { CardTitle, MONO } from "@/components/admin/controls";
+import { Card, Icon, PageHeader, QueryView, Screen, StatCard, Text, type IconName } from "@/components/ui";
 import { useApiQuery } from "@/hooks/useApi";
-import { colors, radius } from "@/theme/tokens";
+import { colors, fonts, gradients, radius } from "@/theme/tokens";
 import type { AdminOverviewResponse } from "@/types/api";
 
+/** Web Kpi: bordered box, text-lg bold value, text-xs muted label, centred. */
 function Kpi({ label, value }: { label: string; value: number }) {
   return (
-    <View style={{ width: "47.5%", flexGrow: 1, borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, padding: 12, alignItems: "center" }}>
-      <Text style={{ fontSize: 18, lineHeight: 24 }} weight="bold">{value}</Text>
-      <Text variant="caption" numberOfLines={1}>{label}</Text>
+    <View style={{ width: "48%", flexGrow: 1, borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, padding: 12, alignItems: "center" }}>
+      <Text style={{ fontSize: 18, lineHeight: 28, fontFamily: fonts.bold }}>{String(value)}</Text>
+      <Text variant="caption" numberOfLines={1} style={{ marginTop: 2 }}>{label}</Text>
     </View>
   );
 }
 
-function AttentionRow({ label, value, href }: { label: string; value: number; href: Href }) {
+/** Web GoalBar with a FunnelLabel: "text … count" row, then a 6px bar and the % trailing it. */
+function GoalBar({ text, value, pct }: { text: string; value: number; pct: number }) {
+  const safe = Math.max(0, Math.min(100, Math.round(pct)));
   return (
-    <ListRow
-      title={label}
-      onPress={() => router.push(href)}
-      right={
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-          <Text weight="bold" color={value > 0 ? colors.brand : colors.muted}>{value}</Text>
-          <Icon name="chevronRight" size={14} color={colors.muted} />
+    <View>
+      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 6 }}>
+        <Text style={{ flex: 1 }}>{text}</Text>
+        <Text variant="caption">{String(value)}</Text>
+      </View>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+        <View
+          style={{ flex: 1, height: 6, borderRadius: radius.pill, backgroundColor: colors.surface2, overflow: "hidden" }}
+          accessibilityRole="progressbar"
+          accessibilityLabel={text}
+          accessibilityValue={{ min: 0, max: 100, now: safe }}
+        >
+          <LinearGradient {...gradients.progress} style={{ width: `${safe}%`, height: "100%", borderRadius: radius.pill }} />
         </View>
-      }
-    />
+        <Text variant="caption" style={{ width: 36, textAlign: "right" }}>{safe}%</Text>
+      </View>
+    </View>
+  );
+}
+
+function AttentionRow({ label, value, href, last }: { label: string; value: number; href: Href; last?: boolean }) {
+  return (
+    <Pressable
+      onPress={() => router.push(href)}
+      accessibilityRole="link"
+      accessibilityLabel={`${label}: ${value}`}
+      style={({ pressed }) => [
+        { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12, paddingVertical: 10, minHeight: 44 },
+        !last && { borderBottomWidth: 1, borderBottomColor: colors.border },
+        pressed && { opacity: 0.7 },
+      ]}
+    >
+      <Text variant="small" style={{ flex: 1 }}>{label}</Text>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+        <Text weight="bold" color={value > 0 ? colors.brand : colors.muted}>{String(value)}</Text>
+        <Icon name="chevronRight" size={14} color={colors.muted} />
+      </View>
+    </Pressable>
   );
 }
 
 export default function AdminOverview() {
   const query = useApiQuery<AdminOverviewResponse>("/api/mobile/admin/overview");
-  const { role, can } = useStaffAccess();
 
   return (
     <Screen onRefresh={query.refetch}>
-      <Stack.Screen options={{ title: "Admin" }} />
-
-      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-        <View style={{ flex: 1 }}>
-          <Text variant="title">Overview</Text>
-          <Text variant="small">Your audience in one place</Text>
-        </View>
-        <Chip label={role || "staff"} tone="brand" icon="shield" />
-      </View>
-
-      <Section title="Sections">
-        <Card padded={false} style={{ overflow: "hidden" }}>
-          {ADMIN_SECTIONS.map((s, i) => (
-            <View key={s.label}>
-              {i > 0 ? <Divider /> : null}
-              <ListRow
-                icon={s.icon}
-                title={s.label}
-                subtitle={s.writeRole && !can(s.writeRole) ? `${s.body} · view only` : s.body}
-                onPress={() => router.push(s.href)}
-              />
-            </View>
-          ))}
-        </Card>
-        <Button title="‹ Artist view" variant="ghost" fullWidth onPress={() => router.dismissTo("/")} />
-      </Section>
+      <Stack.Screen options={{ title: "Overview" }} />
+      <PageHeader title="Overview" subtitle="Your audience in one place" />
 
       <QueryView query={query}>
         {(d) => {
@@ -81,15 +90,15 @@ export default function AdminOverview() {
             <>
               <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12 }}>
                 {cards.map((c) => (
-                  <View key={c.label} style={{ width: "47.5%", flexGrow: 1 }}>
+                  <View key={c.label} style={{ width: "47%", flexGrow: 1 }}>
                     <StatCard value={c.value} label={c.label} icon={c.icon} />
                   </View>
                 ))}
               </View>
 
-              <Card style={{ gap: 12 }}>
-                <Text variant="label">Activity (last {d.kpis.days} days)</Text>
-                <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+              <Card style={{ padding: 20 }}>
+                <CardTitle style={{ marginBottom: 16 }}>Activity (last {d.kpis.days} days)</CardTitle>
+                <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12 }}>
                   <Kpi label="Active users" value={d.kpis.activeUsers} />
                   <Kpi label="Lessons done" value={d.kpis.lessonCompletions} />
                   <Kpi label="Quiz passes" value={d.kpis.quizPasses} />
@@ -101,44 +110,41 @@ export default function AdminOverview() {
                 </View>
               </Card>
 
-              <Card style={{ gap: 14 }}>
-                <Text variant="label">Engagement funnel</Text>
-                {d.funnel.map((f) => (
-                  <View key={f.label} style={{ gap: 6 }}>
-                    <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 8 }}>
-                      <Text style={{ flex: 1 }}>{f.label}</Text>
-                      <Text variant="caption">{f.value} · {f.pct}%</Text>
-                    </View>
-                    <ProgressBar pct={f.pct} height={6} />
-                  </View>
-                ))}
-                <Text variant="caption">
+              <Card style={{ padding: 20 }}>
+                <CardTitle style={{ marginBottom: 16 }}>Engagement funnel</CardTitle>
+                <View style={{ gap: 12 }}>
+                  {d.funnel.map((f) => (
+                    <GoalBar key={f.label} text={f.label} value={f.value} pct={f.pct} />
+                  ))}
+                </View>
+                <Text variant="caption" style={{ marginTop: 16 }}>
                   Activation rate: <Text variant="caption" weight="bold" color={colors.foreground}>{d.activationRate}%</Text>
                 </Text>
               </Card>
 
-              <Card padded={false} style={{ overflow: "hidden" }}>
-                <View style={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 4 }}>
-                  <Text variant="label">Critical</Text>
-                </View>
+              <Card style={{ padding: 20 }}>
+                <CardTitle style={{ marginBottom: 6 }}>Critical</CardTitle>
                 <AttentionRow label="Submissions flagged for review" value={d.counts.flaggedSubmissions} href="/admin/submissions" />
-                <Divider />
-                <AttentionRow label="AI content suggestions pending" value={d.counts.pendingContent} href="/admin/content" />
+                <AttentionRow label="AI content suggestions pending" value={d.counts.pendingContent} href="/admin/content" last />
               </Card>
 
-              <Card style={{ gap: 10 }}>
-                <Text variant="label">Signup source</Text>
+              <Card style={{ padding: 20 }}>
+                <CardTitle style={{ marginBottom: 16 }}>Signup source</CardTitle>
                 {d.signupSources.length === 0 ? (
                   <Text variant="small">No signups yet.</Text>
                 ) : (
-                  d.signupSources.map((s) => (
-                    <View key={s.source ?? "direct"} style={{ flexDirection: "row", justifyContent: "space-between", gap: 8 }}>
-                      <Text color={s.source ? undefined : colors.muted} style={{ flex: 1 }}>{s.source ?? "Direct / untagged"}</Text>
-                      <Text weight="bold">{s.count}</Text>
-                    </View>
-                  ))
+                  <View style={{ gap: 8 }}>
+                    {d.signupSources.map((s) => (
+                      <View key={s.source ?? "direct"} style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                        <Text color={s.source ? undefined : colors.muted} style={{ flex: 1 }}>{s.source ?? "Direct / untagged"}</Text>
+                        <Text weight="bold">{String(s.count)}</Text>
+                      </View>
+                    ))}
+                  </View>
                 )}
-                <Text variant="caption">Tagged by the ?ref= on the link the artist arrived through.</Text>
+                <Text variant="caption" style={{ marginTop: 12 }}>
+                  Tagged by the <Text variant="caption" style={{ fontFamily: MONO }}>?ref=</Text> on the link the artist arrived through.
+                </Text>
               </Card>
             </>
           );

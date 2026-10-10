@@ -25,17 +25,17 @@ export function toEditable(questions: AdminQuizQuestion[]): QEdit[] {
   }));
 }
 
-/** Editable rows → the `questions` array the quiz routes accept. */
+/** Editable rows → the `questions` array the quiz routes accept (same as the web). */
 export function toPayload(questions: QEdit[]) {
   return questions.map((q) => ({
-    prompt: q.prompt.trim(),
-    options: q.options.filter((o) => o.trim()).map((text, i) => ({ id: letter(i), text: text.trim() })),
+    prompt: q.prompt,
+    options: q.options.filter((o) => o.trim()).map((text, i) => ({ id: letter(i), text })),
     correct: [letter(q.correctIdx)],
     explanation: q.explanation,
   }));
 }
 
-/** Mirrors the routes' zod rules so we can explain a problem before sending. */
+/** Mirrors the routes' zod rules so the problem can be named before sending. */
 export function quizProblem(questions: QEdit[]): string | null {
   for (let i = 0; i < questions.length; i++) {
     const q = questions[i]!;
@@ -47,32 +47,51 @@ export function quizProblem(questions: QEdit[]): string | null {
   return null;
 }
 
-export function QuizBuilder({ questions, onChange }: { questions: QEdit[]; onChange: (q: QEdit[]) => void }) {
+/**
+ * The question cards (surface-2 blocks). `removable` adds the ✕ the web's lesson
+ * editor has (the add-lesson form has none); `explanationPlaceholder` differs
+ * between the two web forms too.
+ */
+export function QuizBuilder({
+  questions,
+  onChange,
+  removable,
+  explanationPlaceholder,
+}: {
+  questions: QEdit[];
+  onChange: (q: QEdit[]) => void;
+  removable?: boolean;
+  explanationPlaceholder: string;
+}) {
   const update = (qi: number, patch: Partial<QEdit>) => onChange(questions.map((q, i) => (i === qi ? { ...q, ...patch } : q)));
 
   return (
-    <View style={{ gap: 10 }}>
+    <View style={{ gap: 8 }}>
       {questions.map((q, qi) => (
         <View key={qi} style={{ backgroundColor: colors.surface2, borderRadius: radius.md, padding: 12, gap: 8 }}>
-          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-            <Text variant="caption" weight="semibold">Question {qi + 1}</Text>
-            <Button
-              title="Remove"
-              variant="link"
-              size="sm"
-              onPress={() => onChange(questions.filter((_, i) => i !== qi))}
-              accessibilityLabel={`Remove question ${qi + 1}`}
-            />
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <View style={{ flex: 1 }}>
+              <Field
+                placeholder="Question prompt"
+                value={q.prompt}
+                onChangeText={(t) => update(qi, { prompt: t })}
+                accessibilityLabel={`Question ${qi + 1} prompt`}
+              />
+            </View>
+            {removable ? (
+              <Button
+                title="✕"
+                variant="danger"
+                size="sm"
+                style={{ borderWidth: 0, backgroundColor: "transparent" }}
+                onPress={() => onChange(questions.filter((_, i) => i !== qi))}
+                accessibilityLabel={`Remove question ${qi + 1}`}
+              />
+            ) : null}
           </View>
-          <Field placeholder="Question prompt" value={q.prompt} onChangeText={(t) => update(qi, { prompt: t })} />
-          <Text variant="caption">Tap the circle to mark the correct answer.</Text>
           {q.options.map((o, oi) => (
             <View key={oi} style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-              <RadioDot
-                selected={q.correctIdx === oi}
-                onPress={() => update(qi, { correctIdx: oi })}
-                label={`Mark option ${oi + 1} correct`}
-              />
+              <RadioDot selected={q.correctIdx === oi} onPress={() => update(qi, { correctIdx: oi })} label={`Correct answer: option ${oi + 1}`} />
               <View style={{ flex: 1 }}>
                 <Field
                   placeholder={`Option ${oi + 1}`}
@@ -80,31 +99,20 @@ export function QuizBuilder({ questions, onChange }: { questions: QEdit[]; onCha
                   onChangeText={(t) => update(qi, { options: q.options.map((y, yi) => (yi === oi ? t : y)) })}
                 />
               </View>
-              {q.options.length > 2 ? (
-                <Button
-                  title="✕"
-                  variant="link"
-                  size="sm"
-                  accessibilityLabel={`Remove option ${oi + 1}`}
-                  onPress={() =>
-                    update(qi, {
-                      options: q.options.filter((_, yi) => yi !== oi),
-                      correctIdx: q.correctIdx === oi ? 0 : q.correctIdx > oi ? q.correctIdx - 1 : q.correctIdx,
-                    })
-                  }
-                />
-              ) : null}
             </View>
           ))}
-          <Button title="+ Option" variant="link" size="sm" onPress={() => update(qi, { options: [...q.options, ""] })} />
-          <Field
-            placeholder="Explanation (shown after answering)"
-            value={q.explanation}
-            onChangeText={(t) => update(qi, { explanation: t })}
-          />
+          <Text
+            variant="caption"
+            color={colors.accent}
+            onPress={() => update(qi, { options: [...q.options, ""] })}
+            accessibilityRole="button"
+            style={{ alignSelf: "flex-start", paddingVertical: 6 }}
+          >
+            + option
+          </Text>
+          <Field placeholder={explanationPlaceholder} value={q.explanation} onChangeText={(t) => update(qi, { explanation: t })} />
         </View>
       ))}
-      <Button title="+ Question" variant="ghost" size="sm" onPress={() => onChange([...questions, emptyQuestion()])} />
     </View>
   );
 }

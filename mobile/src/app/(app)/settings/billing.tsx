@@ -10,12 +10,12 @@ import { Button, Card, QueryView, Screen, Text } from "@/components/ui";
 import { useApiQuery } from "@/hooks/useApi";
 import type { BillingResponse } from "@/types/api";
 
+/** Web: `<li>Label: <strong>value</strong></li>` in text-sm. */
 function Line({ label, value }: { label: string; value: string | number }) {
   return (
-    <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 12 }}>
-      <Text variant="small" style={{ flex: 1 }}>{label}</Text>
-      <Text weight="semibold">{value}</Text>
-    </View>
+    <Text>
+      {label}: <Text weight="bold">{String(value)}</Text>
+    </Text>
   );
 }
 
@@ -24,8 +24,9 @@ export default function Billing() {
   const { start, pending } = useStripeRedirect();
 
   return (
-    <Screen onRefresh={query.refetch}>
+    <Screen onRefresh={query.refetch} contentStyle={{ gap: 20 }}>
       <Stack.Screen options={{ title: "Billing" }} />
+      <Text variant="title" accessibilityRole="header">Billing</Text>
       <QueryView query={query}>
         {(d) => {
           const ent = d.entitlements;
@@ -33,15 +34,15 @@ export default function Billing() {
           const sub = d.subscription;
           return (
             <>
-              <Card style={{ gap: 4 }}>
-                <Text variant="label">Current plan</Text>
+              <Card style={{ padding: 24, gap: 4 }}>
+                <Text variant="overline">Current plan</Text>
                 <Text variant="title">{plan?.name ?? ent.plan}</Text>
                 {sub?.currentPeriodEnd ? (
                   <Text variant="caption">
                     {sub.status === "canceled" ? "Access until" : "Renews"} {new Date(sub.currentPeriodEnd).toLocaleDateString()}
                   </Text>
                 ) : null}
-                <View style={{ gap: 8, marginTop: 12 }}>
+                <View style={{ gap: 4, marginTop: 12 }}>
                   <Line label="Coach messages/day" value={ent.coachMessagesPerDay >= 1000 ? "Unlimited" : ent.coachMessagesPerDay} />
                   <Line label="Social connections" value={ent.socialConnections} />
                   <Line label="All courses" value={ent.allCourses ? "Yes" : "No"} />
@@ -49,18 +50,17 @@ export default function Billing() {
                 </View>
               </Card>
 
-              <View style={{ gap: 10 }}>
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
                 {ent.plan === "free" ? (
-                  <Button title="Upgrade" fullWidth onPress={() => router.push("/pricing")} />
+                  <Button title="Upgrade" onPress={() => router.push("/pricing")} />
                 ) : (
                   <Button
                     title={pending ? "Opening…" : "Manage subscription"}
-                    fullWidth
                     loading={pending === "portal"}
                     onPress={() => void start("portal", "/api/billing/portal")}
                   />
                 )}
-                <Button title="View plans" variant="ghost" fullWidth onPress={() => router.push("/pricing")} />
+                <Button title="View plans" variant="ghost" onPress={() => router.push("/pricing")} />
               </View>
             </>
           );

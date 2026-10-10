@@ -1,31 +1,40 @@
 // Caption & Hashtag Generator — the web's /studio/caption (CaptionClient.tsx).
 // Data: POST /api/studio/caption { topic, platform, tone } → { captions, hashtags }.
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { View } from "react-native";
 import { Stack } from "expo-router";
 import * as Clipboard from "expo-clipboard";
 
-import { OptionPills } from "@/components/studio/shared";
-import { Button, Card, Field, PageHeader, Screen, Section, Text, useToast } from "@/components/ui";
+import { Input, Select, SubHeading } from "@/components/studio/shared";
+import { Button, Card, PageHeader, Screen, Text } from "@/components/ui";
 import { useApiMutation } from "@/hooks/useApi";
 import { colors, radius } from "@/theme/tokens";
 import { CAPTION_PLATFORMS, CAPTION_TONES, type CaptionResult } from "@/types/studio";
 
+// The web's <select> shows the raw lowercase value with CSS `capitalize`.
+const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+const PLATFORM_OPTIONS = CAPTION_PLATFORMS.map((p) => ({ value: p, label: cap(p) }));
+const TONE_OPTIONS = CAPTION_TONES.map((t) => ({ value: t, label: cap(t) }));
+
 export default function Caption() {
-  const toast = useToast();
   const [topic, setTopic] = useState("");
   const [platform, setPlatform] = useState<string>("instagram");
   const [tone, setTone] = useState<string>("authentic");
   const [result, setResult] = useState<CaptionResult | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const gen = useApiMutation<CaptionResult>({ onSuccess: setResult });
+
+  useEffect(() => () => {
+    if (timer.current) clearTimeout(timer.current);
+  }, []);
 
   async function copy(text: string, key: string) {
     await Clipboard.setStringAsync(text);
     setCopied(key);
-    toast("Copied");
-    setTimeout(() => setCopied((k) => (k === key ? null : k)), 1200);
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = setTimeout(() => setCopied(null), 1200);
   }
 
   return (
@@ -33,32 +42,36 @@ export default function Caption() {
       <Stack.Screen options={{ title: "Caption Generator" }} />
       <PageHeader title="✍️ Caption & Hashtag Generator" subtitle="Describe your post — get scroll-stopping captions and hashtags." />
 
-      <Card style={{ gap: 14 }}>
-        <Field
+      <Card style={{ gap: 8 }}>
+        <Input
+          look="field"
           value={topic}
           onChangeText={setTopic}
           multiline
           maxLength={500}
+          style={{ minHeight: 84, borderRadius: radius.md, fontSize: 14 }}
           placeholder="What's the post about? (e.g. teaser for my new synthwave single 'Neon Drive')"
           accessibilityLabel="What's the post about?"
         />
-        <OptionPills title="Platform" options={CAPTION_PLATFORMS} value={platform} onChange={setPlatform} />
-        <OptionPills title="Tone" options={CAPTION_TONES} value={tone} onChange={setTone} />
-        <Button
-          title={gen.isPending ? "Generating…" : "Generate"}
-          fullWidth
-          loading={gen.isPending}
-          disabled={!topic.trim()}
-          onPress={() => gen.mutate({ path: "/api/studio/caption", body: { topic, platform, tone } })}
-        />
+        <View style={{ flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+          <Select look="field" accessibilityLabel="Platform" options={PLATFORM_OPTIONS} value={platform} onChange={setPlatform} />
+          <Select look="field" accessibilityLabel="Tone" options={TONE_OPTIONS} value={tone} onChange={setTone} />
+          <Button
+            title={gen.isPending ? "Generating…" : "Generate"}
+            style={{ marginLeft: "auto" }}
+            disabled={gen.isPending || !topic.trim()}
+            onPress={() => gen.mutate({ path: "/api/studio/caption", body: { topic, platform, tone } })}
+          />
+        </View>
       </Card>
 
       {result ? (
         <>
-          <Section title="Captions">
+          <View style={{ gap: 8 }}>
+            <SubHeading>Captions</SubHeading>
             {result.captions.map((c, i) => (
-              <Card key={i} style={{ gap: 8 }}>
-                <Text selectable>{c}</Text>
+              <Card key={i} style={{ padding: 12, flexDirection: "row", alignItems: "flex-start", gap: 8 }}>
+                <Text selectable style={{ flex: 1 }}>{c}</Text>
                 <Button
                   title={copied === `c${i}` ? "Copied ✓" : "Copy"}
                   size="sm"
@@ -68,9 +81,10 @@ export default function Caption() {
                 />
               </Card>
             ))}
-          </Section>
-          <Section title="Hashtags">
-            <Card style={{ gap: 10 }}>
+          </View>
+          <View style={{ gap: 8 }}>
+            <SubHeading>Hashtags</SubHeading>
+            <Card style={{ padding: 12, gap: 8 }}>
               <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
                 {result.hashtags.map((h, i) => (
                   <View key={i} style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: radius.pill, backgroundColor: colors.surface2 }}>
@@ -85,7 +99,7 @@ export default function Caption() {
                 onPress={() => void copy(result.hashtags.join(" "), "tags")}
               />
             </Card>
-          </Section>
+          </View>
         </>
       ) : null}
     </Screen>

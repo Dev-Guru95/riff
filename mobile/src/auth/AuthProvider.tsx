@@ -11,7 +11,7 @@
 // backend re-checks it on every admin request.
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import * as SecureStore from "expo-secure-store";
+import { deleteToken, getToken, setToken } from "./tokenStore";
 import { useQueryClient } from "@tanstack/react-query";
 
 import { api, setAuthToken, setUnauthorizedHandler } from "@/api/client";
@@ -53,7 +53,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setStatus("signedOut");
     queryClient.clear(); // never show one account's cached data to the next
     try {
-      await SecureStore.deleteItemAsync(TOKEN_KEY);
+      await deleteToken(TOKEN_KEY);
     } catch {
       // keystore unavailable: the in-memory token is already gone
     }
@@ -68,7 +68,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const startSession = useCallback(
     async (token: string) => {
       setAuthToken(token);
-      await SecureStore.setItemAsync(TOKEN_KEY, token);
+      try {
+        await setToken(TOKEN_KEY, token);
+      } catch {
+        // Keystore unavailable: the session still works for this launch, the
+        // artist just has to log in again next time.
+      }
       setSessionExpired(false);
       await loadMe();
     },
@@ -81,7 +86,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     (async () => {
       let token: string | null = null;
       try {
-        token = await SecureStore.getItemAsync(TOKEN_KEY);
+        token = await getToken(TOKEN_KEY);
       } catch {
         token = null;
       }
@@ -120,7 +125,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       api<MeResponse>("/api/mobile/me", { skipAuthRedirect: true })
         .then(setUser)
         .catch((err) => {
-          if (err instanceof ApiError && err.kind === "unauthorized") {
+          if (err instanceof ApiError && (err.kind === "unauthorized" || err.kind === "not_found")) {
             setSessionExpired(true);
             void clearLocal();
           }
@@ -136,7 +141,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     async (email, password, code) => {
       const res = await api<AuthResponse>("/api/auth/login", {
         method: "POST",
-        body: { email: email.trim(), password, ...(code ? { code: code.trim() } : {}) },
+        body: { email: email.trim(), password, ...(code ? { code: code.replace(/\s/g, "") } : {}) },
         skipAuthRedirect: true,
       });
       if (res.mfaRequired) return { status: "mfa_required" };
@@ -209,7 +214,7 @@ export function useAuth() {
 export async function forgetStoredSession() {
   setAuthToken(null);
   try {
-    await SecureStore.deleteItemAsync(TOKEN_KEY);
+    await deleteToken(TOKEN_KEY);
   } catch {
     // ignore
   }

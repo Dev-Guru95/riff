@@ -1,16 +1,19 @@
 // Notifications — the web's NotificationBell dropdown as a full screen.
 // Data: GET /api/notifications (latest 30 + unread count, shared with the tab
-// bar bell). Writes: POST /api/notifications { id } marks one read, {} marks all.
+// bar bell). Like the web, opening the list marks everything read
+// (POST /api/notifications with no id) while the rows that were unread keep
+// their highlight until you leave.
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Pressable, RefreshControl, StyleSheet, View } from "react-native";
 import { Stack } from "expo-router";
 import { FlashList } from "@shopify/flash-list";
+import { useQueryClient } from "@tanstack/react-query";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { Button, EmptyState, QueryView, Text } from "@/components/ui";
-import { useApiMutation } from "@/hooks/useApi";
-import { useNotifications, type NotificationItem } from "@/hooks/useNotifications";
+import { post } from "@/api/client";
+import { QueryView, Text } from "@/components/ui";
+import { useNotifications, type NotificationItem, type NotificationsResponse } from "@/hooks/useNotifications";
 import { openLink } from "@/lib/links";
 import { colors, radius } from "@/theme/tokens";
 
@@ -30,40 +33,53 @@ const ICON: Record<string, string> = {
   board: "🗂️",
 };
 
-function timeAgo(iso: string) {
-  const s = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000);
-  if (s < 60) return "just now";
-  if (s < 3600) return `${Math.floor(s / 60)}m ago`;
-  if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
-  if (s < 86400 * 7) return `${Math.floor(s / 86400)}d ago`;
-  return new Date(iso).toLocaleDateString();
-}
-
-function Row({ n, onPress }: { n: NotificationItem; onPress: () => void }) {
+function Row({ n, highlight }: { n: NotificationItem; highlight: boolean }) {
+  const inner = (
+    <View style={[styles.row, highlight && styles.unread]}>
+      <View style={styles.titleLine}>
+        <Text style={styles.icon}>{ICON[n.type] ?? "🔔"}</Text>
+        <Text weight="medium" style={{ flex: 1 }}>{n.title}</Text>
+      </View>
+      {n.body ? <Text variant="caption" style={{ marginLeft: 24 }}>{n.body}</Text> : null}
+    </View>
+  );
+  if (!n.link) return inner;
+  const link = n.link;
   return (
     <Pressable
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={`${n.read ? "" : "Unread. "}${n.title}${n.body ? `. ${n.body}` : ""}`}
-      style={({ pressed }) => [styles.row, !n.read && styles.unread, pressed && { opacity: 0.8 }]}
+      onPress={() => void openLink(link)}
+      accessibilityRole="link"
+      accessibilityLabel={`${n.title}${n.body ? `. ${n.body}` : ""}`}
+      style={({ pressed }) => pressed && { opacity: 0.8 }}
     >
-      <Text style={{ fontSize: 18, lineHeight: 22 }}>{ICON[n.type] ?? "🔔"}</Text>
-      <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
-        <Text weight="medium">{n.title}</Text>
-        {n.body ? <Text variant="caption">{n.body}</Text> : null}
-        <Text variant="caption" style={{ marginTop: 2 }}>{timeAgo(n.createdAt)}</Text>
-      </View>
-      {!n.read ? <View style={styles.dot} accessibilityElementsHidden /> : null}
+      {inner}
     </Pressable>
   );
 }
 
 export default function Notifications() {
   const query = useNotifications();
+  const qc = useQueryClient();
   const insets = useSafeAreaInsets();
   const [refreshing, setRefreshing] = useState(false);
-  const markOne = useApiMutation({ invalidates: ["/api/notifications"] });
-  const markAll = useApiMutation({ invalidates: ["/api/notifications"], success: "All caught up" });
+  // Ids that were unread when the screen opened: they stay highlighted, as in
+  // the web dropdown, even though the server has marked them read.
+  const [fresh, setFresh] = useState<Set<string> | null>(null);
+  const marked = useRef(false);
+
+  useEffect(() => {
+    const data = query.data;
+    if (!data || marked.current) return;
+    marked.current = true;
+    setFresh(new Set(data.items.filter((n) => !n.read).map((n) => n.id)));
+    if (data.unread > 0) {
+      // Clear the badge immediately, then persist like the web (POST, no id).
+      qc.setQueryData<NotificationsResponse>(["/api/notifications"], (d) => (d ? { ...d, unread: 0 } : d));
+      post("/api/notifications").catch(() => {
+        void qc.invalidateQueries({ queryKey: ["/api/notifications"] });
+      });
+    }
+  }, [query.data, qc]);
 
   const refresh = useCallback(async () => {
     setRefreshing(true);
@@ -74,45 +90,18 @@ export default function Notifications() {
     }
   }, [query]);
 
-  function open(n: NotificationItem) {
-    if (!n.read) markOne.mutate({ path: "/api/notifications", body: { id: n.id } });
-    if (n.link) void openLink(n.link);
-  }
-
-  const unread = query.data?.unread ?? 0;
-
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <Stack.Screen
-        options={{
-          title: "Notifications",
-          headerRight: () =>
-            unread > 0 ? (
-              <Button
-                title="Mark all read"
-                size="sm"
-                variant="link"
-                loading={markAll.isPending}
-                onPress={() => markAll.mutate({ path: "/api/notifications", body: {} })}
-              />
-            ) : null,
-        }}
-      />
+      <Stack.Screen options={{ title: "Notifications" }} />
       <QueryView query={query}>
         {(d) => (
           <FlashList
             data={d.items}
             keyExtractor={(n) => n.id}
-            renderItem={({ item }) => <Row n={item} onPress={() => open(item)} />}
-            ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
-            ListHeaderComponent={
-              d.unread > 0 ? (
-                <Text variant="caption" style={{ marginBottom: 10 }}>
-                  {d.unread} unread
-                </Text>
-              ) : null
-            }
-            ListEmptyComponent={<EmptyState icon="bell" title="No notifications yet." body="Badges, level-ups, mentions and due dates show up here." />}
+            extraData={fresh}
+            renderItem={({ item }) => <Row n={item} highlight={!item.read || !!fresh?.has(item.id)} />}
+            ItemSeparatorComponent={() => <View style={{ height: 2 }} />}
+            ListEmptyComponent={<Text variant="small" style={styles.empty}>No notifications yet.</Text>}
             contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 24 }}
             refreshControl={
               <RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.brand} colors={[colors.brand]} progressBackgroundColor={colors.surface} />
@@ -125,17 +114,9 @@ export default function Notifications() {
 }
 
 const styles = StyleSheet.create({
-  row: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 12,
-    padding: 14,
-    minHeight: 56,
-    borderRadius: radius.card,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
-  },
-  unread: { backgroundColor: colors.surface2, borderColor: colors.brand + "66" },
-  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.brand2, marginTop: 6 },
+  row: { padding: 10, borderRadius: radius.md, gap: 2 },
+  unread: { backgroundColor: colors.surface2 },
+  titleLine: { flexDirection: "row", alignItems: "flex-start", gap: 8 },
+  icon: { width: 16, fontSize: 14, lineHeight: 20 },
+  empty: { textAlign: "center", paddingVertical: 24 },
 });

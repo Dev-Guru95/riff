@@ -15,9 +15,9 @@ import * as Haptics from "expo-haptics";
 import { get } from "@/api/client";
 import { ApiError, errorMessage } from "@/api/errors";
 import { StreamUnavailableError, streamCoachReply } from "@/components/coach/coachStream";
-import { Button, Card, Icon, QueryView, Screen, Text, useToast } from "@/components/ui";
+import { Button, QueryView, Screen, Text, useToast } from "@/components/ui";
 import { useApiMutation, useApiQuery, useInvalidate } from "@/hooks/useApi";
-import { colors, fonts, gradients, radius, TOUCH } from "@/theme/tokens";
+import { colors, fonts, gradients, radius, TOUCH, type as scale } from "@/theme/tokens";
 import type { CoachMessageItem, CoachResponse } from "@/types/api";
 
 type Msg = {
@@ -63,21 +63,19 @@ export default function Coach() {
 
 function CoachLocked({ pending, onRefresh }: { pending: boolean; onRefresh: () => Promise<unknown> }) {
   return (
-    <Screen onRefresh={onRefresh} contentStyle={{ flexGrow: 1, justifyContent: "center" }}>
-      <View style={{ alignItems: "center", gap: 10, paddingVertical: 24 }}>
-        <Text style={{ fontSize: 48, lineHeight: 58 }}>🔒</Text>
+    <Screen onRefresh={onRefresh}>
+      <View style={{ alignItems: "center", paddingVertical: 48 }}>
+        <Text style={{ fontSize: 48, lineHeight: 56, marginBottom: 12 }}>🔒</Text>
         <Text variant="title" style={{ textAlign: "center" }}>AI Artist Coach</Text>
-        <Text variant="small" style={{ textAlign: "center", maxWidth: 340 }}>
+        <Text variant="small" style={[scale.base, { textAlign: "center", maxWidth: 340, marginTop: 8 }]}>
           A coach that knows your goals, genre, progress and audit scores. It unlocks when you join the SoundRig community on Skool.
         </Text>
         {pending ? (
-          <Card style={{ marginTop: 12 }}>
-            <Text style={{ textAlign: "center" }}>
-              ⏳ Your membership is being verified — your coach unlocks as soon as it&apos;s approved.
-            </Text>
-          </Card>
+          <Text style={{ textAlign: "center", marginTop: 24 }}>
+            ⏳ Your membership is being verified — your coach unlocks as soon as it&apos;s approved.
+          </Text>
         ) : (
-          <Button title="Join the community to unlock" onPress={() => router.push("/community")} style={{ alignSelf: "center", marginTop: 12 }} />
+          <Button title="Join the community to unlock" onPress={() => router.push("/community")} style={{ alignSelf: "center", marginTop: 24 }} />
         )}
       </View>
     </Screen>
@@ -108,7 +106,7 @@ function FeedbackButtons({ message, onChange }: { message: Msg; onChange: (f: Ms
           hitSlop={6}
           style={styles.feedbackBtn}
         >
-          <Text style={{ fontSize: 14, opacity: message.feedback === v ? 1 : 0.4 }}>{v === "up" ? "👍" : "👎"}</Text>
+          <Text style={{ fontSize: 12, lineHeight: 16, opacity: message.feedback === v ? 1 : 0.4 }}>{v === "up" ? "👍" : "👎"}</Text>
         </Pressable>
       ))}
     </View>
@@ -125,13 +123,13 @@ function Bubble({ m, onFeedback }: { m: Msg; onFeedback: (id: string, f: Msg["fe
   };
   return (
     <View style={[styles.row, { alignItems: mine ? "flex-end" : "flex-start" }]}>
-      <Pressable onLongPress={copy} accessibilityHint="Long press to copy" style={{ maxWidth: "85%" }}>
+      <Pressable onLongPress={copy} accessibilityHint="Long press to copy" style={{ maxWidth: "80%" }}>
         {mine ? (
           <LinearGradient {...gradients.brand} style={[styles.bubble, styles.mine]}>
             <Text color={colors.white} style={styles.bubbleText}>{m.content}</Text>
           </LinearGradient>
         ) : (
-          <View style={[styles.bubble, styles.theirs, m.error ? { borderColor: colors.danger, borderWidth: 1 } : null]}>
+          <View style={[styles.bubble, styles.theirs]}>
             <Text style={styles.bubbleText}>{m.content || " "}</Text>
           </View>
         )}
@@ -226,112 +224,126 @@ function CoachChat({ threadId, initial, stageName }: { threadId: string; initial
     }
   }
 
-  const header = (
-    <View style={{ gap: 4, paddingBottom: 12 }}>
-      <Text variant="title">🤖 AI Artist Coach</Text>
-      <Text variant="small">Personalized to {stageName ?? "you"} — knows your goals, genre, progress, and audit scores.</Text>
-    </View>
-  );
+  const disabled = loading || !input.trim();
 
   return (
     <KeyboardAvoidingView behavior="padding" automaticOffset style={styles.root}>
-      <FlashList
-        ref={listRef}
-        data={messages}
-        keyExtractor={(m) => m.id}
-        renderItem={({ item }) => <Bubble m={item} onFeedback={setFeedback} />}
-        ListHeaderComponent={header}
-        ListEmptyComponent={
-          <View style={styles.empty}>
-            <Text style={{ fontSize: 40, lineHeight: 48 }}>👋</Text>
-            <Text variant="small" style={{ textAlign: "center" }}>Ask me anything about growing your music career.</Text>
-            <View style={styles.suggestions}>
-              {SUGGESTIONS.map((s) => (
-                <Pressable key={s} onPress={() => void send(s)} accessibilityRole="button" style={({ pressed }) => [styles.suggestion, pressed && { backgroundColor: colors.border }]}>
-                  <Text variant="caption" color={colors.foreground}>{s}</Text>
-                </Pressable>
-              ))}
-            </View>
-          </View>
-        }
-        ListFooterComponent={
-          loading && !streaming ? (
-            <View style={[styles.row, { alignItems: "flex-start" }]}>
-              <View style={[styles.bubble, styles.theirs]}>
-                <Text variant="small">Coach is thinking…</Text>
+      <View style={styles.header}>
+        <Text variant="title" accessibilityRole="header">🤖 AI Artist Coach</Text>
+        <Text variant="small">Personalized to {stageName ?? "you"} — knows your goals, genre, progress, and audit scores.</Text>
+      </View>
+
+      {/* The web renders the thread and the composer inside one .card. */}
+      <View style={styles.chatCard}>
+        <FlashList
+          ref={listRef}
+          data={messages}
+          keyExtractor={(m) => m.id}
+          renderItem={({ item }) => <Bubble m={item} onFeedback={setFeedback} />}
+          ListEmptyComponent={
+            <View style={styles.empty}>
+              <Text style={{ fontSize: 36, lineHeight: 40, marginBottom: 12 }}>👋</Text>
+              <Text variant="small" style={[scale.base, { textAlign: "center", marginBottom: 16 }]}>Ask me anything about growing your music career.</Text>
+              <View style={styles.suggestions}>
+                {SUGGESTIONS.map((s) => (
+                  <Pressable
+                    key={s}
+                    onPress={() => void send(s)}
+                    accessibilityRole="button"
+                    style={({ pressed }) => [styles.suggestion, pressed && { backgroundColor: colors.border }]}
+                  >
+                    <Text variant="caption" color={colors.foreground}>{s}</Text>
+                  </Pressable>
+                ))}
               </View>
             </View>
-          ) : null
-        }
-        contentContainerStyle={styles.listContent}
-        maintainVisibleContentPosition={{ startRenderingFromBottom: true, autoscrollToBottomThreshold: 0.2 }}
-        onScroll={onScroll}
-        scrollEventThrottle={64}
-        onContentSizeChange={scrollToEnd}
-        keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="interactive"
-      />
-
-      <View style={styles.composer}>
-        <TextInput
-          value={input}
-          onChangeText={setInput}
-          placeholder="Message your coach…"
-          placeholderTextColor={colors.muted}
-          selectionColor={colors.brand}
-          editable={!loading}
-          multiline
-          maxLength={2000}
-          style={styles.input}
-          accessibilityLabel="Message your coach"
+          }
+          ListFooterComponent={
+            loading && !streaming ? (
+              <View style={[styles.row, { alignItems: "flex-start" }]}>
+                <View style={[styles.bubble, styles.theirs, { paddingVertical: 12 }]}>
+                  <Text variant="small">Coach is thinking…</Text>
+                </View>
+              </View>
+            ) : null
+          }
+          contentContainerStyle={styles.listContent}
+          maintainVisibleContentPosition={{ startRenderingFromBottom: true, autoscrollToBottomThreshold: 0.2 }}
+          onScroll={onScroll}
+          scrollEventThrottle={64}
+          onContentSizeChange={scrollToEnd}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
         />
-        <Pressable
-          onPress={() => void send(input)}
-          disabled={loading || !input.trim()}
-          accessibilityRole="button"
-          accessibilityLabel="Send"
-          accessibilityState={{ disabled: loading || !input.trim() }}
-          style={({ pressed }) => [styles.sendBtn, { opacity: loading || !input.trim() ? 0.45 : pressed ? 0.85 : 1 }]}
-        >
-          <LinearGradient {...gradients.brand} style={styles.sendGradient}>
-            <Icon name="chevronRight" size={20} color={colors.white} strokeWidth={2} />
-          </LinearGradient>
-        </Pressable>
+
+        <View style={styles.composer}>
+          <TextInput
+            value={input}
+            onChangeText={setInput}
+            placeholder="Message your coach…"
+            placeholderTextColor={colors.muted}
+            selectionColor={colors.brand}
+            editable={!loading}
+            multiline
+            maxLength={2000}
+            style={styles.input}
+            accessibilityLabel="Message your coach"
+          />
+          <Pressable
+            onPress={() => void send(input)}
+            disabled={disabled}
+            accessibilityRole="button"
+            accessibilityLabel="Send"
+            accessibilityState={{ disabled }}
+            style={({ pressed }) => [styles.sendBtn, { opacity: disabled ? 0.45 : pressed ? 0.9 : 1, transform: [{ scale: pressed ? 0.97 : 1 }] }]}
+          >
+            <LinearGradient {...gradients.brand} style={styles.sendGradient}>
+              <Text style={styles.sendText}>Send</Text>
+            </LinearGradient>
+          </Pressable>
+        </View>
       </View>
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.background },
-  listContent: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 8 },
-  row: { marginBottom: 14 },
-  bubble: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: 18 },
-  mine: { borderBottomRightRadius: 4 },
-  theirs: { backgroundColor: colors.surface2, borderBottomLeftRadius: 4 },
-  bubbleText: { fontSize: 14, lineHeight: 22 },
-  feedback: { flexDirection: "row", gap: 2, marginTop: 2 },
-  feedbackBtn: { minWidth: 36, minHeight: 32, alignItems: "center", justifyContent: "center" },
-  empty: { alignItems: "center", gap: 10, paddingVertical: 32 },
-  suggestions: { flexDirection: "row", flexWrap: "wrap", justifyContent: "center", gap: 8, marginTop: 6 },
-  suggestion: {
-    minHeight: TOUCH,
-    justifyContent: "center",
-    paddingHorizontal: 14,
-    borderRadius: radius.pill,
-    backgroundColor: colors.surface2,
+  root: { flex: 1, backgroundColor: colors.background, paddingHorizontal: 16, paddingTop: 16, paddingBottom: 12 },
+  header: { gap: 2, marginBottom: 16 },
+  chatCard: {
+    flex: 1,
+    minHeight: 0,
+    backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
+    borderRadius: radius.card,
+    overflow: "hidden",
+  },
+  listContent: { padding: 16 },
+  row: { marginBottom: 16 },
+  bubble: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: 16 },
+  mine: { borderBottomRightRadius: 2 },
+  theirs: { backgroundColor: colors.surface2, borderBottomLeftRadius: 2 },
+  bubbleText: { fontSize: 14, lineHeight: 23 },
+  feedback: { flexDirection: "row", gap: 4, marginTop: 4, marginLeft: 4 },
+  feedbackBtn: { minWidth: 32, minHeight: 32, alignItems: "center", justifyContent: "center" },
+  empty: { alignItems: "center", paddingVertical: 32 },
+  suggestions: { flexDirection: "row", flexWrap: "wrap", justifyContent: "center", gap: 8 },
+  suggestion: {
+    minHeight: 36,
+    justifyContent: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: radius.pill,
+    backgroundColor: colors.surface2,
   },
   composer: {
     flexDirection: "row",
     alignItems: "flex-end",
     gap: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    padding: 12,
     borderTopWidth: 1,
     borderTopColor: colors.border,
-    backgroundColor: colors.background,
   },
   input: {
     flex: 1,
@@ -341,13 +353,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: radius.card,
-    paddingHorizontal: 14,
-    paddingTop: 11,
-    paddingBottom: 11,
-    fontSize: 16,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 12,
+    fontSize: 14,
     fontFamily: fonts.regular,
     color: colors.foreground,
   },
-  sendBtn: { width: TOUCH, height: TOUCH, borderRadius: TOUCH / 2, overflow: "hidden" },
-  sendGradient: { flex: 1, alignItems: "center", justifyContent: "center" },
+  sendBtn: { height: TOUCH, borderRadius: radius.pill, overflow: "hidden" },
+  sendGradient: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 20 },
+  sendText: { fontFamily: fonts.semibold, fontSize: 14.4, color: colors.white },
 });

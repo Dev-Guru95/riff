@@ -2,13 +2,17 @@
 // (badge, Share to Skool, return link) and the module → lesson tree.
 // Data: GET /api/mobile/courses/[slug] (also upserts the enrollment, as the page does).
 
-import { View } from "react-native";
+import { useEffect } from "react";
+import { Pressable, StyleSheet, View } from "react-native";
 import { Image } from "expo-image";
 import { router, Stack, useLocalSearchParams, type Href } from "expo-router";
+import { useQueryClient } from "@tanstack/react-query";
 
 import { ShareToSkool } from "@/components/ShareToSkool";
+import { SectionLabel } from "@/components/learning/Stat";
 import { TrackReturnButton } from "@/components/learning/TrackReturnButton";
-import { Card, ProgressBar, QueryView, Screen, Section, Text } from "@/components/ui";
+import { useRefetchOnFocus } from "@/components/learning/useRefetchOnFocus";
+import { Card, ProgressBar, QueryView, Screen, Text } from "@/components/ui";
 import { absoluteUrl } from "@/config/env";
 import { useApiQuery } from "@/hooks/useApi";
 import { colors } from "@/theme/tokens";
@@ -21,11 +25,13 @@ function LessonRow({ l }: { l: CourseTreeLesson }) {
     .filter(Boolean)
     .join(" · ");
   const inner = (
-    <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-      <Text style={{ fontSize: 18 }}>{done ? "✅" : locked ? "🔒" : "▶️"}</Text>
-      <View style={{ flex: 1, minWidth: 0 }}>
-        <Text weight="medium">{l.title}</Text>
-        <Text variant="caption" style={{ marginTop: 2 }}>{meta}</Text>
+    <View style={styles.lessonRow}>
+      <View style={styles.lessonLeft}>
+        <Text style={{ fontSize: 18, lineHeight: 28 }}>{done ? "✅" : locked ? "🔒" : "▶️"}</Text>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Text weight="medium">{l.title}</Text>
+          <Text variant="caption" style={{ marginTop: 2 }}>{meta}</Text>
+        </View>
       </View>
       {done ? <Text variant="caption" color={colors.success}>Done</Text> : null}
     </View>
@@ -47,61 +53,94 @@ function LessonRow({ l }: { l: CourseTreeLesson }) {
 export default function CourseDetail() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
   const query = useApiQuery<CourseDetailResponse>(slug ? `/api/mobile/courses/${encodeURIComponent(slug)}` : null);
+  useRefetchOnFocus(query.refetch);
+
+  // Loading this screen enrols the artist (as the web page does), so the
+  // catalog's "Enrolled" flag and the dashboard's next move may have changed.
+  const qc = useQueryClient();
+  const loaded = !!query.data;
+  useEffect(() => {
+    if (!loaded) return;
+    void qc.invalidateQueries({ queryKey: ["/api/mobile/courses"], exact: true });
+    void qc.invalidateQueries({ queryKey: ["/api/mobile/dashboard"], exact: true });
+  }, [loaded, qc]);
 
   return (
-    <Screen onRefresh={query.refetch}>
+    <Screen onRefresh={query.refetch} contentStyle={{ gap: 0 }}>
       <Stack.Screen options={{ title: query.data?.course.title ?? "Course" }} />
       <QueryView query={query}>
         {(d) => (
           <>
-            <View>
-              <Text variant="title">{d.course.title}</Text>
-              <Text variant="small" style={{ marginTop: 4 }}>{d.course.description}</Text>
-            </View>
+            <Pressable accessibilityRole="link" onPress={() => router.navigate("/courses")} hitSlop={8} style={{ alignSelf: "flex-start" }}>
+              <Text variant="small">← All courses</Text>
+            </Pressable>
+            <Text variant="title" style={{ marginTop: 8 }}>{d.course.title}</Text>
+            <Text variant="small" style={{ marginTop: 4, marginBottom: 16 }}>{d.course.description}</Text>
 
             {d.completed ? (
-              <Card style={{ gap: 12, borderColor: colors.brand }}>
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
-                  <Image
-                    source={{ uri: absoluteUrl(d.badge.image) }}
-                    style={{ width: 56, height: 56 }}
-                    contentFit="contain"
-                    cachePolicy="memory-disk"
-                    accessibilityIgnoresInvertColors
-                  />
-                  <View style={{ flex: 1, minWidth: 0 }}>
-                    <Text variant="caption" color={colors.success} style={{ textTransform: "uppercase", letterSpacing: 0.6 }}>Track complete</Text>
-                    <Text weight="semibold">{d.badge.name}</Text>
-                    <Text variant="caption">This track badge is now yours. 🎉</Text>
-                  </View>
+              <Card style={styles.completeCard}>
+                <Image
+                  source={{ uri: absoluteUrl(d.badge.image) }}
+                  style={{ width: 56, height: 56 }}
+                  contentFit="contain"
+                  cachePolicy="memory-disk"
+                  accessibilityIgnoresInvertColors
+                />
+                <View style={{ flex: 1, minWidth: 160 }}>
+                  <Text variant="caption" color={colors.success} style={{ textTransform: "uppercase", letterSpacing: 0.3 }}>
+                    Track complete
+                  </Text>
+                  <Text weight="semibold">{d.badge.name}</Text>
+                  <Text variant="caption">This track badge is now yours. 🎉</Text>
                 </View>
-                <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-                  {d.share ? <ShareToSkool share={d.share} /> : null}
+                <View style={styles.completeActions}>
+                  {d.share ? <ShareToSkool share={d.share} size="sm" variant="ghost" /> : null}
                   <TrackReturnButton link={d.returnLink} size="sm" />
                 </View>
               </Card>
             ) : null}
 
-            <View style={{ gap: 4 }}>
+            <View style={{ marginBottom: 32 }}>
               <ProgressBar pct={d.course.progressPct} />
-              <Text variant="caption">
+              <Text variant="caption" style={{ marginTop: 4 }}>
                 {d.course.completedCount}/{d.course.lessonCount} lessons · {d.course.progressPct}% complete
               </Text>
             </View>
 
-            {d.modules.map((m, mi) => (
-              <Section key={m.id} title={`Module ${mi + 1}: ${m.title}`}>
-                <View style={{ gap: 8 }}>
-                  {m.lessons.map((l) => (
-                    <LessonRow key={l.id} l={l} />
-                  ))}
-                  {m.lessons.length === 0 ? <Text variant="caption">No lessons in this module yet.</Text> : null}
+            <View style={{ gap: 24 }}>
+              {d.modules.map((m, mi) => (
+                <View key={m.id}>
+                  <View style={{ marginBottom: 12 }}>
+                    <SectionLabel>
+                      Module {mi + 1}: {m.title}
+                    </SectionLabel>
+                  </View>
+                  <View style={{ gap: 8 }}>
+                    {m.lessons.map((l) => (
+                      <LessonRow key={l.id} l={l} />
+                    ))}
+                  </View>
                 </View>
-              </Section>
-            ))}
+              ))}
+            </View>
           </>
         )}
       </QueryView>
     </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  lessonRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12 },
+  lessonLeft: { flex: 1, minWidth: 0, flexDirection: "row", alignItems: "center", gap: 12 },
+  completeCard: {
+    padding: 20,
+    marginBottom: 24,
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "center",
+    gap: 16,
+    borderColor: colors.brand,
+  },
+  completeActions: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 8 },
+});

@@ -2,14 +2,15 @@
 // same endpoints — so an account made on either platform works on both.
 
 import { useRef, useState } from "react";
-import { Linking, StyleSheet, TextInput, View } from "react-native";
+import { StyleSheet, TextInput, View } from "react-native";
 import { Link } from "expo-router";
 
 import { useAuth } from "@/auth/AuthProvider";
 import { errorMessage } from "@/api/errors";
 import { absoluteUrl } from "@/config/env";
-import { colors } from "@/theme/tokens";
-import { Button, Card, Field, Screen, Text, Wordmark } from "./ui";
+import { openInBrowser } from "@/lib/links";
+import { colors, fonts } from "@/theme/tokens";
+import { Button, Card, Field, Screen, Text } from "./ui";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -54,11 +55,12 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
   return (
     <Screen edges="all" contentStyle={styles.wrap}>
       <Card style={styles.card}>
-        <View style={{ marginBottom: 20 }}>
-          <Wordmark size={30} />
-        </View>
+        {/* The web's auth card uses the "● Riff" text mark, not the blackletter wordmark. */}
+        <Text style={styles.mark} accessibilityRole="header">
+          <Text style={{ color: colors.brand }}>●</Text> Riff
+        </Text>
         <Text variant="title">{mode === "login" ? "Welcome back" : "Create your account"}</Text>
-        <Text variant="small" style={{ marginTop: 4, marginBottom: 20 }}>
+        <Text variant="small" style={{ marginTop: 4, marginBottom: 24 }}>
           {mode === "login" ? "Pick up where you left off." : "Start your artist growth journey."}
         </Text>
 
@@ -68,7 +70,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
           </Text>
         ) : null}
 
-        <View style={{ gap: 14 }}>
+        <View style={{ gap: 12 }}>
           {mfaStep ? (
             <>
               <Text variant="small">Enter the 6-digit code from your authenticator app.</Text>
@@ -126,7 +128,6 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
                 textContentType={mode === "login" ? "password" : "newPassword"}
                 returnKeyType="go"
                 onSubmitEditing={submit}
-                hint={mode === "signup" ? "At least 8 characters." : undefined}
               />
             </>
           )}
@@ -152,22 +153,27 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
             <Text variant="small" color={colors.accent}>{mode === "login" ? "Sign up" : "Log in"}</Text>
           </Link>
         </View>
-        {mode === "signup" ? (
-          <Text variant="caption" style={{ textAlign: "center", marginTop: 12 }}>
-            By creating an account you agree to our{" "}
-            <Text variant="caption" color={colors.accent} onPress={() => void Linking.openURL(absoluteUrl("/privacy"))}>
-              Privacy Policy
-            </Text>
-            .
-          </Text>
-        ) : null}
       </Card>
+
+      {/* Same policy links as the web's (auth) layout footer: a store reviewer
+          must reach them without an account. */}
+      <View style={styles.footer}>
+        <Text variant="caption" onPress={() => void openInBrowser(absoluteUrl("/privacy"))} accessibilityRole="link" style={styles.footerLink}>
+          Privacy Policy
+        </Text>
+        <Text variant="caption" onPress={() => void openInBrowser(absoluteUrl("/account/deletion"))} accessibilityRole="link" style={styles.footerLink}>
+          Delete your account
+        </Text>
+      </View>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
   wrap: { flexGrow: 1, justifyContent: "center" },
-  card: { padding: 24, width: "100%", maxWidth: 420, alignSelf: "center" },
+  card: { padding: 32, width: "100%", maxWidth: 384, alignSelf: "center" },
+  mark: { fontFamily: fonts.bold, fontSize: 18, lineHeight: 28, color: colors.foreground, marginBottom: 24 },
   switch: { flexDirection: "row", justifyContent: "center", marginTop: 20, flexWrap: "wrap" },
+  footer: { flexDirection: "row", justifyContent: "center", flexWrap: "wrap", columnGap: 20, rowGap: 8, marginTop: 24, paddingTop: 20, borderTopWidth: 1, borderTopColor: colors.border },
+  footerLink: { paddingVertical: 6 },
 });

@@ -8,11 +8,11 @@
 //                     stand-in for the web's click-to-rename inputs.
 
 import { useCallback, useState } from "react";
-import { Modal, Platform, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { Platform, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { KeyboardAvoidingView, KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { Button, Field, Icon, Text, type IconName } from "@/components/ui";
+import { Button, Field, Icon, Modal, Text, type IconName } from "@/components/ui";
 import { colors, radius, TOUCH } from "@/theme/tokens";
 
 export function Sheet({

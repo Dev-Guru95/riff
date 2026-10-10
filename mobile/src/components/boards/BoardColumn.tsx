@@ -28,6 +28,7 @@ export function BoardColumn({
   onOpenCard,
   onCardMenu,
   onColumnMenu,
+  onRename,
   onAddCard,
 }: {
   column: ColumnView;
@@ -45,6 +46,7 @@ export function BoardColumn({
   onOpenCard: (card: BoardCardDTO) => void;
   onCardMenu?: (card: BoardCardDTO) => void;
   onColumnMenu: () => void;
+  onRename: () => void;
   onAddCard: (title: string) => Promise<boolean>;
 }) {
   const [adding, setAdding] = useState(false);
@@ -53,6 +55,7 @@ export function BoardColumn({
   const remaining = column.cardTotal - column.cards.length;
 
   async function submit() {
+    if (saving) return;
     const t = title.trim();
     if (!t) {
       setAdding(false);
@@ -67,9 +70,15 @@ export function BoardColumn({
   return (
     <View style={[styles.column, { width, height }]}>
       <View style={styles.head}>
-        <Text weight="semibold" style={{ flex: 1 }} numberOfLines={1} accessibilityRole="header">
-          {column.title}
-        </Text>
+        <Pressable
+          onPress={canManage ? onRename : undefined}
+          disabled={!canManage}
+          accessibilityRole={canManage ? "button" : "header"}
+          accessibilityHint={canManage ? "Rename column" : undefined}
+          style={{ flex: 1, minHeight: TOUCH, justifyContent: "center" }}
+        >
+          <Text weight="semibold" numberOfLines={1}>{column.title}</Text>
+        </Pressable>
         <Text variant="caption">{filterActive ? `${cards.length} match` : column.cardTotal}</Text>
         {canManage ? (
           <Pressable onPress={onColumnMenu} accessibilityRole="button" accessibilityLabel={`${column.title} column actions`} hitSlop={4} style={styles.iconBtn}>
@@ -117,6 +126,8 @@ export function BoardColumn({
               value={title}
               onChangeText={setTitle}
               autoFocus
+              multiline
+              numberOfLines={2}
               placeholder="Card title…"
               placeholderTextColor={colors.muted}
               selectionColor={colors.brand}
@@ -147,7 +158,9 @@ export function BoardColumn({
             accessibilityLabel={`Add card to ${column.title}`}
             style={({ pressed }) => [styles.addBtn, pressed && { backgroundColor: colors.border }]}
           >
-            <Icon name="plus" size={16} color={colors.foreground} />
+            <View style={styles.plus}>
+              <Icon name="plus" size={10} strokeWidth={2.5} color={colors.foreground} />
+            </View>
             <Text variant="small">Add card</Text>
           </Pressable>
         )
@@ -183,11 +196,13 @@ const styles = StyleSheet.create({
     borderRadius: radius.field,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    minHeight: TOUCH,
     fontSize: 16,
     fontFamily: fonts.regular,
     color: colors.foreground,
+    minHeight: 64,
+    textAlignVertical: "top",
   },
+  plus: { width: 16, height: 16, borderRadius: 8, backgroundColor: colors.border, alignItems: "center", justifyContent: "center" },
   addBtn: {
     margin: 8,
     minHeight: TOUCH,

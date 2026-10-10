@@ -7,14 +7,16 @@ import { useEffect, useState } from "react";
 import { Alert, Pressable, StyleSheet, View } from "react-native";
 import { router, type Href } from "expo-router";
 
-import { Avatar, Button, Card, Chip, Divider, EmptyState, Field, Icon, Pill, QueryView, Skeleton, Text, useToast } from "@/components/ui";
+import { Button, Card, Divider, EmptyState, Field, Icon, QueryView, Skeleton, Text, useToast } from "@/components/ui";
 import { useApiQuery, useInvalidate } from "@/hooks/useApi";
 import { UI_COLORS, type BoardRole } from "@/lib/constants";
 import { colors, radius, TOUCH } from "@/theme/tokens";
 import type { ActivityDTO, ActivityResponse, ArchiveResponse, BoardDTO, MemberSearchResponse } from "@/types/boards";
+import { MY_TASKS_PATH } from "./MyTasks";
 import { Sheet, useActionSheet } from "./Sheet";
 import { useBoardAction } from "./useBoardAction";
-import { ASSIGNABLE_ROLES, capitalize, fmtTime, labelColor, ROLE_RANK } from "./utils";
+import { Initials, SelectField } from "./bits";
+import { ASSIGNABLE_ROLES, fmtTime, labelColor, ROLE_RANK } from "./utils";
 
 // ---- Shared bits -----------------------------------------------------------
 
@@ -37,14 +39,16 @@ export function ColorSwatches({ value, onChange }: { value: string; onChange: (c
   );
 }
 
-export function ActivityList({ items }: { items: ActivityDTO[] }) {
-  if (items.length === 0) return <Text variant="small">No activity yet.</Text>;
+/** Web ActivityPanel / CardModal activity rows: actor, text, time. */
+export function ActivityList({ items, compact }: { items: ActivityDTO[]; compact?: boolean }) {
+  if (items.length === 0) return <Text variant={compact ? "caption" : "small"}>No activity yet.</Text>;
+  const variant = compact ? "caption" : "small";
   return (
-    <View style={{ gap: 12 }}>
+    <View style={{ gap: compact ? 8 : 10 }}>
       {items.map((a) => (
-        <View key={a.id} style={{ gap: 2 }}>
-          <Text variant="small">
-            <Text weight="medium">{a.actor}</Text> {a.text}
+        <View key={a.id} style={{ flexDirection: "row", gap: 8, alignItems: "flex-start" }}>
+          <Text variant={variant} style={{ flex: 1 }}>
+            <Text variant={variant} weight="medium" color={colors.foreground}>{a.actor}</Text> {a.text}
           </Text>
           <Text variant="caption">{fmtTime(a.createdAt)}</Text>
         </View>
@@ -90,59 +94,60 @@ export function MembersSheet({ board, visible, onClose }: { board: BoardDTO; vis
     }
   }
 
-  function manage(m: BoardDTO["members"][number]) {
+  function pickRole(m: BoardDTO["members"][number]) {
     sheet.show({
       title: m.name,
-      message: `Currently ${m.role}`,
-      options: [
-        ...grantable.map((r) => ({
-          label: `Make ${r}`,
-          selected: m.role === r,
-          onPress: () => {
-            if (m.role !== r) void run(`${boardPath}/members/${m.userId}`, { method: "PATCH", body: { role: r }, invalidates: [boardPath], success: "Role updated", alertErrors: true });
-          },
-        })),
-        {
-          label: "Remove from board",
-          icon: "close" as const,
-          destructive: true,
-          onPress: () =>
-            Alert.alert("Remove member?", `${m.name} will lose access to this board.`, [
-              { text: "Cancel", style: "cancel" },
-              {
-                text: "Remove",
-                style: "destructive",
-                onPress: () => void run(`${boardPath}/members/${m.userId}`, { method: "DELETE", invalidates: [boardPath], success: "Member removed", alertErrors: true }),
-              },
-            ]),
+      options: grantable.map((r) => ({
+        label: r,
+        selected: m.role === r,
+        onPress: () => {
+          if (m.role !== r) void run(`${boardPath}/members/${m.userId}`, { method: "PATCH", body: { role: r }, invalidates: [boardPath], success: "Role updated", alertErrors: true });
         },
-      ],
+      })),
     });
+  }
+
+  function remove(m: BoardDTO["members"][number]) {
+    Alert.alert("Remove member?", `${m.name} will lose access to this board.`, [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Remove",
+        style: "destructive",
+        onPress: () => void run(`${boardPath}/members/${m.userId}`, { method: "DELETE", invalidates: [boardPath], success: "Member removed", alertErrors: true }),
+      },
+    ]);
   }
 
   return (
     <Sheet visible={visible} onClose={onClose} title="Board members">
       {board.can.manageMembers && grantable.length > 0 ? (
-        <Card style={{ gap: 12 }}>
-          <Text variant="label">Add a member</Text>
-          <Field
-            value={q}
-            onChangeText={setQ}
-            placeholder="Search by email or stage name"
-            autoCapitalize="none"
-            autoCorrect={false}
-            accessibilityLabel="Search users"
-          />
-          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 4 }}>
-            {grantable.map((r) => (
-              <Pill key={r} label={capitalize(r)} active={role === r} onPress={() => setRole(r)} />
-            ))}
+        <Card style={{ gap: 8, padding: 12 }}>
+          <Text variant="caption">Add a member by email or stage name</Text>
+          <View style={{ flexDirection: "row", gap: 8 }}>
+            <View style={{ flex: 1 }}>
+              <Field
+                value={q}
+                onChangeText={setQ}
+                placeholder="Search users…"
+                autoCapitalize="none"
+                autoCorrect={false}
+                accessibilityLabel="Search users"
+              />
+            </View>
+            <SelectField
+              value={role}
+              onPress={() =>
+                sheet.show({ title: "Role for new member", options: grantable.map((r) => ({ label: r, selected: role === r, onPress: () => setRole(r) })) })
+              }
+              accessibilityLabel="Role"
+              style={{ minWidth: 110 }}
+            />
           </View>
           {term.length >= 2 ? (
             search.isLoading ? (
               <Skeleton height={40} />
             ) : (search.data?.users.length ?? 0) === 0 ? (
-              <Text variant="caption">{search.isError ? "Search failed. Try again." : "No matching users."}</Text>
+              <Text variant="caption" style={{ paddingHorizontal: 8 }}>{search.isError ? "Search failed. Try again." : "No matching users"}</Text>
             ) : (
               search.data!.users.map((u) => (
                 <Pressable
@@ -151,14 +156,10 @@ export function MembersSheet({ board, visible, onClose }: { board: BoardDTO; vis
                   onPress={() => void add(u.email)}
                   accessibilityRole="button"
                   accessibilityLabel={`Add ${u.name} as ${role}`}
-                  style={({ pressed }) => [styles.row, pressed && { backgroundColor: colors.surface2 }]}
+                  style={({ pressed }) => [styles.result, pressed && { backgroundColor: colors.surface2 }]}
                 >
-                  <Avatar name={u.name} size={32} />
-                  <View style={{ flex: 1, minWidth: 0 }}>
-                    <Text weight="medium" numberOfLines={1}>{u.name}</Text>
-                    <Text variant="caption" numberOfLines={1}>{u.email}</Text>
-                  </View>
-                  <Icon name="plus" size={18} color={colors.brand} />
+                  <Text style={{ flex: 1 }} numberOfLines={1}>{u.name}</Text>
+                  <Text variant="caption" numberOfLines={1} style={{ maxWidth: "55%" }}>{u.email}</Text>
                 </Pressable>
               ))
             )
@@ -166,32 +167,33 @@ export function MembersSheet({ board, visible, onClose }: { board: BoardDTO; vis
         </Card>
       ) : null}
 
-      <Card padded={false} style={{ overflow: "hidden" }}>
-        {board.members.map((m, i) => {
-          const isOwner = m.role === "owner" || m.userId === board.ownerId;
+      <View>
+        {board.members.map((m) => {
+          const isOwner = m.userId === board.ownerId || m.role === "owner";
           const canManage = board.can.manageMembers && !isOwner && ROLE_RANK[m.role] < myRank;
           return (
-            <View key={m.userId}>
-              {i > 0 ? <Divider /> : null}
-              <Pressable
-                disabled={!canManage}
-                onPress={() => manage(m)}
-                accessibilityRole={canManage ? "button" : undefined}
-                accessibilityHint={canManage ? "Change role or remove" : undefined}
-                style={({ pressed }) => [styles.row, { paddingHorizontal: 16 }, pressed && { backgroundColor: colors.surface2 }]}
-              >
-                <Avatar name={m.name} size={36} />
-                <View style={{ flex: 1, minWidth: 0 }}>
-                  <Text weight="medium" numberOfLines={1}>{m.name}</Text>
-                  {m.email ? <Text variant="caption" numberOfLines={1}>{m.email}</Text> : null}
+            <View key={m.userId} style={styles.row}>
+              <Initials name={m.name} size={32} />
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Text numberOfLines={1}>{m.name}</Text>
+                {m.email ? <Text variant="caption" numberOfLines={1}>{m.email}</Text> : null}
+              </View>
+              {canManage ? (
+                <>
+                  <SelectField value={m.role} onPress={() => pickRole(m)} accessibilityLabel={`${m.name}'s role`} style={{ minWidth: 96 }} />
+                  <Pressable onPress={() => remove(m)} accessibilityRole="button" accessibilityLabel={`Remove ${m.name}`} hitSlop={6} style={styles.textBtn}>
+                    <Text variant="caption">Remove</Text>
+                  </Pressable>
+                </>
+              ) : (
+                <View style={styles.pill}>
+                  <Text variant="caption">{m.role}</Text>
                 </View>
-                <Chip label={m.role} tone={isOwner ? "brand" : "muted"} />
-                {canManage ? <Icon name="more" size={18} color={colors.muted} /> : null}
-              </Pressable>
+              )}
             </View>
           );
         })}
-      </Card>
+      </View>
       {sheet.element}
     </Sheet>
   );
@@ -313,7 +315,7 @@ export function ArchiveSheet({ board, visible, onClose }: { board: BoardDTO; vis
 
   async function restore(id: string) {
     setRestoring(id);
-    await run(`/api/cards/${id}`, { method: "PATCH", body: { archived: false }, invalidates: [boardPath, `/api/cards/${id}`], success: "Card restored", alertErrors: true });
+    await run(`/api/cards/${id}`, { method: "PATCH", body: { archived: false }, invalidates: [boardPath, `/api/cards/${id}`, "/api/boards", MY_TASKS_PATH], success: "Card restored", alertErrors: true });
     setRestoring(null);
   }
 
@@ -323,7 +325,7 @@ export function ArchiveSheet({ board, visible, onClose }: { board: BoardDTO; vis
         query={query}
         skeleton={<ListSkeleton />}
         isEmpty={(d) => d.cards.length === 0}
-        empty={<EmptyState title="No archived cards" icon="inbox" />}
+        empty={<Text variant="small">No archived cards.</Text>}
       >
         {(d) => (
           <View style={{ gap: 8 }}>
@@ -442,7 +444,10 @@ function SettingsForm({ board, onClose }: { board: BoardDTO; onClose: () => void
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: "row", alignItems: "center", gap: 12, minHeight: 56, paddingVertical: 8 },
+  row: { flexDirection: "row", alignItems: "center", gap: 8, minHeight: 56, paddingVertical: 8, paddingHorizontal: 8 },
+  result: { flexDirection: "row", alignItems: "center", gap: 8, minHeight: TOUCH, paddingHorizontal: 8, borderRadius: radius.sm },
+  textBtn: { minHeight: TOUCH, justifyContent: "center", paddingHorizontal: 4 },
+  pill: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: radius.pill, backgroundColor: colors.surface2 },
   swatchHit: { width: TOUCH, height: TOUCH, alignItems: "center", justifyContent: "center" },
   swatch: { width: 24, height: 24, borderRadius: radius.pill },
   swatchOn: { borderWidth: 3, borderColor: colors.foreground },

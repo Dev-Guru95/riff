@@ -5,14 +5,14 @@
 // Data: GET /api/mobile/community. Write: POST /api/community/join {}.
 
 import { useState } from "react";
-import { View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { Stack } from "expo-router";
 
 import { useAuth } from "@/auth/AuthProvider";
 import { Button, Card, QueryView, Screen, Text } from "@/components/ui";
 import { useApiMutation, useApiQuery } from "@/hooks/useApi";
 import { openInBrowser } from "@/lib/links";
-import { colors } from "@/theme/tokens";
+import { type } from "@/theme/tokens";
 import type { CommunityResponse } from "@/types/api";
 
 const BENEFITS: { icon: string; title: string; body: string }[] = [
@@ -31,10 +31,10 @@ const BENEFITS: { icon: string; title: string; body: string }[] = [
 
 function Benefits() {
   return (
-    <View style={{ gap: 10 }}>
+    <View style={{ gap: 12 }}>
       {BENEFITS.map((b) => (
-        <Card key={b.title} style={{ flexDirection: "row", alignItems: "flex-start", gap: 12, padding: 14 }}>
-          <Text style={{ fontSize: 24, lineHeight: 30 }}>{b.icon}</Text>
+        <Card key={b.title} style={{ flexDirection: "row", alignItems: "flex-start", gap: 12 }}>
+          <Text style={{ fontSize: 24, lineHeight: 32 }}>{b.icon}</Text>
           <View style={{ flex: 1 }}>
             <Text weight="semibold">{b.title}</Text>
             <Text variant="caption">{b.body}</Text>
@@ -47,9 +47,9 @@ function Benefits() {
 
 function Member({ data }: { data: CommunityResponse }) {
   return (
-    <Card style={{ alignItems: "center", gap: 10, paddingVertical: 24 }}>
+    <Card style={[styles.cta, { alignItems: "center" }]}>
       <Text style={{ fontSize: 40, lineHeight: 48 }}>🎉</Text>
-      <Text variant="heading" style={{ textAlign: "center" }}>You&apos;re in the SoundRig community</Text>
+      <Text variant="heading" weight="bold" style={{ textAlign: "center" }}>You&apos;re in the SoundRig community</Text>
       <Text variant="small" style={{ textAlign: "center" }}>
         Discussions, accountability groups, challenges and live events all happen on Skool.
         {data.skoolHandle ? ` You're verified as @${data.skoolHandle}.` : ""}
@@ -78,10 +78,10 @@ function Onboarding({ data }: { data: CommunityResponse }) {
   }
 
   return (
-    <Card style={{ gap: 10, borderColor: colors.brand }}>
+    <Card style={styles.cta}>
       {stage === "intro" ? (
         <>
-          <Text variant="heading" style={{ textAlign: "center" }}>Ready to plug in?</Text>
+          <Text variant="heading" weight="bold" style={{ textAlign: "center" }}>Ready to plug in?</Text>
           <Text variant="small" style={{ textAlign: "center" }}>
             Join free on Skool, then request access here. Our team verifies your membership before unlocking Community + AI Coach.
           </Text>
@@ -89,7 +89,7 @@ function Onboarding({ data }: { data: CommunityResponse }) {
         </>
       ) : stage === "confirm" ? (
         <>
-          <Text variant="heading" style={{ textAlign: "center" }}>Joined on Skool?</Text>
+          <Text variant="heading" weight="bold" style={{ textAlign: "center" }}>Joined on Skool?</Text>
           <Text variant="small" style={{ textAlign: "center" }}>
             Request access below. An admin will verify your Skool membership, then Community + AI Coach unlock automatically.
           </Text>
@@ -104,7 +104,7 @@ function Onboarding({ data }: { data: CommunityResponse }) {
       ) : (
         <>
           <Text style={{ fontSize: 36, lineHeight: 44, textAlign: "center" }}>⏳</Text>
-          <Text variant="heading" style={{ textAlign: "center" }}>Request received</Text>
+          <Text variant="heading" weight="bold" style={{ textAlign: "center" }}>Request received</Text>
           <Text variant="small" style={{ textAlign: "center" }}>
             Thanks! An admin is verifying your Skool membership. Once you&apos;re approved, Community and AI Coach unlock here automatically — we&apos;ll notify you.
           </Text>
@@ -120,10 +120,10 @@ export default function Community() {
   return (
     <Screen onRefresh={query.refetch}>
       <Stack.Screen options={{ title: "Community" }} />
-      <View style={{ alignItems: "center", gap: 8 }}>
-        <Text style={{ fontSize: 44, lineHeight: 52 }}>🤝</Text>
-        <Text variant="title" style={{ textAlign: "center" }}>Join the SoundRig Community</Text>
-        <Text variant="small" style={{ textAlign: "center" }}>
+      <View style={{ alignItems: "center", marginTop: 24, marginBottom: 16 }}>
+        <Text style={{ fontSize: 48, lineHeight: 56, marginBottom: 12 }}>🤝</Text>
+        <Text variant="title" style={[type["3xl"], { textAlign: "center" }]}>Join the SoundRig Community</Text>
+        <Text variant="small" style={[type.base, { textAlign: "center", marginTop: 8 }]}>
           Riff is SoundRig’s learning app — lessons, quizzes and tools live here. The SoundRig community lives on Skool — join to unlock your AI Coach, accountability, challenges, live events, and the people who’ll keep you moving.
         </Text>
       </View>
@@ -131,13 +131,13 @@ export default function Community() {
         {(d) =>
           d.status === "member" ? (
             <>
-              <Member data={d} />
               <Benefits />
+              <Member data={d} />
             </>
           ) : (
             <>
-              <Onboarding key={d.status} data={d} />
               <Benefits />
+              <Onboarding key={d.status} data={d} />
             </>
           )
         }
@@ -145,3 +145,8 @@ export default function Community() {
     </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  // Web: `card p-6 text-center`, plain border (it is sticky at the bottom there).
+  cta: { padding: 24, gap: 8 },
+});

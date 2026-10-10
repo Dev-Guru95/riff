@@ -6,12 +6,14 @@
 // Expo Router, and no builder kind collides with them.
 
 import { useState } from "react";
-import { Alert, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { Alert, Pressable, StyleSheet, TextInput, View } from "react-native";
 import { Stack, useLocalSearchParams } from "expo-router";
 import { useQueryClient } from "@tanstack/react-query";
 
 import { get } from "@/api/client";
-import { Button, Card, EmptyState, Field, PageHeader, ProgressRing, QueryView, Screen, Text } from "@/components/ui";
+import { errorMessage } from "@/api/errors";
+import { Input } from "@/components/studio/shared";
+import { Button, Card, PageHeader, ProgressRing, QueryView, Screen, Text, useToast } from "@/components/ui";
 import { useApiMutation, useApiQuery } from "@/hooks/useApi";
 import { colors, fonts, radius, TOUCH } from "@/theme/tokens";
 import type { ReviewResult, StudioBuilderResponse, StudioDraft } from "@/types/api";
@@ -20,10 +22,10 @@ import type { CreatedResponse, DraftResponse } from "@/types/studio";
 function FbList({ title, items, tone }: { title: string; items: string[]; tone?: string }) {
   if (!items || items.length === 0) return null;
   return (
-    <View style={{ gap: 4 }}>
-      <Text weight="medium" color={tone}>{title}</Text>
+    <View style={{ gap: 2 }}>
+      <Text weight="medium" color={tone} style={{ marginBottom: 2 }}>{title}</Text>
       {items.map((it, i) => (
-        <View key={i} style={{ flexDirection: "row", gap: 8 }}>
+        <View key={i} style={{ flexDirection: "row", gap: 8, paddingLeft: 6 }}>
           <Text variant="small">•</Text>
           <Text variant="small" style={{ flex: 1 }}>{it}</Text>
         </View>
@@ -34,9 +36,12 @@ function FbList({ title, items, tone }: { title: string; items: string[]; tone?:
 
 function Feedback({ fb, scoredAt }: { fb: ReviewResult; scoredAt: string | null }) {
   return (
-    <Card style={{ gap: 14 }}>
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 16 }}>
-        <ProgressRing pct={fb.score} label={`${fb.score}`} />
+    <Card style={{ padding: 20, gap: 12 }}>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 16, marginBottom: 4 }}>
+        <View style={{ width: 64, height: 64, alignItems: "center", justifyContent: "center" }}>
+          <ProgressRing pct={fb.score} size={64} />
+          <Text weight="bold" style={{ position: "absolute" }}>{fb.score}</Text>
+        </View>
         <View style={{ flex: 1 }}>
           <Text weight="bold">Your Riff Score</Text>
           <Text variant="caption">
@@ -58,10 +63,12 @@ export default function BuilderScreen() {
   const path = `/api/mobile/studio/${encodeURIComponent(kind ?? "")}`;
   const query = useApiQuery<StudioBuilderResponse>(kind ? path : null);
   const qc = useQueryClient();
+  const toast = useToast();
 
   const [chosenId, setChosenId] = useState<string | null>(null);
   const [edit, setEdit] = useState<{ id: string; title: string; content: string } | null>(null);
   const [busy, setBusy] = useState<"" | "save" | "score" | "new">("");
+  const [titleFocused, setTitleFocused] = useState(false);
 
   const create = useApiMutation<CreatedResponse>();
   const write = useApiMutation<DraftResponse>();
@@ -81,17 +88,10 @@ export default function BuilderScreen() {
     );
   }
 
+  // Like the web, switching drafts drops unsaved edits to the current one.
   function select(d: StudioDraft) {
-    const go = () => {
-      setChosenId(d.id);
-      setEdit(null);
-    };
-    if (dirty && d.id !== active?.id) {
-      Alert.alert("Discard changes?", "This draft has unsaved edits.", [
-        { text: "Keep editing", style: "cancel" },
-        { text: "Discard", style: "destructive", onPress: go },
-      ]);
-    } else go();
+    setChosenId(d.id);
+    setEdit(null);
   }
 
   function change(next: Partial<{ title: string; content: string }>) {
@@ -102,14 +102,20 @@ export default function BuilderScreen() {
   async function newDraft() {
     if (!kind) return;
     setBusy("new");
+    let created = false;
     try {
       const { id } = await create.mutateAsync({ path: "/api/studio/drafts", body: { kind, title: "Untitled" } });
+      created = true;
       const fresh = await get<DraftResponse>(`/api/studio/drafts/${id}`);
       putDraft(fresh.draft);
       setChosenId(fresh.draft.id);
       setEdit(null);
-    } catch {
-      // toasted by the mutation
+    } catch (e) {
+      // A failed create is toasted by the mutation; a failed re-read is not.
+      if (created) {
+        toast(errorMessage(e), "error");
+        void qc.invalidateQueries({ queryKey: [path] });
+      }
     } finally {
       setBusy("");
     }
@@ -182,49 +188,49 @@ export default function BuilderScreen() {
 
             <Button title="+ New draft" fullWidth onPress={() => void newDraft()} loading={busy === "new"} disabled={busy !== ""} />
 
-            {drafts.length > 0 ? (
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
-                {drafts.map((d) => {
-                  const on = d.id === active?.id;
-                  return (
-                    <Pressable
-                      key={d.id}
-                      accessibilityRole="tab"
-                      accessibilityState={{ selected: on }}
-                      accessibilityLabel={`${d.title || "Untitled"}${d.score != null ? `, score ${d.score}` : ""}`}
-                      onPress={() => select(d)}
-                      style={[s.draftChip, on && s.draftChipOn]}
-                    >
-                      <Text weight={on ? "semibold" : "regular"} numberOfLines={1} style={{ maxWidth: 180 }}>
-                        {d.title || "Untitled"}
-                      </Text>
-                      {d.score != null ? <Text variant="caption" color={colors.accent}>{d.score}</Text> : null}
-                    </Pressable>
-                  );
-                })}
-              </ScrollView>
-            ) : (
-              <Text variant="caption">No drafts yet — create one.</Text>
-            )}
+            <View style={{ gap: 4 }}>
+              {drafts.map((d) => {
+                const on = d.id === active?.id;
+                return (
+                  <Pressable
+                    key={d.id}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: on }}
+                    accessibilityLabel={`${d.title || "Untitled"}${d.score != null ? `, score ${d.score}` : ""}`}
+                    onPress={() => select(d)}
+                    style={({ pressed }) => [s.draftRow, (on || pressed) && { backgroundColor: colors.surface2 }]}
+                  >
+                    <Text style={{ flex: 1 }} numberOfLines={1}>{d.title || "Untitled"}</Text>
+                    {d.score != null ? <Text variant="caption" color={colors.accent}>{d.score}</Text> : null}
+                  </Pressable>
+                );
+              })}
+              {drafts.length === 0 ? <Text variant="caption" style={{ paddingHorizontal: 4 }}>No drafts yet — create one.</Text> : null}
+            </View>
 
             {active ? (
               <>
-                <Field
+                <TextInput
                   value={title}
                   onChangeText={(t) => change({ title: t })}
                   placeholder="Draft title"
+                  placeholderTextColor={colors.muted}
+                  selectionColor={colors.brand}
                   maxLength={120}
-                  style={{ fontSize: 18, fontFamily: fonts.semibold }}
+                  onFocus={() => setTitleFocused(true)}
+                  onBlur={() => setTitleFocused(false)}
+                  style={[s.titleInput, titleFocused && { borderBottomColor: colors.brand }]}
                   accessibilityLabel="Draft title"
                 />
                 <Text variant="caption">{builder.instructions}</Text>
-                <Field
+                <Input
+                  look="field"
                   value={content}
                   onChangeText={(t) => change({ content: t })}
                   placeholder={builder.placeholder}
                   multiline
                   maxLength={20000}
-                  style={{ minHeight: 220 }}
+                  style={{ minHeight: 216, borderRadius: radius.md, fontSize: 14, lineHeight: 20 }}
                   accessibilityLabel="Draft content"
                 />
                 <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 8 }}>
@@ -240,7 +246,12 @@ export default function BuilderScreen() {
                     onPress={() => void save()}
                     disabled={busy !== "" || !dirty}
                   />
-                  <Button title="Delete" variant="danger" onPress={() => del(active.id)} style={{ marginLeft: "auto" }} />
+                  <Button
+                    title="Delete"
+                    variant="danger"
+                    onPress={() => del(active.id)}
+                    style={{ marginLeft: "auto", borderColor: colors.border }}
+                  />
                 </View>
 
                 <Text variant="caption">
@@ -251,12 +262,10 @@ export default function BuilderScreen() {
                 {active.feedback ? <Feedback fb={active.feedback} scoredAt={active.scoredAt} /> : null}
               </>
             ) : (
-              <Card>
-                <EmptyState
-                  icon="pencil"
-                  title={`${builder.icon} Start your first draft`}
-                  body="Write it, get a Riff Score, then revise to improve."
-                />
+              <Card style={{ padding: 40, alignItems: "center" }}>
+                <Text style={{ fontSize: 36, lineHeight: 44, marginBottom: 8 }}>{builder.icon}</Text>
+                <Text weight="semibold">Start your first draft</Text>
+                <Text variant="small" style={{ marginTop: 4, textAlign: "center" }}>Write it, get a Riff Score, then revise to improve.</Text>
               </Card>
             )}
           </>
@@ -267,16 +276,14 @@ export default function BuilderScreen() {
 }
 
 const s = StyleSheet.create({
-  draftChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    minHeight: TOUCH,
-    paddingHorizontal: 14,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
+  draftRow: { flexDirection: "row", alignItems: "center", gap: 8, minHeight: TOUCH, paddingHorizontal: 12, borderRadius: radius.md },
+  titleInput: {
+    fontSize: 18,
+    lineHeight: 26,
+    fontFamily: fonts.semibold,
+    color: colors.foreground,
+    paddingVertical: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: "transparent",
   },
-  draftChipOn: { backgroundColor: colors.surface2, borderColor: colors.brand },
 });

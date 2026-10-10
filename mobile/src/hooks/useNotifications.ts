@@ -14,8 +14,8 @@ export type NotificationsResponse = { items: NotificationItem[]; unread: number 
 
 /**
  * GET /api/notifications — the same feed as the web's bell. The web polls too
- * (there is no push channel on the backend), so poll while the app is open.
+ * (there is no push channel on the backend), so poll every 30s like the web.
  */
 export function useNotifications() {
-  return useApiQuery<NotificationsResponse>("/api/notifications", undefined, { refetchInterval: 60_000 });
+  return useApiQuery<NotificationsResponse>("/api/notifications", undefined, { refetchInterval: 30_000 });
 }

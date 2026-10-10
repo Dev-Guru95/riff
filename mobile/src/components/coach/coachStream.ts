@@ -27,8 +27,51 @@ type Handlers = {
 /** Thrown when the request succeeded but the body could not be streamed. */
 export class StreamUnavailableError extends Error {}
 
+/** Time allowed for the reply to start: the server generates the whole answer before streaming. */
+const START_TIMEOUT_MS = 90_000;
+
+/**
+ * Incremental SSE parser. Handles events split across chunks, several events in
+ * one chunk, CRLF line endings, "data:" with or without the space, and
+ * multi-line data fields (joined with "\n", per the SSE spec).
+ */
+export function createSseParser(onData: (data: string) => void) {
+  let buffer = "";
+  const flushEvent = (raw: string) => {
+    const data = raw
+      .split("\n")
+      .filter((l) => l.startsWith("data:"))
+      .map((l) => l.slice(5).replace(/^ /, ""))
+      .join("\n")
+      .trim();
+    if (data) onData(data);
+  };
+  return {
+    push(chunk: string) {
+      buffer += chunk.replace(/\r\n?/g, "\n");
+      let idx = buffer.indexOf("\n\n");
+      while (idx !== -1) {
+        flushEvent(buffer.slice(0, idx));
+        buffer = buffer.slice(idx + 2);
+        idx = buffer.indexOf("\n\n");
+      }
+    },
+    /** A final event without the trailing blank line still counts. */
+    end() {
+      if (buffer.trim()) flushEvent(buffer);
+      buffer = "";
+    },
+  };
+}
+
 export async function streamCoachReply(threadId: string, content: string, { onId, onDelta }: Handlers) {
   const token = getAuthToken();
+  const controller = new AbortController();
+  let timedOut = false;
+  const timer = setTimeout(() => {
+    timedOut = true;
+    controller.abort();
+  }, START_TIMEOUT_MS);
   let res: Awaited<ReturnType<typeof streamingFetch>>;
   try {
     res = await streamingFetch(buildUrl(`/api/coach/threads/${threadId}/messages`), {
@@ -40,9 +83,12 @@ export async function streamCoachReply(threadId: string, content: string, { onId
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
       body: JSON.stringify({ content }),
+      signal: controller.signal,
     });
   } catch {
-    throw new ApiError("network", "Network request failed");
+    throw timedOut ? new ApiError("timeout", "Request timed out") : new ApiError("network", "Network request failed");
+  } finally {
+    clearTimeout(timer);
   }
 
   const ctype = res.headers.get("content-type") ?? "";
@@ -66,31 +112,32 @@ export async function streamCoachReply(threadId: string, content: string, { onId
   const reader = res.body?.getReader();
   if (!reader) throw new StreamUnavailableError("No response body");
 
-  const decoder = new TextDecoder();
-  let buffer = "";
-  try {
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      buffer += decoder.decode(value, { stream: true });
-      const events = buffer.split("\n\n");
-      buffer = events.pop() ?? "";
-      for (const ev of events) {
-        const line = ev.replace(/^data: /, "").trim();
-        if (!line) continue;
-        let payload: { id?: string; delta?: string; done?: boolean };
-        try {
-          payload = JSON.parse(line);
-        } catch {
-          continue;
-        }
-        if (payload.id) onId(payload.id);
-        else if (payload.delta != null) onDelta(payload.delta);
-      }
+  let done = false;
+  const parser = createSseParser((data) => {
+    let payload: { id?: string; delta?: string; done?: boolean };
+    try {
+      payload = JSON.parse(data);
+    } catch {
+      return;
     }
+    if (payload.id) onId(payload.id);
+    else if (payload.delta != null) onDelta(String(payload.delta));
+    else if (payload.done) done = true;
+  });
+  const decoder = new TextDecoder();
+  try {
+    while (!done) {
+      const chunk = await reader.read();
+      if (chunk.done) break;
+      parser.push(decoder.decode(chunk.value, { stream: true }));
+    }
+    parser.push(decoder.decode());
+    parser.end();
   } catch {
     // The connection dropped mid-reply. Both messages were saved before the
     // stream began, so the caller reloads them from the server.
     throw new StreamUnavailableError("Stream interrupted");
+  } finally {
+    if (done) void reader.cancel().catch(() => {});
   }
 }

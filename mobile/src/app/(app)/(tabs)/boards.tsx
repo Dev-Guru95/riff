@@ -1,43 +1,40 @@
-// Projects — the web's /boards: global search, "New board" (template picker)
+// Projects — the web's /boards at phone width: PageHeader, global search, the
+// project Dashboard, then "Your boards" with "+ New board" (template picker)
 // and the boards the user belongs to.
-// Data: GET /api/boards, GET /api/search?q=, POST /api/boards.
-//
-// Plus the personal "my work" panel (GET /api/mobile/boards/dashboard).
+// Data: GET /api/boards, GET /api/mobile/boards/dashboard, GET /api/search?q=,
+// POST /api/boards.
 
 import { useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { router, type Href } from "expo-router";
 import { FlashList } from "@shopify/flash-list";
 
-import { MyTasks, MY_TASKS_PATH } from "@/components/boards/MyTasks";
+import { Dashboard, MY_TASKS_PATH } from "@/components/boards/MyTasks";
 import { CreateBoardSheet } from "@/components/boards/CreateBoardSheet";
 import { ProjectSearch } from "@/components/boards/ProjectSearch";
-import { templateFor } from "@/components/boards/utils";
-import { Button, Card, Chip, EmptyState, Icon, PageHeader, QueryView, Text } from "@/components/ui";
+import { capitalize, templateFor } from "@/components/boards/utils";
+import { Button, Card, PageHeader, QueryView, Text } from "@/components/ui";
 import { useApiQuery, useInvalidate } from "@/hooks/useApi";
-import { colors } from "@/theme/tokens";
+import { colors, radius } from "@/theme/tokens";
 import type { BoardSummary, BoardsResponse } from "@/types/boards";
 
 function BoardRow({ b }: { b: BoardSummary }) {
   const tpl = templateFor(b.kind);
   return (
-    <Card onPress={() => router.push(`/boards/${b.id}` as Href)} accessibilityLabel={`${b.title}, ${b.cardCount} cards, ${b.memberCount} members`} style={styles.board}>
+    <Card
+      onPress={() => router.push(`/boards/${b.id}` as Href)}
+      accessibilityLabel={`${b.title}, ${b.cardCount} cards, ${b.memberCount} members, ${b.role}`}
+      style={styles.board}
+    >
       <Text style={{ fontSize: 24, lineHeight: 30 }}>{tpl.icon}</Text>
-      <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+      <View style={{ flex: 1, minWidth: 0 }}>
         <Text weight="semibold" numberOfLines={1}>{b.title}</Text>
-        <Text variant="caption">{b.kind === "generic" ? "Board" : tpl.name}</Text>
+        <Text variant="caption" style={{ marginTop: 2 }}>{b.kind === "generic" ? "Board" : tpl.name}</Text>
         <View style={styles.meta}>
-          <View style={styles.metaItem}>
-            <Icon name="card" size={13} color={colors.muted} />
-            <Text variant="caption">{b.cardCount}</Text>
-          </View>
-          <View style={styles.metaItem}>
-            <Icon name="community" size={13} color={colors.muted} />
-            <Text variant="caption">{b.memberCount}</Text>
-          </View>
-          {b.archived ? <Chip label="Archived" tone="warning" /> : null}
-          <View style={{ marginLeft: "auto" }}>
-            <Chip label={b.role} />
+          <Text variant="caption">🗒️ {b.cardCount}</Text>
+          <Text variant="caption">👥 {b.memberCount}</Text>
+          <View style={styles.role}>
+            <Text variant="caption">{capitalize(b.role)}</Text>
           </View>
         </View>
       </View>
@@ -62,14 +59,11 @@ export default function Boards() {
 
   const header = (
     <View style={{ gap: 16, paddingBottom: 12 }}>
-      <PageHeader
-        title="Projects"
-        subtitle="Plan and track your work on kanban boards"
-        right={<Button title="New" icon="plus" size="sm" onPress={() => setCreating(true)} accessibilityLabel="New board" />}
-      />
+      <PageHeader title="Projects" subtitle="Plan and track your work on kanban boards" />
       <ProjectSearch />
-      <MyTasks />
-      <Text variant="label" accessibilityRole="header">Your boards</Text>
+      <Dashboard />
+      <Text weight="semibold" accessibilityRole="header">Your boards</Text>
+      <Button title="+ New board" onPress={() => setCreating(true)} accessibilityLabel="New board" />
     </View>
   );
 
@@ -84,12 +78,14 @@ export default function Boards() {
             ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
             ListHeaderComponent={header}
             ListEmptyComponent={
-              <EmptyState
-                title="No boards yet"
-                icon="kanban"
-                body="Create your first board — pick a tool like Content Calendar or Release Planner to get started fast."
-                action={{ label: "New board", onPress: () => setCreating(true) }}
-              />
+              // The web's own empty card (BoardsClient.tsx), not the generic EmptyState.
+              <Card style={{ padding: 40, alignItems: "center" }}>
+                <Text style={{ fontSize: 36, lineHeight: 44, marginBottom: 8 }}>🗂️</Text>
+                <Text weight="semibold">No boards yet</Text>
+                <Text variant="small" style={{ marginTop: 4, textAlign: "center" }}>
+                  Create your first board — pick a tool like Content Calendar or Release Planner to get started fast.
+                </Text>
+              </Card>
             }
             contentContainerStyle={styles.content}
             keyboardShouldPersistTaps="handled"
@@ -108,6 +104,6 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
   content: { padding: 16, paddingBottom: 32 },
   board: { flexDirection: "row", gap: 12, alignItems: "flex-start" },
-  meta: { flexDirection: "row", alignItems: "center", gap: 12, marginTop: 8, flexWrap: "wrap" },
-  metaItem: { flexDirection: "row", alignItems: "center", gap: 4 },
+  meta: { flexDirection: "row", alignItems: "center", gap: 12, marginTop: 12 },
+  role: { marginLeft: "auto", paddingHorizontal: 8, paddingVertical: 2, borderRadius: radius.pill, backgroundColor: colors.surface2 },
 });

@@ -40,7 +40,8 @@ export function DueDateField({
   const [open, setOpen] = useState(false);
   const local = isoToLocal(value);
   const overdue = isOverdue(value);
-  const label = value ? local.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric", year: "numeric" }) : "No due date";
+  // Like the web's <input type="date">: the locale's numeric date.
+  const label = value ? local.toLocaleDateString() : "No date";
 
   if (Platform.OS === "ios" && editable) {
     return (
@@ -55,7 +56,7 @@ export function DueDateField({
             onValueChange={(_e, d) => onChange(localToIso(d))}
           />
         ) : (
-          <Button title="Set due date" size="sm" variant="ghost" icon="calendar" onPress={() => onChange(localToIso(local))} />
+          <Button title="Set date" size="sm" variant="ghost" icon="calendar" onPress={() => onChange(localToIso(local))} />
         )}
         {value ? <Button title="Clear" size="sm" variant="link" onPress={() => onChange(null)} /> : null}
       </View>
@@ -96,14 +97,15 @@ export function DueDateField({
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" },
+  row: { flexDirection: "row", alignItems: "center", columnGap: 4, flexWrap: "wrap" },
   field: {
+    flexGrow: 1,
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
     minHeight: TOUCH,
     paddingHorizontal: 12,
-    borderRadius: radius.field,
+    borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.surface2,

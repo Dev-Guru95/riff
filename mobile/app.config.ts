@@ -57,7 +57,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       },
     ],
   },
-  web: { output: "static", favicon: "./assets/images/favicon.png" },
+  // Web is only used for local design previews; a single-page export avoids
+  // server-rendering native-only modules.
+  web: { output: "single", favicon: "./assets/images/favicon.png" },
   plugins: [
     "expo-router",
     "expo-font",

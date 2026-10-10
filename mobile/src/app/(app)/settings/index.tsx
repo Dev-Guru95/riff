@@ -11,7 +11,7 @@ import { router, Stack } from "expo-router";
 import { api } from "@/api/client";
 import { ApiError, errorMessage } from "@/api/errors";
 import { forgetStoredSession, useAuth } from "@/auth/AuthProvider";
-import { Button, Card, Divider, Field, ListRow, QueryView, Screen, Text } from "@/components/ui";
+import { Button, Card, Field, PageHeader, QueryView, Screen, Text } from "@/components/ui";
 import { useApiQuery } from "@/hooks/useApi";
 import { openLink } from "@/lib/links";
 import { colors } from "@/theme/tokens";
@@ -80,7 +80,7 @@ function DeleteAccountForm() {
     ]);
   }
 
-  if (!open) return <Button title="Delete my account" variant="danger" onPress={() => setOpen(true)} />;
+  if (!open) return <Button title="Delete my account" variant="ghost" onPress={() => setOpen(true)} />;
 
   return (
     <View style={{ gap: 12 }}>
@@ -110,7 +110,7 @@ function DeleteAccountForm() {
         <Text color={colors.danger} accessibilityLiveRegion="polite">{err}</Text>
       ) : null}
       <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap" }}>
-        <Button title={loading ? "Deleting…" : "Permanently delete"} variant="danger" disabled={!ready} loading={loading} onPress={submit} />
+        <Button title={loading ? "Deleting…" : "Permanently delete"} variant="destructive" disabled={!ready} loading={loading} onPress={submit} />
         <Button
           title="Cancel"
           variant="ghost"
@@ -128,48 +128,35 @@ function DeleteAccountForm() {
 }
 
 export default function Settings() {
-  const { logout } = useAuth();
   const query = useApiQuery<MeResponse>("/api/mobile/me");
 
   return (
-    <Screen onRefresh={query.refetch}>
+    <Screen onRefresh={query.refetch} contentStyle={{ gap: 20 }}>
       <Stack.Screen options={{ title: "Settings" }} />
-      <View>
-        <Text variant="title">Settings</Text>
-        <Text variant="small" style={{ marginTop: 4 }}>Your account and data</Text>
-      </View>
+      <PageHeader title="Settings" subtitle="Your account and data" />
       <QueryView query={query}>
         {(me) => (
           <>
-            <Card style={{ gap: 10 }}>
-              <Text weight="semibold">Account</Text>
-              <Line label="Email" value={me.user.email} />
-              <Line label="Artist name" value={me.profile?.stageName ?? "—"} />
-              <Line label="Member since" value={new Date(me.user.createdAt).toLocaleDateString()} />
-              <Line label="Two-factor" value={me.user.mfaEnabled ? "On" : "Off"} />
-              <Line label="Plan" value={me.plan} capitalize />
+            <Card style={{ padding: 20 }}>
+              <Text weight="semibold" style={{ marginBottom: 12 }}>Account</Text>
+              <View style={{ gap: 8 }}>
+                <Line label="Email" value={me.user.email} />
+                <Line label="Artist name" value={me.profile?.stageName ?? "—"} />
+                <Line label="Member since" value={new Date(me.user.createdAt).toLocaleDateString()} />
+                <Line label="Two-factor" value={me.user.mfaEnabled ? "On" : "Off"} />
+                <Line label="Plan" value={me.plan} capitalize />
+              </View>
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 16 }}>
+                <Button title="Billing" variant="ghost" onPress={() => router.push("/settings/billing")} />
+                <Button title="Privacy policy" variant="ghost" onPress={() => void openLink("/privacy")} />
+              </View>
             </Card>
 
-            <Card padded={false} style={{ overflow: "hidden" }}>
-              <ListRow icon="card" title="Billing" subtitle="Plan, renewal and subscription" onPress={() => router.push("/settings/billing")} />
-              <Divider />
-              <ListRow icon="shield" title="Privacy policy" onPress={() => void openLink("/privacy")} />
-              <Divider />
-              <ListRow
-                icon="logout"
-                title="Log out"
-                onPress={() =>
-                  Alert.alert("Log out?", "You'll need to log in again on this device.", [
-                    { text: "Cancel", style: "cancel" },
-                    { text: "Log out", style: "destructive", onPress: () => void logout() },
-                  ])
-                }
-              />
-            </Card>
-
-            <Card style={{ gap: 10, borderColor: colors.brand2 }}>
-              <Text weight="semibold">Delete account</Text>
-              <Text variant="small">
+            {/* Play's User Data policy requires deletion to be reachable from
+                inside the app, not only from a web page. */}
+            <Card style={{ padding: 20 }}>
+              <Text weight="semibold" style={{ marginBottom: 4 }}>Delete account</Text>
+              <Text variant="small" style={{ marginBottom: 12 }}>
                 Permanently deletes your account and everything in it — progress, XP, badges, certificates, boards, Studio data, coach history and community posts. This cannot be undone and support cannot restore it.
                 {me.subscription?.status === "active" ? " Your subscription will be cancelled." : ""}
               </Text>

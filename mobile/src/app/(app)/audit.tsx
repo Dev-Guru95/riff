@@ -7,10 +7,10 @@
 // so every platform is connected here by handle (the web's manual path).
 
 import { useState } from "react";
-import { Alert, StyleSheet, TextInput, View } from "react-native";
+import { Alert, Pressable, StyleSheet, TextInput, View } from "react-native";
 import { Stack } from "expo-router";
 
-import { Button, Card, Chip, Icon, ProgressBar, QueryView, Screen, Section, Text } from "@/components/ui";
+import { Button, Card, Icon, ProgressBar, QueryView, Screen, Text } from "@/components/ui";
 import { useApiMutation, useApiQuery } from "@/hooks/useApi";
 import { colors, fonts, radius, TOUCH } from "@/theme/tokens";
 import type { AuditResponse } from "@/types/api";
@@ -83,17 +83,25 @@ function PlatformRow({
   return (
     <View style={styles.platform}>
       <View style={styles.platformHead}>
-        <Text style={{ fontSize: 18 }}>{platform.icon}</Text>
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <Text weight="medium" numberOfLines={1}>{platform.label}</Text>
-          {account ? (
-            <Text variant="caption" color={colors.success} numberOfLines={1}>
-              {account.connectVia === "oauth" ? "🔗 connected" : `@${account.handle}`}
-            </Text>
-          ) : null}
-        </View>
+        <Text numberOfLines={1} style={{ flex: 1, minWidth: 0 }}>
+          {platform.icon}  {platform.label}
+        </Text>
         {account ? (
-          <Button title="Remove" size="sm" variant="ghost" onPress={confirmDisconnect} loading={disconnect.isPending} accessibilityLabel={`Disconnect ${platform.label}`} />
+          <Text variant="caption" color={colors.success} numberOfLines={1} style={{ flexShrink: 1 }}>
+            {account.connectVia === "oauth" ? "🔗 connected" : `@${account.handle}`}
+          </Text>
+        ) : null}
+        {account ? (
+          <Pressable
+            onPress={confirmDisconnect}
+            disabled={disconnect.isPending}
+            accessibilityRole="button"
+            accessibilityLabel={`Disconnect ${platform.label}`}
+            hitSlop={8}
+            style={styles.remove}
+          >
+            {({ pressed }) => <Text variant="caption" color={pressed ? colors.brand2 : colors.muted}>✕</Text>}
+          </Pressable>
         ) : !editing ? (
           <Button title="Connect" size="sm" variant="ghost" onPress={() => setEditing(true)} accessibilityLabel={`Connect ${platform.label}`} />
         ) : null}
@@ -150,14 +158,14 @@ export default function Audit() {
           const report = d.report;
           return (
             <>
-              <Card padded={false} style={{ overflow: "hidden" }}>
-                <View style={{ padding: 16, paddingBottom: 4 }}>
-                  <Text variant="label">Connected accounts</Text>
+              <Card style={{ padding: 20 }}>
+                <Text variant="label" style={styles.sectionTitle}>Connected accounts</Text>
+                <View style={{ gap: 8 }}>
+                  {PLATFORMS.map((p) => (
+                    <PlatformRow key={p.key} platform={p} account={d.accounts.find((a) => a.platform === p.key)} />
+                  ))}
                 </View>
-                {PLATFORMS.map((p) => (
-                  <PlatformRow key={p.key} platform={p} account={d.accounts.find((a) => a.platform === p.key)} />
-                ))}
-                <View style={{ padding: 16, gap: 8 }}>
+                <View style={{ marginTop: 16, gap: 8 }}>
                   <Button
                     fullWidth
                     title={run.isPending ? "Analyzing your accounts…" : d.runCount > 0 ? "Run this month's audit" : "Run my first audit"}
@@ -168,12 +176,16 @@ export default function Audit() {
                   {connectedCount === 0 ? (
                     <Text variant="caption" style={{ textAlign: "center" }}>Connect at least one account to run an audit.</Text>
                   ) : null}
-                  <View style={{ flexDirection: "row", gap: 6, alignItems: "flex-start" }}>
-                    <Icon name="lock" size={13} color={colors.muted} />
-                    <Text variant="caption" style={{ flex: 1 }}>
-                      In the app, accounts are added by handle. One-tap sign-in with a platform is available on the Riff website.
-                    </Text>
-                  </View>
+                  {d.oauthProviders.length > 0 ? (
+                    // The web's OAuth Connect is a cookie-based browser redirect the
+                    // app's Bearer session can't drive, so the app adds by handle.
+                    <View style={{ flexDirection: "row", gap: 6, alignItems: "flex-start" }}>
+                      <Icon name="lock" size={13} color={colors.muted} />
+                      <Text variant="caption" style={{ flex: 1 }}>
+                        In the app, accounts are added by handle. One-tap sign-in with a platform is available on the Riff website.
+                      </Text>
+                    </View>
+                  ) : null}
                 </View>
               </Card>
 
@@ -190,24 +202,21 @@ export default function Audit() {
                     </View>
                   </View>
 
-                  <Card>
-                    <Section title="Recommendations">
-                      <View style={{ gap: 8 }}>
-                        {report.recommendations.map((r, i) => (
-                          <View key={i} style={{ flexDirection: "row", gap: 8 }}>
-                            <Text color={colors.accent}>→</Text>
-                            <Text style={{ flex: 1 }}>{r}</Text>
-                          </View>
-                        ))}
-                      </View>
-                      <Text variant="caption">
-                        Last run {new Date(report.createdAt).toLocaleDateString()} · audits build month over month.
-                      </Text>
-                    </Section>
+                  <Card style={{ padding: 20 }}>
+                    <Text variant="label" style={styles.sectionTitle}>Recommendations</Text>
+                    <View style={{ gap: 8 }}>
+                      {report.recommendations.map((r, i) => (
+                        <View key={i} style={{ flexDirection: "row", gap: 8 }}>
+                          <Text color={colors.accent}>→</Text>
+                          <Text style={{ flex: 1 }}>{r}</Text>
+                        </View>
+                      ))}
+                    </View>
+                    <Text variant="caption" style={{ marginTop: 16 }}>
+                      Last run {new Date(report.createdAt).toLocaleDateString()} · audits build month over month.
+                    </Text>
                   </Card>
                 </>
-              ) : connectedCount > 0 ? (
-                <Chip label="No audit yet — run your first one above" tone="accent" icon="sparkles" />
               ) : null}
             </>
           );
@@ -218,8 +227,11 @@ export default function Audit() {
 }
 
 const styles = StyleSheet.create({
-  platform: { paddingHorizontal: 16, paddingVertical: 8, borderTopWidth: 1, borderTopColor: colors.border, gap: 8 },
-  platformHead: { flexDirection: "row", alignItems: "center", gap: 10, minHeight: TOUCH },
+  // Web: `border rounded-lg px-3 py-2`, label left, status + action right.
+  platform: { paddingHorizontal: 12, paddingVertical: 6, borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, gap: 8 },
+  platformHead: { flexDirection: "row", alignItems: "center", gap: 8, minHeight: 36 },
+  remove: { minWidth: 28, minHeight: 28, alignItems: "center", justifyContent: "center" },
+  sectionTitle: { fontSize: 14, lineHeight: 20, marginBottom: 12 },
   connectRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   input: {
     flex: 1,

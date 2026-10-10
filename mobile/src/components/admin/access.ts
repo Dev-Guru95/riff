@@ -6,7 +6,7 @@
 // `requireAdmin(x)`, which admits only `admin` or exactly `x` (not a hierarchy):
 //   reviewer  → PATCH /api/admin/submissions/:id
 //   moderator → PATCH /api/admin/reports/:id
-//   admin     → everything
+//   admin     → everything else
 // So the app shows every section, and hides only the write controls the server
 // would refuse. The role comes from /api/mobile/me (re-read from the database);
 // the server re-checks it on every request regardless.
@@ -28,22 +28,25 @@ export function useStaffAccess() {
   };
 }
 
-export type AdminSection = {
-  href: Href;
-  label: string;
-  icon: IconName;
-  body: string;
-  /** Role the section's write routes require (requireAdmin argument). */
-  writeRole: StaffRole | null;
-};
+export type AdminNavItem = { href: Href & string; label: string; icon: IconName };
 
-/** Same order and icons as the web admin nav (src/app/(admin)/admin/layout.tsx). */
-export const ADMIN_SECTIONS: AdminSection[] = [
-  { href: "/admin/courses", label: "Courses", icon: "book", body: "Create, edit and publish tracks", writeRole: "admin" },
-  { href: "/admin/submissions", label: "Review Queue", icon: "clipboard", body: "Confirm or override AI reviews", writeRole: "reviewer" },
-  { href: "/admin/moderation", label: "Moderation", icon: "shield", body: "Reported threads, posts and users", writeRole: "moderator" },
-  { href: "/admin/users", label: "Users", icon: "user", body: "Roles, tiers and Skool access", writeRole: "admin" },
-  { href: "/admin/coupons", label: "Coupons", icon: "ticket", body: "Discount codes and rewards", writeRole: "admin" },
-  { href: "/admin/content", label: "AI Content", icon: "sparkles", body: "Approve AI content suggestions", writeRole: "admin" },
-  { href: "/admin/security", label: "Security", icon: "lock", body: "Two-factor authentication", writeRole: null },
+/**
+ * Same items, order, labels and icons as the web admin nav
+ * (src/app/(admin)/admin/layout.tsx). "Import Course" is absent there too: it
+ * lives in the "New course" menu on /admin/courses.
+ */
+export const ADMIN_NAV: AdminNavItem[] = [
+  { href: "/admin", label: "Overview", icon: "grid" },
+  { href: "/admin/courses", label: "Courses", icon: "book" },
+  { href: "/admin/submissions", label: "Review Queue", icon: "clipboard" },
+  { href: "/admin/moderation", label: "Moderation", icon: "shield" },
+  { href: "/admin/users", label: "Users", icon: "user" },
+  { href: "/admin/coupons", label: "Coupons", icon: "ticket" },
+  { href: "/admin/content", label: "AI Content", icon: "sparkles" },
+  { href: "/admin/security", label: "Security", icon: "lock" },
 ];
+
+/** The web's AdminNav isActive(): "/admin" matches exactly, the rest by prefix. */
+export function isNavActive(pathname: string, href: string) {
+  return href === "/admin" ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
+}

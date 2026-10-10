@@ -112,7 +112,7 @@ export default function Search() {
           if (item.kind === "user")
             return (
               <View style={styles.row}>
-                <Avatar name={item.name} size={28} />
+                <Avatar name={item.name} size={20} />
                 <Text style={{ flex: 1 }} numberOfLines={1}>{item.name}</Text>
                 <Text variant="caption" numberOfLines={1} style={{ maxWidth: "45%" }}>{item.email}</Text>
               </View>
@@ -127,9 +127,8 @@ export default function Search() {
               <View style={styles.icon}>
                 {item.labelColor ? <View style={[styles.labelSwatch, { backgroundColor: item.labelColor }]} /> : <Text>{item.icon}</Text>}
               </View>
-              <Text style={{ flex: 1 }} numberOfLines={2}>{item.title}</Text>
-              {item.sub ? <Text variant="caption" numberOfLines={1} style={{ maxWidth: "35%" }}>{item.sub}</Text> : null}
-              <Icon name="chevronRight" size={14} color={colors.muted} />
+              <Text style={{ flex: 1 }} numberOfLines={1}>{item.title}</Text>
+              {item.sub ? <Text variant="caption" numberOfLines={1} style={{ maxWidth: 112 }}>{item.sub}</Text> : null}
             </Pressable>
           );
         }}
@@ -182,7 +181,8 @@ const styles = StyleSheet.create({
   },
   input: { flex: 1, fontSize: 16, fontFamily: fonts.regular, color: colors.foreground, paddingVertical: 10 },
   clear: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
-  header: { marginTop: 12, marginBottom: 4 },
+  // Web group label: text-[10px] uppercase tracking-wide muted.
+  header: { marginTop: 12, marginBottom: 2, paddingHorizontal: 8, fontSize: 10, lineHeight: 14, fontFamily: fonts.regular },
   row: { flexDirection: "row", alignItems: "center", gap: 10, minHeight: TOUCH, paddingHorizontal: 8, borderRadius: radius.md },
   icon: { width: 24, alignItems: "center" },
   labelSwatch: { width: 24, height: 12, borderRadius: radius.pill },

@@ -5,7 +5,7 @@ import { Pressable, StyleSheet, View, type ColorValue } from "react-native";
 import { router } from "expo-router";
 import { Tabs } from "expo-router/js-tabs";
 
-import { Icon, Text, type IconName } from "@/components/ui";
+import { Icon, Text, Wordmark, type IconName } from "@/components/ui";
 import { useNotifications } from "@/hooks/useNotifications";
 import { colors, fonts } from "@/theme/tokens";
 
@@ -26,7 +26,8 @@ function BellButton() {
       hitSlop={10}
       style={styles.bell}
     >
-      <Icon name="bell" size={22} color={colors.foreground} />
+      {/* The web's bell is the 🔔 emoji, not a line icon. */}
+      <Text style={styles.bellGlyph}>🔔</Text>
       {unread > 0 ? (
         <View style={styles.dot}>
           <Text style={styles.dotText}>{unread > 9 ? "9+" : unread}</Text>
@@ -43,6 +44,10 @@ export default function TabsLayout() {
         headerStyle: { backgroundColor: colors.background },
         headerTintColor: colors.foreground,
         headerTitleStyle: { fontFamily: fonts.semibold, fontSize: 17 },
+        // The web's mobile top bar: wordmark left, bell right. Page titles stay
+        // in the page body, as on the web.
+        headerTitle: () => <Wordmark />,
+        headerTitleAlign: "left",
         headerShadowVisible: false,
         headerRight: () => <BellButton />,
         tabBarStyle: { backgroundColor: colors.background, borderTopColor: colors.border },
@@ -62,18 +67,19 @@ export default function TabsLayout() {
 }
 
 const styles = StyleSheet.create({
-  bell: { marginRight: 16, width: 32, height: 32, alignItems: "center", justifyContent: "center" },
+  bell: { marginRight: 12, minWidth: 36, height: 36, paddingHorizontal: 8, alignItems: "center", justifyContent: "center" },
+  bellGlyph: { fontSize: 16, lineHeight: 22 },
   dot: {
     position: "absolute",
-    top: 0,
-    right: -2,
+    top: 2,
+    right: 0,
     minWidth: 16,
     height: 16,
     borderRadius: 8,
-    paddingHorizontal: 3,
+    paddingHorizontal: 4,
     backgroundColor: colors.brand2,
     alignItems: "center",
     justifyContent: "center",
   },
-  dotText: { color: colors.white, fontSize: 10, lineHeight: 12, fontFamily: fonts.bold },
+  dotText: { color: colors.white, fontSize: 10, lineHeight: 12, fontFamily: fonts.regular },
 });

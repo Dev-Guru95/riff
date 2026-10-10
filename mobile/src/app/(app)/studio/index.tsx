@@ -6,8 +6,8 @@
 import { View } from "react-native";
 import { router, Stack, type Href } from "expo-router";
 
-import { TrackBadge } from "@/components/studio/shared";
-import { Card, PageHeader, QueryView, Screen, Section, Skeleton, Text } from "@/components/ui";
+import { SubHeading, TrackBadge } from "@/components/studio/shared";
+import { Card, PageHeader, QueryView, Screen, Skeleton, Text } from "@/components/ui";
 import { useApiQuery } from "@/hooks/useApi";
 import type { StudioHubResponse } from "@/types/api";
 
@@ -31,15 +31,13 @@ const MANAGERS: Tile[] = [
 
 function TileCard({ t }: { t: Tile }) {
   return (
-    <Card onPress={() => router.push(t.href as Href)} accessibilityLabel={`${t.name}. ${t.tagline}`} style={{ gap: 4 }}>
-      <View style={{ flexDirection: "row", alignItems: "center" }}>
-        <Text style={{ fontSize: 24, lineHeight: 30 }}>{t.icon}</Text>
-        <View style={{ marginLeft: "auto" }}>
-          <TrackBadge track={t.track} />
-        </View>
+    <Card onPress={() => router.push(t.href as Href)} accessibilityLabel={`${t.name}. ${t.tagline}`} >
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+        <Text style={{ fontSize: 24, lineHeight: 32 }}>{t.icon}</Text>
+        <TrackBadge track={t.track} />
       </View>
-      <Text weight="semibold">{t.name}</Text>
-      <Text variant="caption">{t.tagline}</Text>
+      <Text weight="semibold" style={{ marginTop: 4, fontSize: 16, lineHeight: 24 }}>{t.name}</Text>
+      <Text variant="caption" style={{ marginTop: 2 }}>{t.tagline}</Text>
     </Card>
   );
 }
@@ -51,9 +49,9 @@ function RowCard({ icon, title, body, href }: { icon: string; title: string; bod
       accessibilityLabel={`${title}. ${body}`}
       style={{ flexDirection: "row", alignItems: "center", gap: 12 }}
     >
-      <Text style={{ fontSize: 24, lineHeight: 30 }}>{icon}</Text>
+      <Text style={{ fontSize: 24, lineHeight: 32 }}>{icon}</Text>
       <View style={{ flex: 1, minWidth: 0 }}>
-        <Text weight="semibold">{title}</Text>
+        <Text weight="semibold" style={{ fontSize: 16, lineHeight: 24 }}>{title}</Text>
         <Text variant="caption">{body}</Text>
       </View>
     </Card>
@@ -75,7 +73,8 @@ export default function StudioHub() {
         href="/studio/dashboard"
       />
 
-      <Section title="AI tools">
+      <View style={{ gap: 12, marginTop: 8 }}>
+        <SubHeading>AI tools</SubHeading>
         <QueryView query={query} skeleton={<View style={{ gap: 12 }}><Skeleton height={96} /><Skeleton height={96} /></View>}>
           {(d) => (
             <View style={{ gap: 12 }}>
@@ -88,24 +87,26 @@ export default function StudioHub() {
             </View>
           )}
         </QueryView>
-      </Section>
+      </View>
 
-      <Section title="Your assets & business">
+      <View style={{ gap: 12, marginTop: 16 }}>
+        <SubHeading>Your assets & business</SubHeading>
         <View style={{ gap: 12 }}>
           {MANAGERS.map((t) => (
             <TileCard key={t.href} t={t} />
           ))}
         </View>
-      </Section>
+      </View>
 
-      <Section title="Project boards">
+      <View style={{ gap: 12, marginTop: 16 }}>
+        <SubHeading>Project boards</SubHeading>
         <RowCard
           icon="🗂️"
           title="Open Projects"
           body="Content Calendar · Release Planner · Pitch Tracker · Outreach CRM · Collaboration Board"
           href="/boards"
         />
-      </Section>
+      </View>
     </Screen>
   );
 }
