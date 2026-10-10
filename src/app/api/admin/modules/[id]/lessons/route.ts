@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin, writeAudit } from "@/lib/admin";
-import { parseBody, ok, fail } from "@/lib/api";
+import { parseBody, ok, fail, withRoute } from "@/lib/api";
 
 const schema = z.object({
   title: z.string().min(2),
@@ -34,7 +34,7 @@ const schema = z.object({
     .optional(),
 });
 
-export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
+export const POST = withRoute(async (req: Request, { params }: { params: Promise<{ id: string }> }) => {
   const { session, error } = await requireAdmin("admin");
   if (error) return error;
   const { id } = await params;
@@ -88,4 +88,4 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
   await writeAudit(session.id, "lesson.create", "lesson", lesson.id, { moduleId: id, withQuiz: !!d.quiz, withAssignment: !!d.assignment });
   return ok(lesson, 201);
-}
+});

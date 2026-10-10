@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { capabilitiesFor, parseMentions } from "./boards";
+import { capabilitiesFor, dueBucket, parseMentions } from "./boards";
 import { BOARD_ROLES, type BoardRole } from "./constants";
 
 describe("parseMentions", () => {
@@ -80,5 +80,21 @@ describe("board capabilities", () => {
         if (seenTrue) expect(c[k]).toBe(true);
       }
     }
+  });
+});
+
+describe("dueBucket (dashboard lists by the artist's calendar day)", () => {
+  // Due dates are stored as noon UTC on the chosen day.
+  const due = (day: string) => new Date(`${day}T12:00:00.000Z`);
+  it("buckets by calendar day, not by instant", () => {
+    expect(dueBucket(due("2026-10-09"), "2026-10-10")).toBe("overdue");
+    expect(dueBucket(due("2026-10-10"), "2026-10-10")).toBe("today");
+    expect(dueBucket(due("2026-10-11"), "2026-10-10")).toBe("upcoming");
+    expect(dueBucket(due("2026-10-17"), "2026-10-10")).toBe("upcoming");
+    expect(dueBucket(due("2026-10-18"), "2026-10-10")).toBeNull();
+  });
+  it("handles month and year boundaries", () => {
+    expect(dueBucket(due("2027-01-02"), "2026-12-31")).toBe("upcoming");
+    expect(dueBucket(due("2026-12-31"), "2027-01-01")).toBe("overdue");
   });
 });

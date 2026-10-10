@@ -2,7 +2,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin, writeAudit } from "@/lib/admin";
 import { rollbackCourseRewards } from "@/lib/gamification";
-import { parseBody, ok, fail } from "@/lib/api";
+import { parseBody, ok, fail, withRoute } from "@/lib/api";
 import {
   isSafeReturnUrl,
   normalizeReturnLabel,
@@ -23,7 +23,7 @@ const schema = z.object({
   returnLabel: z.string().max(RETURN_LABEL_MAX).optional(),
 });
 
-export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
+export const PATCH = withRoute(async (req: Request, { params }: { params: Promise<{ id: string }> }) => {
   const { session, error } = await requireAdmin("admin");
   if (error) return error;
   const { id } = await params;
@@ -48,9 +48,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const updated = await prisma.course.update({ where: { id }, data });
   await writeAudit(session.id, "course.update", "course", id, data);
   return ok(updated);
-}
+});
 
-export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+export const DELETE = withRoute(async (_req: Request, { params }: { params: Promise<{ id: string }> }) => {
   const { session, error } = await requireAdmin("admin");
   if (error) return error;
   const { id } = await params;
@@ -59,4 +59,4 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
   await prisma.course.delete({ where: { id } });
   await writeAudit(session.id, "course.delete", "course", id);
   return ok({ success: true });
-}
+});

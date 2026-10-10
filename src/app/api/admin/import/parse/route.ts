@@ -2,7 +2,7 @@
 // Does NOT write to the database; the admin reviews/edits the result, then commits
 // via POST /api/admin/import.
 import { requireAdmin } from "@/lib/admin";
-import { ok, fail, tooMany } from "@/lib/api";
+import { ok, fail, tooMany, withRoute } from "@/lib/api";
 import { rateLimit, LIMITS } from "@/lib/ratelimit";
 import { extractText, ImportError } from "@/lib/import/extract-text";
 import { parseCourse } from "@/lib/import/parse-course";
@@ -12,7 +12,7 @@ export const runtime = "nodejs"; // pdf-parse / mammoth need the Node runtime
 
 const MAX_BYTES = 15 * 1024 * 1024;
 
-export async function POST(req: Request) {
+export const POST = withRoute(async (req: Request) => {
   const { session, error } = await requireAdmin("admin");
   if (error) return error;
 
@@ -43,4 +43,4 @@ export async function POST(req: Request) {
     console.error("[import/parse] failed:", err);
     return fail("Couldn't parse this document. Try a cleaner file, or create the course manually.", 500);
   }
-}
+});

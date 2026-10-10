@@ -5,6 +5,7 @@
 import { prisma, ci } from "@/lib/prisma";
 import { notify } from "@/lib/notifications";
 import { templateFor } from "@/lib/board-templates";
+import { todayKey } from "@/lib/gamification";
 import type { Prisma } from "@prisma/client";
 import type { BoardRole } from "@/lib/constants";
 
@@ -575,6 +576,21 @@ export type DashboardDTO = {
   workload: { userId: string; name: string; open: number }[];
 };
 
+/**
+ * Which dashboard list a due date belongs in. Due dates are stored as noon UTC
+ * on the chosen calendar day, so the stored UTC date *is* the calendar day. It
+ * is compared with today in the artist's own timezone. Comparing instants
+ * against the server's midnight (UTC on our hosts) moved cards between
+ * "Due today" and "Overdue" hours early or late for anyone outside UTC.
+ */
+export function dueBucket(due: Date, today: string): "overdue" | "today" | "upcoming" | null {
+  const day = due.toISOString().slice(0, 10);
+  if (day < today) return "overdue";
+  if (day === today) return "today";
+  const in7 = new Date(Date.parse(`${today}T00:00:00.000Z`) + 7 * 86_400_000).toISOString().slice(0, 10);
+  return day <= in7 ? "upcoming" : null;
+}
+
 /** Personal project dashboard aggregated across all boards the user belongs to. */
 export async function loadDashboard(userId: string): Promise<DashboardDTO> {
   const empty: DashboardDTO = { openCount: 0, completedCount: 0, dueToday: [], overdue: [], upcoming: [], boardProgress: [], recentBoards: [], workload: [] };
@@ -582,10 +598,8 @@ export async function loadDashboard(userId: string): Promise<DashboardDTO> {
   const boardIds = memberships.map((m) => m.boardId);
   if (boardIds.length === 0) return empty;
 
-  const now = new Date();
-  const startToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const endToday = new Date(startToday.getTime() + 86_400_000);
-  const in7 = new Date(now.getTime() + 7 * 86_400_000);
+  const profile = await prisma.artistProfile.findUnique({ where: { userId }, select: { timezone: true } });
+  const today = todayKey(profile?.timezone || "UTC");
 
   // My assigned cards.
   const mine = await prisma.card.findMany({
@@ -597,9 +611,10 @@ export async function loadDashboard(userId: string): Promise<DashboardDTO> {
   });
   const open = mine.filter((c) => c.completion < 100);
   const byDue = (a: TaskLite, b: TaskLite) => (a.dueDate ?? "").localeCompare(b.dueDate ?? "");
-  const dueToday = open.filter((c) => c.dueDate && c.dueDate >= startToday && c.dueDate < endToday).map(lite).sort(byDue);
-  const overdue = open.filter((c) => c.dueDate && c.dueDate < startToday).map(lite).sort(byDue);
-  const upcoming = open.filter((c) => c.dueDate && c.dueDate >= endToday && c.dueDate <= in7).map(lite).sort(byDue);
+  const inBucket = (b: "overdue" | "today" | "upcoming") => (c: (typeof open)[number]) => !!c.dueDate && dueBucket(c.dueDate, today) === b;
+  const dueToday = open.filter(inBucket("today")).map(lite).sort(byDue);
+  const overdue = open.filter(inBucket("overdue")).map(lite).sort(byDue);
+  const upcoming = open.filter(inBucket("upcoming")).map(lite).sort(byDue);
 
   // Per-board progress.
   const boards = await prisma.board.findMany({ where: { id: { in: boardIds } }, select: { id: true, title: true, color: true } });

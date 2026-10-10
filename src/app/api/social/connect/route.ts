@@ -2,7 +2,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { SUPPORTED_PLATFORMS } from "@/lib/audit";
-import { parseBody, ok, fail } from "@/lib/api";
+import { parseBody, ok, fail, withRoute } from "@/lib/api";
 
 const schema = z.object({
   platform: z.enum(SUPPORTED_PLATFORMS),
@@ -11,7 +11,7 @@ const schema = z.object({
 
 // Mock OAuth connect: in production this is the platform OAuth callback. Here we
 // store the handle so the audit engine can track it month over month.
-export async function POST(req: Request) {
+export const POST = withRoute(async (req: Request) => {
   const session = await getSession();
   if (!session) return fail("Not authenticated", 401);
   const body = await parseBody(req, schema);
@@ -23,9 +23,9 @@ export async function POST(req: Request) {
     update: { handle: body.data.handle, status: "active" },
   });
   return ok({ id: account.id, platform: account.platform, handle: account.handle }, 201);
-}
+});
 
-export async function DELETE(req: Request) {
+export const DELETE = withRoute(async (req: Request) => {
   const session = await getSession();
   if (!session) return fail("Not authenticated", 401);
   const { searchParams } = new URL(req.url);
@@ -33,4 +33,4 @@ export async function DELETE(req: Request) {
   if (!platform) return fail("platform required", 422);
   await prisma.socialAccount.deleteMany({ where: { userId: session.id, platform } });
   return ok({ success: true });
-}
+});

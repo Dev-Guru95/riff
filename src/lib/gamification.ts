@@ -3,7 +3,7 @@ import { resolveLevel, trackBadgeKey, trackBadgeOrder, type XpSource } from "./c
 import { notify } from "./notifications";
 
 /** Today's date in the user's local frame as YYYY-MM-DD (UTC fallback). */
-function todayKey(tz = "UTC"): string {
+export function todayKey(tz = "UTC"): string {
   try {
     return new Intl.DateTimeFormat("en-CA", { timeZone: tz }).format(new Date());
   } catch {

@@ -223,6 +223,7 @@ export function BoardView({ initial, currentUserId }: { initial: Board; currentU
           boardId={board.id}
           members={board.members}
           ownerId={board.ownerId}
+          myRole={board.role}
           onClose={() => setShowMembers(false)}
           onReload={reload}
         />

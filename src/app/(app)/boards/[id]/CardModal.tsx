@@ -323,7 +323,9 @@ export function CardModal({
               <div className="flex flex-wrap gap-1.5">
                 {members.map((m) => {
                   const on = assignedSet.has(m.userId);
-                  const canToggle = can.assignOthers || m.userId === currentUserId;
+                  // Same rule as POST/DELETE /api/cards/[id]/assignees: yourself needs
+                  // editCards, anyone else needs assignOthers.
+                  const canToggle = m.userId === currentUserId ? can.editCards : can.assignOthers;
                   return (
                     <button
                       key={m.userId}

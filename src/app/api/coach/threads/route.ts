@@ -1,9 +1,9 @@
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { isSkoolMember } from "@/lib/community";
-import { ok, fail } from "@/lib/api";
+import { ok, fail, withRoute } from "@/lib/api";
 
-export async function POST() {
+export const POST = withRoute(async () => {
   const session = await getSession();
   if (!session) return fail("Not authenticated", 401);
   // Community gate: AI Coach requires Skool membership.
@@ -12,9 +12,9 @@ export async function POST() {
   }
   const thread = await prisma.coachThread.create({ data: { userId: session.id } });
   return ok({ id: thread.id }, 201);
-}
+});
 
-export async function GET() {
+export const GET = withRoute(async () => {
   const session = await getSession();
   if (!session) return fail("Not authenticated", 401);
   const threads = await prisma.coachThread.findMany({
@@ -23,4 +23,4 @@ export async function GET() {
     take: 30,
   });
   return ok({ threads });
-}
+});

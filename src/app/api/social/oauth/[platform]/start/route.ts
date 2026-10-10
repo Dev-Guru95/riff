@@ -3,10 +3,11 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { PROVIDERS, isProviderConfigured, clientId, redirectUri } from "@/lib/social-providers";
+import { withRoute } from "@/lib/api";
 
 // Begin the OAuth2 authorization-code flow. Stores a CSRF state in an httpOnly
 // cookie and redirects the user to the provider's consent screen.
-export async function GET(_req: Request, { params }: { params: Promise<{ platform: string }> }) {
+export const GET = withRoute(async (_req: Request, { params }: { params: Promise<{ platform: string }> }) => {
   const session = await getSession();
   if (!session) return NextResponse.redirect(new URL("/login", process.env.APP_URL || "http://localhost:3000"));
 
@@ -38,4 +39,4 @@ export async function GET(_req: Request, { params }: { params: Promise<{ platfor
   }
 
   return NextResponse.redirect(url.toString());
-}
+});

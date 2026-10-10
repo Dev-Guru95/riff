@@ -1,7 +1,7 @@
 import { clearSession } from "@/lib/auth";
-import { ok } from "@/lib/api";
+import { ok, withRoute } from "@/lib/api";
 
-export async function POST() {
+export const POST = withRoute(async () => {
   await clearSession();
   return ok({ success: true });
-}
+});

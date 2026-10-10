@@ -28,9 +28,9 @@ export const POST = withRoute(async () => {
   });
 });
 
-export async function GET() {
+export const GET = withRoute(async () => {
   const session = await getSession();
   if (!session) return fail("Not authenticated", 401);
   const report = await prisma.auditReport.findFirst({ where: { userId: session.id }, orderBy: { createdAt: "desc" } });
   return ok({ report });
-}
+});

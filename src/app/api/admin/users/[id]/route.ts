@@ -2,7 +2,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin, writeAudit } from "@/lib/admin";
 import { markSkoolMember, revokeSkoolMember } from "@/lib/community";
-import { parseBody, ok, fail } from "@/lib/api";
+import { parseBody, ok, fail, withRoute } from "@/lib/api";
 
 const schema = z.object({
   status: z.enum(["active", "suspended"]).optional(),
@@ -14,7 +14,7 @@ const schema = z.object({
   plan: z.enum(["free", "pro", "premium"]).optional(),
 });
 
-export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
+export const PATCH = withRoute(async (req: Request, { params }: { params: Promise<{ id: string }> }) => {
   const { session, error } = await requireAdmin("admin");
   if (error) return error;
   const { id } = await params;
@@ -58,4 +58,4 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     skoolMember: updated.skoolMember,
     ...(plan !== undefined && { plan }),
   });
-}
+});

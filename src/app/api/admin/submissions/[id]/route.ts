@@ -2,7 +2,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin, writeAudit } from "@/lib/admin";
 import { recordAchievement } from "@/lib/events";
-import { parseBody, ok, fail } from "@/lib/api";
+import { parseBody, ok, fail, withRoute } from "@/lib/api";
 
 const schema = z.object({
   aiScore: z.number().int().min(0).max(100),
@@ -11,7 +11,7 @@ const schema = z.object({
 });
 
 // Human override of an AI review (resolves flagged submissions).
-export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
+export const PATCH = withRoute(async (req: Request, { params }: { params: Promise<{ id: string }> }) => {
   const { session, error } = await requireAdmin("reviewer");
   if (error) return error;
   const { id } = await params;
@@ -41,4 +41,4 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     note: body.data.note,
   });
   return ok({ submission: updated, xp });
-}
+});

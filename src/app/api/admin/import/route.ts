@@ -2,7 +2,7 @@
 // (+ Quizzes + Assignments) atomically, then write an audit-log entry.
 import { prisma } from "@/lib/prisma";
 import { requireAdmin, writeAudit } from "@/lib/admin";
-import { parseBody, ok, fail, tooMany } from "@/lib/api";
+import { parseBody, ok, fail, tooMany, withRoute } from "@/lib/api";
 import { rateLimit, LIMITS } from "@/lib/ratelimit";
 import { z } from "zod";
 import { parsedCourseSchema, validateCourse, countEntities } from "@/lib/import/types";
@@ -15,7 +15,7 @@ const schema = z.object({
   sourceFile: z.string().default(""),
 });
 
-export async function POST(req: Request) {
+export const POST = withRoute(async (req: Request) => {
   const { session, error } = await requireAdmin("admin");
   if (error) return error;
   const rl = rateLimit(`import-commit:${session.id}`, LIMITS.write.limit, LIMITS.write.windowMs);
@@ -44,4 +44,4 @@ export async function POST(req: Request) {
   });
 
   return ok({ id: created.id, slug: created.slug, title: created.title, counts }, 201);
-}
+});

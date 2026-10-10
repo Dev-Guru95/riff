@@ -4,12 +4,13 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { encryptNullable } from "@/lib/crypto";
 import { PROVIDERS, isProviderConfigured, clientId, clientSecret, redirectUri } from "@/lib/social-providers";
+import { withRoute } from "@/lib/api";
 
 const APP = process.env.APP_URL || "http://localhost:3000";
 
 // OAuth2 callback: validate state, exchange the code for tokens, store them
 // encrypted, and mark the account connected via OAuth.
-export async function GET(req: Request, { params }: { params: Promise<{ platform: string }> }) {
+export const GET = withRoute(async (req: Request, { params }: { params: Promise<{ platform: string }> }) => {
   const session = await getSession();
   if (!session) return NextResponse.redirect(new URL("/login", APP));
 
@@ -81,4 +82,4 @@ export async function GET(req: Request, { params }: { params: Promise<{ platform
   });
 
   return NextResponse.redirect(new URL("/audit?connected=" + platform, APP));
-}
+});

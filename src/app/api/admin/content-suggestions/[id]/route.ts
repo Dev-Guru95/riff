@@ -1,12 +1,12 @@
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin, writeAudit } from "@/lib/admin";
-import { parseBody, ok, fail } from "@/lib/api";
+import { parseBody, ok, fail, withRoute } from "@/lib/api";
 
 const schema = z.object({ decision: z.enum(["approved", "rejected"]) });
 
 // Approve or reject an AI-suggested content update.
-export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
+export const PATCH = withRoute(async (req: Request, { params }: { params: Promise<{ id: string }> }) => {
   const { session, error } = await requireAdmin("admin");
   if (error) return error;
   const { id } = await params;
@@ -30,4 +30,4 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
   await writeAudit(session.id, `content.${body.data.decision}`, "content_suggestion", id);
   return ok(updated);
-}
+});

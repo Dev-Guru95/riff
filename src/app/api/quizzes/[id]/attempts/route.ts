@@ -4,14 +4,14 @@ import { getSession } from "@/lib/auth";
 import { recordAchievement } from "@/lib/events";
 import type { SharePayload } from "@/lib/share";
 import { track } from "@/lib/analytics";
-import { parseBody, ok, fail } from "@/lib/api";
+import { parseBody, ok, fail, withRoute } from "@/lib/api";
 
 const schema = z.object({
   // map of questionId -> array of selected option ids
   answers: z.record(z.string(), z.array(z.string())),
 });
 
-export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
+export const POST = withRoute(async (req: Request, { params }: { params: Promise<{ id: string }> }) => {
   const session = await getSession();
   if (!session) return fail("Not authenticated", 401);
   const { id } = await params;
@@ -62,4 +62,4 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   await track(passed ? "quiz_pass" : "quiz_fail", session.id, { quizId: id, score });
 
   return ok({ score, passed, passThreshold: quiz.passThreshold, perQuestion, xp, streak, shares });
-}
+});

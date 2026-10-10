@@ -1,9 +1,9 @@
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
-import { ok, fail } from "@/lib/api";
+import { ok, fail, withRoute } from "@/lib/api";
 
 // Toggle join/leave for an accountability group.
-export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+export const POST = withRoute(async (_req: Request, { params }: { params: Promise<{ id: string }> }) => {
   const session = await getSession();
   if (!session) return fail("Not authenticated", 401);
   const { id } = await params;
@@ -26,4 +26,4 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
   if (group._count.members >= group.capacity) return fail("This group is full", 409);
   await prisma.groupMember.create({ data: { groupId: id, userId: session.id } });
   return ok({ joined: true });
-}
+});

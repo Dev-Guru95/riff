@@ -90,7 +90,7 @@ export const POST = withRoute(async (req: Request, { params }: { params: Promise
   });
 });
 
-export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+export const GET = withRoute(async (_req: Request, { params }: { params: Promise<{ id: string }> }) => {
   const session = await getSession();
   if (!session) return fail("Not authenticated", 401);
   const { id } = await params;
@@ -98,4 +98,4 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   if (!thread || thread.userId !== session.id) return fail("Thread not found", 404);
   const messages = await prisma.coachMessage.findMany({ where: { threadId: id }, orderBy: { createdAt: "asc" } });
   return ok({ messages });
-}
+});

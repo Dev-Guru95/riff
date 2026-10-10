@@ -4,6 +4,10 @@ import { useEffect, useState } from "react";
 
 type Member = { userId: string; role: string; name: string; email: string };
 const ROLES = ["admin", "manager", "member", "guest"];
+// Mirrors ROLE_RANK in src/lib/boards.ts (not imported: that module pulls in
+// prisma). The server only lets you grant, change or remove roles strictly
+// below your own, so the panel offers exactly those.
+const RANK: Record<string, number> = { owner: 4, admin: 3, manager: 2, member: 1, guest: 0 };
 
 async function api(url: string, method: string, body?: unknown) {
   const res = await fetch(url, {
@@ -32,19 +36,23 @@ export function MembersPanel({
   boardId,
   members: initial,
   ownerId,
+  myRole,
   onClose,
   onReload,
 }: {
   boardId: string;
   members: Member[];
   ownerId: string;
+  myRole: string;
   onClose: () => void;
   onReload: () => void;
 }) {
   const [members, setMembers] = useState<Member[]>(initial);
+  const myRank = RANK[myRole] ?? 0;
+  const grantable = ROLES.filter((r) => RANK[r] < myRank);
   const [q, setQ] = useState("");
   const [results, setResults] = useState<{ userId: string; name: string; email: string }[]>([]);
-  const [role, setRole] = useState("member");
+  const [role, setRole] = useState(() => (grantable.includes("member") ? "member" : grantable[0] ?? "guest"));
   const [err, setErr] = useState<string | null>(null);
 
   useEffect(() => {
@@ -84,7 +92,7 @@ export function MembersPanel({
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search users…"
             className="flex-1 text-sm bg-[var(--surface-2)] border border-[var(--border)] rounded-lg px-3 py-2 outline-none focus:border-[var(--brand)]" />
           <select value={role} onChange={(e) => setRole(e.target.value)} className="text-sm bg-[var(--surface-2)] border border-[var(--border)] rounded-lg px-2">
-            {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
+            {grantable.map((r) => <option key={r} value={r}>{r}</option>)}
           </select>
         </div>
         {results.map((u) => (
@@ -108,12 +116,12 @@ export function MembersPanel({
                 <div className="text-sm truncate">{m.name}</div>
                 <div className="text-xs text-[var(--muted)] truncate">{m.email}</div>
               </div>
-              {isOwner ? (
-                <span className="text-xs px-2 py-1 rounded-full bg-[var(--surface-2)] text-[var(--muted)]">owner</span>
+              {isOwner || (RANK[m.role] ?? 0) >= myRank ? (
+                <span className="text-xs px-2 py-1 rounded-full bg-[var(--surface-2)] text-[var(--muted)]">{isOwner ? "owner" : m.role}</span>
               ) : (
                 <>
                   <select value={m.role} onChange={(e) => changeRole(m.userId, e.target.value)} className="text-xs bg-[var(--surface-2)] border border-[var(--border)] rounded px-1 py-1">
-                    {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
+                    {grantable.map((r) => <option key={r} value={r}>{r}</option>)}
                   </select>
                   <button className="text-xs text-[var(--muted)] hover:text-[var(--brand-2)] px-1" onClick={() => remove(m.userId)}>Remove</button>
                 </>

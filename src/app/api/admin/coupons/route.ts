@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin, writeAudit } from "@/lib/admin";
-import { parseBody, ok, fail } from "@/lib/api";
+import { parseBody, ok, fail, withRoute } from "@/lib/api";
 
 const schema = z.object({
   code: z.string().min(3).regex(/^[A-Z0-9_-]+$/, "uppercase letters, numbers, - and _ only"),
@@ -11,7 +11,7 @@ const schema = z.object({
   maxRedemptions: z.number().int().min(0).default(0),
 });
 
-export async function POST(req: Request) {
+export const POST = withRoute(async (req: Request) => {
   const { session, error } = await requireAdmin("admin");
   if (error) return error;
   const body = await parseBody(req, schema);
@@ -23,4 +23,4 @@ export async function POST(req: Request) {
   const coupon = await prisma.coupon.create({ data: body.data });
   await writeAudit(session.id, "coupon.create", "coupon", coupon.id, { code: coupon.code });
   return ok(coupon, 201);
-}
+});

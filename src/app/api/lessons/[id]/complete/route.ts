@@ -4,9 +4,9 @@ import { recordAchievement } from "@/lib/events";
 import { isLessonUnlocked } from "@/lib/progression";
 import { recomputeEnrollmentProgress } from "@/lib/enrollment";
 import { track } from "@/lib/analytics";
-import { ok, fail } from "@/lib/api";
+import { ok, fail, withRoute } from "@/lib/api";
 
-export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+export const POST = withRoute(async (_req: Request, { params }: { params: Promise<{ id: string }> }) => {
   const session = await getSession();
   if (!session) return fail("Not authenticated", 401);
   const { id } = await params;
@@ -38,4 +38,4 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
   await track("lesson_complete", session.id, { lessonId: id });
 
   return ok({ xp, streak, shares, courseProgress: progress });
-}
+});
