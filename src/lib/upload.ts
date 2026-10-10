@@ -4,7 +4,49 @@ import { randomBytes } from "crypto";
 
 // Local-disk upload pipeline. In production this becomes presigned-URL uploads to
 // object storage (S3) + an async AV scan; here we validate MIME/size/extension and
-// store under /public/uploads so the platform is runnable without cloud infra.
+// store on local disk so the platform is runnable without cloud infra.
+//
+// Files live in UPLOAD_DIR, OUTSIDE the app directory, and are served by the
+// /uploads/[userId]/[name] route. They used to go in public/uploads, which broke
+// twice over: Next only serves public/ files that existed at build time, and the
+// self-hosted deploy swaps the whole app directory, discarding everything in it.
+// Set UPLOAD_DIR to a persistent path in production (e.g. /home/riff/uploads).
+// The default is fine for local dev; on Render's ephemeral disk uploads still
+// vanish on redeploy until they move to object storage.
+
+/** Root directory for stored uploads. */
+export function uploadRoot(): string {
+  return process.env.UPLOAD_DIR || join(process.cwd(), "storage", "uploads");
+}
+
+const SAFE_USER = /^[a-z0-9]{1,64}$/i;
+const SAFE_NAME = /^[a-f0-9]{24}\.(png|jpg|webp|gif|mp3|wav|m4a|mp4|mov|pdf)$/;
+
+/**
+ * Absolute path of a stored upload, or null when the segments aren't exactly the
+ * shape saveUpload() produces (rules out traversal and arbitrary file reads).
+ */
+export function resolveUploadPath(userId: string, name: string, root = uploadRoot()): string | null {
+  if (!SAFE_USER.test(userId) || !SAFE_NAME.test(name)) return null;
+  return join(root, userId, name);
+}
+
+const EXT_MIME: Record<string, string> = {
+  png: "image/png",
+  jpg: "image/jpeg",
+  webp: "image/webp",
+  gif: "image/gif",
+  mp3: "audio/mpeg",
+  wav: "audio/wav",
+  m4a: "audio/mp4",
+  mp4: "video/mp4",
+  mov: "video/quicktime",
+  pdf: "application/pdf",
+};
+
+export function mimeForUpload(name: string): string {
+  return EXT_MIME[name.slice(name.lastIndexOf(".") + 1)] ?? "application/octet-stream";
+}
 
 const MAX_BYTES = 25 * 1024 * 1024; // 25 MB
 
@@ -45,7 +87,7 @@ export async function saveUpload(userId: string, file: File): Promise<UploadResu
   // Lightweight magic-byte sanity check (defense in depth vs. spoofed MIME).
   if (!magicBytesMatch(buf, file.type)) return { error: "File contents do not match its type" };
 
-  const dir = join(process.cwd(), "public", "uploads", userId);
+  const dir = join(uploadRoot(), userId);
   await mkdir(dir, { recursive: true });
   const name = `${randomBytes(12).toString("hex")}.${ext}`;
   await writeFile(join(dir, name), buf);

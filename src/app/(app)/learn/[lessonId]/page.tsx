@@ -68,6 +68,7 @@ export default async function LearnPage({ params }: { params: Promise<{ lessonId
               questions: lesson.quiz.questions.map((q) => ({
                 id: q.id,
                 prompt: q.prompt,
+                type: q.type,
                 options: JSON.parse(q.options),
               })),
             }

@@ -9,7 +9,7 @@ import type { TrackReturnLink } from "@/lib/returnLink";
 type Quiz = {
   id: string;
   passThreshold: number;
-  questions: { id: string; prompt: string; options: { id: string; text: string }[] }[];
+  questions: { id: string; prompt: string; type: string; options: { id: string; text: string }[] }[];
 };
 type Assignment = { id: string; title: string; instructions: string };
 type Lesson = {
@@ -229,6 +229,7 @@ function QuizStep({ quiz, onPass }: { quiz: Quiz; onPass: (msg: string) => void 
         return (
           <div key={q.id}>
             <div className="font-medium mb-2">{qi + 1}. {q.prompt}</div>
+            {q.type === "multi" && <p className="text-xs text-[var(--muted)] -mt-1 mb-2">Select all that apply.</p>}
             <div className="space-y-2">
               {q.options.map((o) => {
                 const selected = answers[q.id]?.includes(o.id);
@@ -236,7 +237,16 @@ function QuizStep({ quiz, onPass }: { quiz: Quiz; onPass: (msg: string) => void 
                   <button
                     key={o.id}
                     disabled={!!result}
-                    onClick={() => setAnswers((a) => ({ ...a, [q.id]: [o.id] }))}
+                    onClick={() =>
+                      setAnswers((a) => {
+                        // A "multi" question is only correct when exactly the right
+                        // set is chosen (see /api/quizzes/[id]/attempts), so its
+                        // options toggle; every other type is single-choice.
+                        if (q.type !== "multi") return { ...a, [q.id]: [o.id] };
+                        const cur = a[q.id] ?? [];
+                        return { ...a, [q.id]: cur.includes(o.id) ? cur.filter((x) => x !== o.id) : [...cur, o.id] };
+                      })
+                    }
                     className={`w-full text-left px-4 py-2.5 rounded-lg border text-sm transition ${
                       selected ? "border-[var(--brand)] bg-[var(--surface-2)]" : "border-[var(--border)] hover:border-[var(--muted)]"
                     }`}
