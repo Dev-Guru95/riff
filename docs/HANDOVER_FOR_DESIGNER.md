@@ -20,6 +20,7 @@ Product pillars you'll be designing around:
 - **Gamification** — XP, 9 levels (Beginner Artist → Music Entrepreneur), daily streaks, badges, progress rings/bars. This is where most of the "feel" lives — it should be celebratory and motivating.
 - **AI features** — assignment review (score + strengths/weaknesses/next actions), an AI Artist Coach (streaming chat mentor), a Career Roadmap generator, and a Social Media Audit.
 - **Community & competition** — forums, peer feedback, leaderboards (global/country/genre), weekly missions.
+- **Native execution tools (NEW — biggest recent addition)** — beyond *learning*, artists now **do the work inside Riff** instead of leaving for Trello/Canva/Buffer/Mailchimp/Linktree/spreadsheets. Two surfaces: **Projects** (Trello-style Kanban boards with ready-made templates) and **Studio** (AI writing tools, Brand Kit, Fan CRM, Broadcasts, a public Link-in-Bio page, Revenue/Merch/Gigs, Bookings, Goals, and a Career Dashboard). ~19 tools across all 8 course tracks — a major new design surface.
 - **Admin** — a full role-gated back office for authoring courses, reviewing AI scores, moderation, etc.
 
 > Deeper product background lives in `PLATFORM.md` and `APP_BRIEF_FOR_COURSE.md`. Read those if you want the full story; this doc is the design-focused subset.
@@ -84,6 +85,37 @@ Every screen in the product, grouped by area. **File paths are included** so you
 | Certificates & badges | `/certificates` | `src/app/(app)/certificates/page.tsx` |
 | Billing settings | `/settings/billing` | `src/app/(app)/settings/billing/page.tsx` |
 
+### Projects — Kanban boards (NEW — high design priority)
+| Screen | Route | File |
+|---|---|---|
+| **Boards list + dashboard** — due today/overdue/upcoming, project progress, team workload, global search | `/boards` | `src/app/(app)/boards/page.tsx` |
+| **Board view** — columns + cards, drag-and-drop, filter bar, card drawer (checklists/labels/assignees/comments/@mentions/attachments/watch), Members/Activity/Archived panels | `/boards/[id]` | `src/app/(app)/boards/[id]/page.tsx` (+ `BoardView.tsx`, `CardModal.tsx`, `BoardPanels.tsx`) |
+
+The card drawer (`CardModal.tsx`) and the drag-and-drop board (`BoardView.tsx`) are the most interaction-dense screens in the whole product — prime design targets. Board templates live in `src/lib/board-templates.ts`.
+
+### Studio — execution tools (NEW — high design priority)
+| Screen | Route | File |
+|---|---|---|
+| **Studio hub** — launcher grouping all tools; Career Dashboard featured | `/studio` | `src/app/(app)/studio/page.tsx` |
+| **Career Dashboard** — aggregate KPIs (XP, revenue, fans, tasks, goals) | `/studio/dashboard` | `src/app/(app)/studio/dashboard/page.tsx` |
+| **AI Builders** — Bio & Brand-Statement Builder, Editorial Pitch Writer (0–100 Riff Score + feedback) | `/studio/bio`, `/studio/editorial_pitch` | `src/app/(app)/studio/[kind]/page.tsx` (+ `AiBuilder.tsx`) |
+| **Caption & Hashtag Generator** (AI) | `/studio/caption` | `src/app/(app)/studio/caption/…` |
+| **Brand Kit** — palette, fonts, logos, guidelines | `/studio/brand-kit` | `src/app/(app)/studio/brand-kit/…` |
+| **Fan CRM** — contacts + tag segments | `/studio/fans` | `src/app/(app)/studio/fans/…` |
+| **Broadcasts** — compose + segment targeting | `/studio/broadcasts` | `src/app/(app)/studio/broadcasts/…` |
+| **Link-in-Bio** — editor for the public page | `/studio/link-in-bio` | `src/app/(app)/studio/link-in-bio/…` |
+| **Revenue & Budget** — income/expense ledger + totals | `/studio/finance` | `src/app/(app)/studio/finance/…` |
+| **Merch & Gigs** — inline-editable planners | `/studio/merch` | `src/app/(app)/studio/merch/…` |
+| **Booking Scheduler** — inquiry → confirmed pipeline | `/studio/bookings` | `src/app/(app)/studio/bookings/…` |
+| **Goals & Milestones** — goals with milestone checklists | `/studio/goals` | `src/app/(app)/studio/goals/…` |
+
+### Public (NEW — unauthenticated; needs its own visual identity)
+| Screen | Route | File |
+|---|---|---|
+| **Link-in-Bio public page** — an artist's shareable landing page (no login) | `/u/[handle]` | `src/app/u/[handle]/page.tsx` |
+
+> This is the **only unauthenticated, outward-facing screen** in the product — it's what an artist's fans actually see, so it deserves distinct, on-brand design (and it should feel like *the artist's* page, themed by their chosen accent color).
+
 ### Admin (back office — role-gated, lower design priority but part of the package)
 | Screen | Route | File |
 |---|---|---|
@@ -97,7 +129,7 @@ Every screen in the product, grouped by area. **File paths are included** so you
 | Course import | `/admin/import` | `src/app/(admin)/admin/import/page.tsx` |
 | Security / MFA | `/admin/security` | `src/app/(admin)/admin/security/page.tsx` |
 
-**The app shell:** the artist-facing app uses a sticky **top nav** (`TopNav` in `src/components/ui.tsx`, applied via `src/app/(app)/layout.tsx`) — one bar, ~10 links wide, over a `max-w-5xl` centered container, no sidebar. The **admin** area uses a different shell: a **left sidebar** (`src/app/(admin)/admin/layout.tsx`). So there are already two navigation paradigms in the product. Whether the top nav scales (it's already crowded, and won't survive mobile) is an open design question — see §6.
+**The app shell:** the artist-facing app uses a sticky **top nav** (`TopNav` in `src/components/ui.tsx`, applied via `src/app/(app)/layout.tsx`) — one bar, now **~12 links wide** (the new **Projects** and **Studio** entries were added to an already-crowded bar), over a `max-w-5xl` centered container, no sidebar. Each of those two entries is itself a hub with many sub-tools, so the nav model is now under real strain (see §6). The **admin** area uses a different shell: a **left sidebar** (`src/app/(admin)/admin/layout.tsx`). So there are already two navigation paradigms in the product. Whether the top nav scales (it's already crowded, and won't survive mobile) is an open design question — see §6.
 
 ---
 
@@ -169,7 +201,7 @@ These aren't blockers — they're the grain of the material. Designing with them
 Good things to align on with the boss/team before deep design work:
 
 1. **Mobile-first vs. current desktop layout** — the product vision is a mobile app; the web build is desktop-centered. Which is the priority surface, and do we need both fully designed?
-2. **Navigation model** — the single wide top nav (~10 links) is already crowded and won't survive mobile. Sidebar? Bottom tab bar? Grouped nav? This affects every screen.
+2. **Navigation model** — the single wide top nav (now ~12 links, including the new **Projects** and **Studio** hubs) is over-crowded and won't survive mobile. Projects and Studio are each hubs with 10+ sub-tools, so this now needs a real IA (grouped nav / sidebar / bottom tab bar / a "Studio" launcher pattern). This affects every screen and is arguably the most urgent structural question.
 3. **Light mode?** — dark-only today. Add it or commit to dark.
 4. **Brand identity** — is the violet/pink/cyan palette and "Riff" wordmark locked, or open to a full brand exploration? (Note: product/course docs also use the name "Soundring" — **confirm the canonical product name**, it's currently ambiguous across docs.)
 5. **Design tooling & deliverable format** — Figma file + design tokens? A component spec? Redlines? Agree on what "done" looks like for handoff back to engineering.
@@ -181,13 +213,22 @@ Good things to align on with the boss/team before deep design work:
 ## 7. What's in this handover package
 
 - **This document** (`HANDOVER_FOR_DESIGNER.md`) — your map.
+- **`FEATURE_GUIDE.md`** — **how to use the new Projects + Studio tools**, feature by feature, with step-by-step flows. Start here to actually *drive* the new surfaces before redesigning them.
 - **`PLATFORM.md`** — product positioning, feature list, and user-flow diagrams.
 - **`APP_BRIEF_FOR_COURSE.md`** — the product experience/journey and terminology (written for course authors, but great product context).
 - **`README.md`** — full feature list + engineering/setup detail.
 - **`ACHIEVEMENTS.md`** — how badges/certificates work (relevant since their art is a design deliverable).
+- **`sample-course-import.docx`** — a ready-to-upload demo file for the admin Course Import flow (`/admin/import`).
 - **The running app** — seeded and clickable via §2. This is the real reference; the docs describe intent, the app shows the current reality.
 
-**Suggested first hour:** run the app (§2), log in as the artist, and click through the loop — Dashboard → Courses → a Lesson → submit the assignment → see the AI feedback → check the Leaderboard and Community. Then log in as admin and skim `/admin`. That end-to-end pass will tell you more than any doc.
+**Suggested first hour (click-through):** run the app (§2), log in as the artist, and walk the whole thing:
+
+1. **The learn loop:** Dashboard → Courses → a Lesson → submit the assignment → see the AI feedback → check the Leaderboard and Community.
+2. **Projects (new):** top nav → **Projects** → **+ New board** → pick the *Content Calendar* template → drag a card between columns → open a card and add a checklist, a label, and a comment.
+3. **Studio (new):** top nav → **Studio** → open the **Career Dashboard**, then try an **AI Builder** (write a bio → **Get Riff Score**), and set up **Link-in-Bio** → **Publish** → open your public page at `/u/<handle>` in a fresh tab (no login).
+4. **Admin:** log in as admin and skim `/admin`, then **Admin → Import** and upload `sample-course-import.docx` to see the course-import preview → **Publish** the imported course.
+
+Follow `FEATURE_GUIDE.md` alongside this for the exact step-by-step of every tool. That end-to-end pass will tell you more than any doc.
 
 ---
 

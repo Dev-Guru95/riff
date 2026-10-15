@@ -1,0 +1,617 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Riff — Visual Tour (UI/UX Handover)</title>
+<style>
+  :root{
+    --bg:#0a0a0f; --surface:#14141c; --surface2:#1c1c28; --border:#2a2a3a;
+    --fg:#ededf2; --muted:#9a9ab0; --brand:#8b5cf6; --brand2:#ec4899; --accent:#22d3ee;
+    --success:#34d399; --warning:#fbbf24;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--fg);
+    font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    line-height:1.55;-webkit-font-smoothing:antialiased}
+  a{color:var(--accent);text-decoration:none}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 20px}
+
+  header.hero{padding:72px 20px 40px;text-align:center;
+    background:radial-gradient(1200px 400px at 50% -10%, rgba(139,92,246,.18), transparent 70%)}
+  .brand{display:inline-flex;align-items:center;gap:.5rem;font-weight:700;font-size:1.1rem;margin-bottom:22px}
+  .brand .dot{color:var(--brand)}
+  h1{font-size:clamp(2rem,5vw,3.2rem);line-height:1.05;margin:.2em 0 .3em;letter-spacing:-.02em}
+  h1 .grad{background:linear-gradient(135deg,var(--brand),var(--brand2));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .sub{color:var(--muted);max-width:640px;margin:0 auto;font-size:1.05rem}
+  .pill{display:inline-block;font-size:.72rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
+    color:var(--accent);background:rgba(34,211,238,.1);border:1px solid rgba(34,211,238,.25);
+    padding:.35rem .7rem;border-radius:999px;margin-bottom:8px}
+
+  .meta{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:26px}
+  .chip{font-size:.82rem;color:var(--muted);background:var(--surface);border:1px solid var(--border);
+    padding:.4rem .8rem;border-radius:999px}
+  .chip b{color:var(--fg);font-weight:600}
+
+  .note{max-width:820px;margin:34px auto 0;background:var(--surface);border:1px solid var(--border);
+    border-radius:14px;padding:18px 20px;color:var(--muted);font-size:.92rem}
+  .note b{color:var(--fg)}
+
+  nav.toc{max-width:820px;margin:26px auto 0;display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+  nav.toc a{font-size:.82rem;color:var(--muted);border:1px solid var(--border);background:var(--surface);
+    padding:.35rem .7rem;border-radius:8px}
+  nav.toc a:hover{color:var(--fg);border-color:var(--brand)}
+
+  section.group{padding:56px 0 8px}
+  .ghead{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin-bottom:6px}
+  .ghead h2{font-size:1.6rem;margin:0;letter-spacing:-.01em}
+  .ghead .count{color:var(--muted);font-size:.9rem}
+  .gdesc{color:var(--muted);margin:0 0 8px;max-width:760px}
+  .rule{height:1px;background:linear-gradient(90deg,var(--brand),transparent);border:0;margin:14px 0 30px}
+
+  .screen{margin:0 0 54px;scroll-margin-top:20px}
+  .screen .cap{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:4px}
+  .screen .num{font-variant-numeric:tabular-nums;color:var(--brand);font-weight:700;font-size:.95rem}
+  .screen h3{margin:0;font-size:1.25rem;letter-spacing:-.01em}
+  .screen .route{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.8rem;color:var(--accent);
+    background:var(--surface2);border:1px solid var(--border);padding:.15rem .5rem;border-radius:6px}
+  .screen .lead{color:var(--muted);margin:.2rem 0 16px}
+
+  .frame{border:1px solid var(--border);border-radius:14px;overflow:hidden;background:var(--surface);
+    box-shadow:0 10px 40px rgba(0,0,0,.35)}
+  .frame .bar{display:flex;align-items:center;gap:6px;padding:9px 12px;background:var(--surface2);
+    border-bottom:1px solid var(--border)}
+  .frame .bar i{width:11px;height:11px;border-radius:50%;display:inline-block;background:var(--border)}
+  .frame .bar i:nth-child(1){background:#ff5f57}.frame .bar i:nth-child(2){background:#febc2e}.frame .bar i:nth-child(3){background:#28c840}
+  .frame .bar span{margin-left:8px;font-size:.75rem;color:var(--muted);font-family:ui-monospace,monospace}
+  .frame img{display:block;width:100%;height:auto}
+
+  .anno{margin:16px 0 0;padding:0}
+  .anno .lbl{font-size:.72rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+  ul.notes{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+  ul.notes li{position:relative;padding-left:22px;color:var(--fg);font-size:.95rem}
+  ul.notes li::before{content:"";position:absolute;left:0;top:.55em;width:8px;height:8px;border-radius:2px;
+    background:linear-gradient(135deg,var(--brand),var(--accent))}
+  ul.notes li.opp::before{background:linear-gradient(135deg,var(--brand2),var(--warning))}
+  ul.notes li .k{color:var(--muted)}
+  .tag{display:inline-block;font-size:.68rem;font-weight:600;letter-spacing:.04em;text-transform:uppercase;
+    padding:.12rem .45rem;border-radius:5px;margin-right:6px;vertical-align:middle}
+  .tag.state{color:var(--warning);background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.3)}
+  .tag.flag{color:var(--brand2);background:rgba(236,72,153,.12);border:1px solid rgba(236,72,153,.3)}
+
+  .legend{display:flex;gap:20px;flex-wrap:wrap;color:var(--muted);font-size:.85rem;margin-top:10px}
+  .legend span{display:inline-flex;align-items:center;gap:8px}
+  .legend .sq{width:10px;height:10px;border-radius:2px;display:inline-block}
+  .sq.obs{background:linear-gradient(135deg,var(--brand),var(--accent))}
+  .sq.opp{background:linear-gradient(135deg,var(--brand2),var(--warning))}
+
+  footer{border-top:1px solid var(--border);margin-top:40px;padding:34px 20px 60px;color:var(--muted);
+    font-size:.9rem;text-align:center}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="brand"><span class="dot">●</span> Riff</div>
+    <div class="pill">UI / UX Handover · Visual Tour</div>
+    <h1>Every screen in <span class="grad">Riff</span>, annotated.</h1>
+    <p class="sub">A click-through of the live product as it stands today — captured screen by screen so you can
+      see the current state before you redesign it. Pair this with <b>HANDOVER_FOR_DESIGNER.md</b> in this folder
+      for the full context, design tokens, and file map.</p>
+    <div class="meta">
+      <span class="chip"><b>33</b> screens</span>
+      <span class="chip"><b>Dark</b> theme (only)</span>
+      <span class="chip"><b>Tailwind 4</b> + CSS vars</span>
+      <span class="chip">Captured at <b>1440×900</b></span>
+      <span class="chip">State: <b>functional, engineer-built</b></span>
+    </div>
+
+    <div class="note">
+      <b>How to read this.</b> Each screen shows a full-page capture from the running app (seeded demo data),
+      then two kinds of notes: <span style="color:var(--fg)">what's there today</span> and
+      <span style="color:var(--fg)">design opportunities</span>. Nothing here is final — the whole point of the
+      handover is that the visual and interaction design is yours to define. A few screens are captured in a
+      gated or empty state; those are labelled <span class="tag state" style="margin:0">state</span> so you know
+      it's the real behaviour, not a broken page.
+    </div>
+
+    <div class="legend">
+      <span><i class="sq obs"></i> Observation — what exists now</span>
+      <span><i class="sq opp"></i> Opportunity — where design can lift it</span>
+    </div>
+
+    <nav class="toc">
+      <a href="#marketing">Marketing</a>
+      <a href="#auth">Auth</a>
+      <a href="#artist">Artist experience</a>
+      <a href="#projects">Projects</a>
+      <a href="#studio">Studio</a>
+      <a href="#public">Public</a>
+      <a href="#admin">Admin</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- ============ MARKETING ============ -->
+  <section class="group" id="marketing">
+    <div class="ghead"><h2>Marketing / Entry</h2><span class="count">1 screen · public</span></div>
+    <p class="gdesc">The only unauthenticated marketing surface — and the product's single biggest
+      brand-expression moment.</p>
+    <hr class="rule" />
+
+    <article class="screen" id="s01">
+      <div class="cap"><span class="num">01</span><h3>Landing page</h3><span class="route">/</span></div>
+      <p class="lead">Hero headline, one-line value prop, and a six-card feature grid.</p>
+      <div class="frame"><div class="bar"><i></i><i></i><i></i><span>localhost:3000/</span></div>
+        <img src="screenshots/01-landing.png" alt="Landing page" loading="lazy" /></div>
+      <div class="anno">
+        <div class="lbl">Notes</div>
+        <ul class="notes">
+          <li>The violet→pink gradient wordmark and the "business" gradient word are the core brand cue — it's used sparingly.</li>
+          <li>Feature cards use emoji icons (🎯🔥🤖📈🧭🏆), not an icon set.</li>
+          <li class="opp"><b>Opportunity:</b> this is where a real brand system lands first — type scale, hero art/illustration, motion, and a proper icon language.</li>
+          <li class="opp"><b>Opportunity:</b> single long centered column; lots of empty vertical space to compose with.</li>
+        </ul>
+      </div>
+    </article>
+  </section>
+
+  <!-- ============ AUTH ============ -->
+  <section class="group" id="auth">
+    <div class="ghead"><h2>Auth</h2><span class="count">2 screens · public</span></div>
+    <p class="gdesc">Email + password only today. Minimal single-card layouts.</p>
+    <hr class="rule" />
+
+    <article class="screen" id="s02">
+      <div class="cap"><span class="num">02</span><h3>Log in</h3><span class="route">/login</span></div>
+      <p class="lead">Centered card, email + password, links to sign up. Supports a TOTP second-factor step when an admin has MFA enabled.</p>
+      <div class="frame"><div class="bar"><i></i><i></i><i></i><span>localhost:3000/login</span></div>
+        <img src="screenshots/02-login.png" alt="Log in" loading="lazy" /></div>
+      <div class="anno"><div class="lbl">Notes</div>
+        <ul class="notes">
+          <li>One card, no split-screen, no imagery — purely functional right now.</li>
+          <li class="opp"><b>Opportunity:</b> brand moment; consider social login, a value-prop side panel, and stronger input/focus states.</li>
+        </ul></div>
+    </article>
+
+    <article class="screen" id="s03">
+      <div class="cap"><span class="num">03</span><h3>Sign up</h3><span class="route">/signup</span></div>
+      <p class="lead">Same card as login, plus an "Artist / stage name" field.</p>
+      <div class="frame"><div class="bar"><i></i><i></i><i></i><span>localhost:3000/signup</span></div>
+        <img src="screenshots/03-signup.png" alt="Sign up" loading="lazy" /></div>
+      <div class="anno"><div class="lbl">Notes</div>
+        <ul class="notes">
+          <li>Single step — no onboarding/goal-intake flow yet (the product concept describes a goal + genre intake; not built on web).</li>
+          <li class="opp"><b>Opportunity:</b> first-run onboarding is a whole flow to design (goals, genre, connect socials).</li>
+        </ul></div>
+    </article>
+  </section>
+
+  <!-- ============ ARTIST ============ -->
+  <section class="group" id="artist">
+    <div class="ghead"><h2>Artist experience</h2><span class="count">13 screens · authenticated · <span style="color:var(--fg)">the heart of the product</span></span></div>
+    <p class="gdesc">Everything behind login for a normal artist. Shares a sticky <b>top nav</b> (~10 links).
+      This is where most of your time — and the product's "feel" — should go.</p>
+    <hr class="rule" />
+
+    <article class="screen" id="s04">
+      <div class="cap"><span class="num">04</span><h3>Dashboard</h3><span class="route">/dashboard</span></div>
+      <p class="lead">The home base: level + XP ring, streak / XP / badges / rank stats, "your next move", daily &amp; weekly goals, rank tiles, a toolkit grid, milestone progress bars, and earned achievements.</p>
+      <div class="frame"><div class="bar"><i></i><i></i><i></i><span>localhost:3000/dashboard</span></div>
+        <img src="screenshots/04-dashboard.png" alt="Dashboard" loading="lazy" /></div>
+      <div class="anno"><div class="lbl">Notes</div>
+        <ul class="notes">
+          <li>The densest and most important screen — nearly all gamification lives here (XP ring, streaks, milestones, badges).</li>
+          <li>Uses the signature violet→cyan gradient on every progress bar; stat tiles are emoji + number + label.</li>
+          <li class="opp"><b>Opportunity:</b> visual hierarchy — right now every block has equal weight. What should an artist see <i>first</i>?</li>
+          <li class="opp"><b>Opportunity:</b> this is the celebration surface. Level-ups, streak flames, badge unlocks all want delightful motion and richer art.</li>
+          <li class="opp"><b>Opportunity:</b> long single column — needs a deliberate mobile stacking + a desktop layout that isn't just "everything centered."</li>
+        </ul></div>
+    </article>
+
+    <article class="screen" id="s05">
+      <div class="cap"><span class="num">05</span><h3>Courses</h3><span class="route">/courses</span></div>
+      <p class="lead">The catalog of available tracks/courses with progress.</p>
+      <div class="frame"><div class="bar"><i></i><i></i><i></i><span>localhost:3000/courses</span></div>
+        <img src="screenshots/05-courses.png" alt="Courses list" loading="lazy" /></div>
+      <div class="anno"><div class="lbl">Notes</div>
+        <ul class="notes">
+          <li>Card list; course art is minimal/placeholder.</li>
+          <li class="opp"><b>Opportunity:</b> course thumbnails/cover art system, progress + lock states, filtering as the catalog grows.</li>
+        </ul></div>
+    </article>
+
+    <article class="screen" id="s06">
+      <div class="cap"><span class="num">06</span><h3>Course detail</h3><span class="route">/courses/[slug]</span></div>
+      <p class="lead">A course's modules and lessons, with <b>gated progression</b> — a lesson unlocks only when the previous one is complete.</p>
+      <div class="frame"><div class="bar"><i></i><i></i><i></i><span>localhost:3000/courses/…</span></div>
+        <img src="screenshots/06-course-detail.png" alt="Course detail" loading="lazy" /></div>
+      <div class="anno"><div class="lbl">Notes</div>
+        <ul class="notes">
+          <li>Locked vs. unlocked vs. completed lesson states are a core interaction — currently minimal styling.</li>
+          <li class="opp"><b>Opportunity:</b> make progression legible and motivating (path/track metaphor, clear lock affordances).</li>
+        </ul></div>
+    </article>
+
+    <article class="screen" id="s07">
+      <div class="cap"><span class="num">07</span><h3>Lesson player</h3><span class="route">/learn/[lessonId]</span></div>
+      <p class="lead">Where the learning loop happens: lesson content → quiz → assignment submission → AI feedback, with celebration toasts on XP/level/badge events.</p>
+      <div class="frame"><div class="bar"><i></i><i></i><i></i><span>localhost:3000/learn/…</span></div>
+        <img src="screenshots/07-lesson-player.png" alt="Lesson player" loading="lazy" /></div>
+      <div class="anno"><div class="lbl">Notes</div>
+        <ul class="notes">
+          <li>Multiple modes in one screen (read, quiz, submit, results). The reward/celebration moments live here too.</li>
+          <li class="opp"><b>Opportunity:</b> the single most-used flow — reading comfort, quiz interaction, submit affordance, and the "you earned X" moment all deserve care.</li>
+        </ul></div>
+    </article>
+
+    <article class="screen" id="s08">
+      <div class="cap"><span class="num">08</span><h3>AI Coach</h3><span class="route">/coach</span> <span class="tag state">gated state</span></div>
+      <p class="lead">The AI Coach is a <b>Pro feature</b>. Because the demo account isn't community-verified, this capture shows the <b>Pro-gate</b> (<code>ProGate</code> component), not the chat itself.</p>
+      <div class="frame"><div class="bar"><i></i><i></i><i></i><span>localhost:3000/coach</span></div>
+        <img src="screenshots/08-coach.png" alt="AI Coach Pro-gate" loading="lazy" /></div>
+      <div class="anno"><div class="lbl">Notes</div>
+        <ul class="notes">
+          <li>This is the reusable <b>upsell / gate</b> pattern (also fronts Community) — a key conversion surface worth designing well.</li>
+          <li>Behind the gate: a streaming chat mentor UI (token-by-token replies, 👍/👎 feedback) — <span class="k">worth asking a dev to unlock a verified account so you can see it.</span></li>
+          <li class="opp"><span class="tag flag">flag</span><b>Naming:</b> this screen says <b>"Soundring"</b> while the rest of the app says <b>"Riff."</b> The product name is inconsistent across the codebase — worth locking before design.</li>
+        </ul></div>
+    </article>
+
+    <article class="screen" id="s09">
+      <div class="cap"><span class="num">09</span><h3>Weekly missions</h3><span class="route">/missions</span></div>
+      <p class="lead">Rotating real-world challenges that award XP + streak on completion.</p>
+      <div class="frame"><div class="bar"><i></i><i></i><i></i><span>localhost:3000/missions</span></div>
+        <img src="screenshots/09-missions.png" alt="Weekly missions" loading="lazy" /></div>
+      <div class="anno"><div class="lbl">Notes</div>
+        <ul class="notes">
+          <li>List of mission cards with reward values and completion state.</li>
+          <li class="opp"><b>Opportunity:</b> make missions feel like quests — progress, categories, reward reveal.</li>
+        </ul></div>
+    </article>
+
+    <article class="screen" id="s10">
+      <div class="cap"><span class="num">10</span><h3>Social media audit</h3><span class="route">/audit</span></div>
+      <p class="lead">Connect platforms and get four scores — Marketing, Branding, Growth, Consistency — with month-over-month deltas and AI recommendations.</p>
+      <div class="frame"><div class="bar"><i></i><i></i><i></i><span>localhost:3000/audit</span></div>
+        <img src="screenshots/10-audit.png" alt="Social media audit" loading="lazy" /></div>
+      <div class="anno"><div class="lbl">Notes</div>
+        <ul class="notes">
+          <li>Data-viz heavy: four scores + trend deltas. Prime territory for a clean scorecard / charts system.</li>
+          <li class="opp"><b>Opportunity:</b> a proper data-visualization language (gauges, deltas, sparklines) — currently basic numbers.</li>
+        </ul></div>
+    </article>
+
+    <article class="screen" id="s11">
+      <div class="cap"><span class="num">11</span><h3>Career roadmap</h3><span class="route">/roadmap</span></div>
+      <p class="lead">Generates personalized 30/90-day &amp; 6/12-month growth plans with milestones and concrete tasks.</p>
+      <div class="frame"><div class="bar"><i></i><i></i><i></i><span>localhost:3000/roadmap</span></div>
+        <img src="screenshots/11-roadmap.png" alt="Career roadmap" loading="lazy" /></div>
+      <div class="anno"><div class="lbl">Notes</div>
+        <ul class="notes">
+          <li>Timeline/plan content — likely an empty or generate-first state until the artist runs it.</li>
+          <li class="opp"><b>Opportunity:</b> a timeline/roadmap visual metaphor; empty-state + generating states to design.</li>
+        </ul></div>
+    </article>
+
+    <article class="screen" id="s12">
+      <div class="cap"><span class="num">12</span><h3>Community</h3><span class="route">/community</span> <span class="tag state">gated state</span></div>
+      <p class="lead">Forums, threads, peer feedback, win showcases, accountability groups. Also a Pro feature gated behind Skool-membership verification.</p>
+      <div class="frame"><div class="bar"><i></i><i></i><i></i><span>localhost:3000/community</span></div>
+        <img src="screenshots/12-community.png" alt="Community" loading="lazy" /></div>
+      <div class="anno"><div class="lbl">Notes</div>
+        <ul class="notes">
+          <li>Community proper lives on Skool; this in-app area surfaces groups/threads once verified.</li>
+          <li class="opp"><b>Opportunity:</b> forum/thread reading &amp; posting UI, group cards, and the share-a-win flow.</li>
+        </ul></div>
+    </article>
+
+    <article class="screen" id="s13">
+      <div class="cap"><span class="num">13</span><h3>Leaderboard</h3><span class="route">/leaderboard</span></div>
+      <p class="lead">Composite ranking with global / country / genre scopes.</p>
+      <div class="frame"><div class="bar"><i></i><i></i><i></i><span>localhost:3000/leaderboard</span></div>
+        <img src="screenshots/13-leaderboard.png" alt="Leaderboard" loading="lazy" /></div>
+      <div class="anno"><div class="lbl">Notes</div>
+        <ul class="notes">
+          <li>Ranked table with scope tabs. Competitive surface — wants podium/rank flair.</li>
+          <li class="opp"><b>Opportunity:</b> top-3 treatment, the current user's row highlight, rank movement indicators.</li>
+        </ul></div>
+    </article>
+
+    <article class="screen" id="s14">
+      <div class="cap"><span class="num">14</span><h3>Pricing / plans</h3><span class="route">/pricing</span></div>
+      <p class="lead">Free / Pro / Premium plan comparison (Stripe-backed).</p>
+      <div class="frame"><div class="bar"><i></i><i></i><i></i><span>localhost:3000/pricing</span></div>
+        <img src="screenshots/14-pricing.png" alt="Pricing" loading="lazy" /></div>
+      <div class="anno"><div class="lbl">Notes</div>
+        <ul class="notes">
+          <li>Plan cards with feature lists. A conversion-critical page.</li>
+          <li class="opp"><b>Opportunity:</b> plan-comparison clarity, "most popular" emphasis, feature-matrix design.</li>
+        </ul></div>
+    </article>
+
+    <article class="screen" id="s15">
+      <div class="cap"><span class="num">15</span><h3>Certificates &amp; badges</h3><span class="route">/certificates</span></div>
+      <p class="lead">Earned journey badges, per-course completion badges, and the program certificate.</p>
+      <div class="frame"><div class="bar"><i></i><i></i><i></i><span>localhost:3000/certificates</span></div>
+        <img src="screenshots/15-certificates.png" alt="Certificates" loading="lazy" /></div>
+      <div class="anno"><div class="lbl">Notes</div>
+        <ul class="notes">
+          <li><b>Badge and certificate art are placeholder SVGs</b> (in <code>public/badges/</code> &amp; <code>public/certificate/</code>) — designed to be swapped file-for-file with no code changes.</li>
+          <li class="opp"><b>Opportunity:</b> a self-contained, high-value deliverable — design the full badge set + certificate artwork.</li>
+        </ul></div>
+    </article>
+
+    <article class="screen" id="s16">
+      <div class="cap"><span class="num">16</span><h3>Billing settings</h3><span class="route">/settings/billing</span> <span class="tag state">unconfigured</span></div>
+      <p class="lead">Subscription / billing management. Shows a "not configured" state until Stripe keys are set.</p>
+      <div class="frame"><div class="bar"><i></i><i></i><i></i><span>localhost:3000/settings/billing</span></div>
+        <img src="screenshots/16-billing.png" alt="Billing settings" loading="lazy" /></div>
+      <div class="anno"><div class="lbl">Notes</div>
+        <ul class="notes">
+          <li>There's no general Settings/Profile area yet — billing is the only settings page.</li>
+          <li class="opp"><b>Opportunity:</b> a broader account/settings information architecture (profile, notifications, socials, billing).</li>
+        </ul></div>
+    </article>
+  </section>
+
+  <!-- ============ PROJECTS ============ -->
+  <section class="group" id="projects">
+    <div class="ghead"><h2>Projects — Kanban boards</h2><span class="count">2 screens · authenticated · <span class="tag flag">NEW</span></span></div>
+    <p class="gdesc">Native Trello-style project management. Boards are created from templates (Content Calendar,
+      Release Planner, Pitch Tracker, Outreach CRM, Collaboration) that seed the right columns + labels. This is
+      the most interaction-dense surface in the product.</p>
+    <hr class="rule" />
+
+    <article class="screen" id="s24">
+      <div class="cap"><span class="num">24</span><h3>Projects — list &amp; dashboard</h3><span class="route">/boards</span></div>
+      <p class="lead">A personal dashboard (due today / overdue / upcoming, project progress, team workload, recently active) with a global search box, above the grid of boards. "+ New board" opens a template picker.</p>
+      <div class="frame"><div class="bar"><i></i><i></i><i></i><span>localhost:3000/boards</span></div>
+        <img src="screenshots/24-projects.png" alt="Projects list and dashboard" loading="lazy" /></div>
+      <div class="anno"><div class="lbl">Notes</div>
+        <ul class="notes">
+          <li>Reuses the <span class="k">.card</span> + <span class="k">Stat</span>/<span class="k">ProgressBar</span> primitives — consistent with the rest of the app.</li>
+          <li>Template picker is a card gallery (icon + name + track tag).</li>
+          <li class="opp"><b>Opportunity:</b> dense information hierarchy — stat tiles, task lists, progress, and the board grid compete for attention; a clear visual rhythm would help.</li>
+        </ul></div>
+    </article>
+
+    <article class="screen" id="s25">
+      <div class="cap"><span class="num">25</span><h3>Board view</h3><span class="route">/boards/[id]</span></div>
+      <p class="lead">Columns + cards with drag-and-drop, a filter bar (text/label/assignee/priority), and header panels (Members, Activity, Archived). Clicking a card opens a rich detail drawer (checklists, labels, assignees, due dates, comments + @mentions, attachments, watch, duplicate/archive).</p>
+      <div class="frame"><div class="bar"><i></i><i></i><i></i><span>localhost:3000/boards/…</span></div>
+        <img src="screenshots/25-board-view.png" alt="Kanban board view" loading="lazy" /></div>
+      <div class="anno"><div class="lbl">Notes</div>
+        <ul class="notes">
+          <li>Horizontal-scrolling columns; native HTML5 drag-and-drop on desktop (tap-to-move on mobile).</li>
+          <li>The card drawer (<span class="k">CardModal.tsx</span>) packs the most controls of any screen in the product.</li>
+          <li class="opp"><b>Opportunity:</b> the whole Kanban interaction model — card design, drag affordances, the drawer's information density, and a real mobile pattern — is open canvas.</li>
+        </ul></div>
+    </article>
+  </section>
+
+  <!-- ============ STUDIO ============ -->
+  <section class="group" id="studio">
+    <div class="ghead"><h2>Studio — execution tools</h2><span class="count">7 screens · authenticated · <span class="tag flag">NEW</span></span></div>
+    <p class="gdesc">Where artists <i>do the work</i> — AI writing tools, business managers, and a public page — so they
+      never leave for Canva/Buffer/Mailchimp/Linktree/spreadsheets. <code>/studio</code> is a hub launcher; the
+      rest are individual tools (Broadcasts, Merch &amp; Gigs, Bookings, Goals, Caption Generator are not pictured
+      but share the same card/list patterns).</p>
+    <hr class="rule" />
+
+    <article class="screen" id="s26">
+      <div class="cap"><span class="num">26</span><h3>Studio hub</h3><span class="route">/studio</span></div>
+      <p class="lead">A launcher grouping every tool — Career Dashboard (featured), AI tools, and "assets &amp; business" managers — as track-tagged cards.</p>
+      <div class="frame"><div class="bar"><i></i><i></i><i></i><span>localhost:3000/studio</span></div>
+        <img src="screenshots/26-studio.png" alt="Studio hub" loading="lazy" /></div>
+      <div class="anno"><div class="lbl">Notes</div>
+        <ul class="notes">
+          <li>Card grid with emoji icons + "Track N" tags mapping each tool to a course track.</li>
+          <li class="opp"><b>Opportunity:</b> this hub + the nav are the answer to the app's IA problem — a launcher pattern could absorb the crowded top nav.</li>
+        </ul></div>
+    </article>
+
+    <article class="screen" id="s27">
+      <div class="cap"><span class="num">27</span><h3>Career Dashboard</h3><span class="route">/studio/dashboard</span></div>
+      <p class="lead">A read-only overview aggregating XP/level, streak, badges, net revenue, fans, boards, open tasks, and goal progress from across the whole platform.</p>
+      <div class="frame"><div class="bar"><i></i><i></i><i></i><span>localhost:3000/studio/dashboard</span></div>
+        <img src="screenshots/27-career-dashboard.png" alt="Career Dashboard" loading="lazy" /></div>
+      <div class="anno"><div class="lbl">Notes</div>
+        <ul class="notes">
+          <li>Pulls live data from many features into one KPI view — the "single pane of glass" for a career.</li>
+          <li class="opp"><b>Opportunity:</b> prime surface for data-viz polish (sparklines, trends, goal rings).</li>
+        </ul></div>
+    </article>
+
+    <article class="screen" id="s28">
+      <div class="cap"><span class="num">28</span><h3>AI Builder (Bio / Editorial Pitch)</h3><span class="route">/studio/bio</span></div>
+      <p class="lead">Write a bio/pitch, hit "Get Riff Score", and get a 0–100 score + strengths, weaknesses, recommendations, and next actions. Keeps multiple drafts. Same pattern powers the Editorial Pitch Writer and the Caption Generator.</p>
+      <div class="frame"><div class="bar"><i></i><i></i><i></i><span>localhost:3000/studio/bio</span></div>
+        <img src="screenshots/28-ai-builder.png" alt="AI Builder with Riff Score" loading="lazy" /></div>
+      <div class="anno"><div class="lbl">Notes</div>
+        <ul class="notes">
+          <li>Two-pane: draft list + editor; the score uses the existing <span class="k">ProgressRing</span>.</li>
+          <li>AI is real when a key is set, else a deterministic mock — the screen always looks populated.</li>
+          <li class="opp"><b>Opportunity:</b> the score + feedback reveal is a delight moment (motion, celebratory framing) like the gamification screens.</li>
+        </ul></div>
+    </article>
+
+    <article class="screen" id="s29">
+      <div class="cap"><span class="num">29</span><h3>Brand Kit</h3><span class="route">/studio/brand-kit</span></div>
+      <p class="lead">Colour palette (with pickers), fonts, uploaded logos/assets, and markdown brand guidelines — one reusable source of truth.</p>
+      <div class="frame"><div class="bar"><i></i><i></i><i></i><span>localhost:3000/studio/brand-kit</span></div>
+        <img src="screenshots/29-brand-kit.png" alt="Brand Kit" loading="lazy" /></div>
+      <div class="anno"><div class="lbl">Notes</div>
+        <ul class="notes">
+          <li>Sectioned editor (colours / fonts / assets / guidelines) with inline add/remove rows.</li>
+          <li class="opp"><b>Opportunity:</b> could become a beautiful visual "brand board"; today it's utilitarian form rows.</li>
+        </ul></div>
+    </article>
+
+    <article class="screen" id="s30">
+      <div class="cap"><span class="num">30</span><h3>Fan CRM</h3><span class="route">/studio/fans</span></div>
+      <p class="lead">A contact list where tags become filterable <b>segments</b> (clickable chips with counts). Feeds the Broadcasts tool's targeting.</p>
+      <div class="frame"><div class="bar"><i></i><i></i><i></i><span>localhost:3000/studio/fans</span></div>
+        <img src="screenshots/30-fan-crm.png" alt="Fan CRM with segments" loading="lazy" /></div>
+      <div class="anno"><div class="lbl">Notes</div>
+        <ul class="notes">
+          <li>Segment chips + inline-editable tag fields; avatar initials as placeholders.</li>
+          <li class="opp"><b>Opportunity:</b> list-heavy — a CRM deserves clear row rhythm, bulk actions, and empty-state design.</li>
+        </ul></div>
+    </article>
+
+    <article class="screen" id="s31">
+      <div class="cap"><span class="num">31</span><h3>Revenue &amp; Budget</h3><span class="route">/studio/finance</span></div>
+      <p class="lead">Income/expense ledger with running totals (income · expenses · net) and a per-category breakdown.</p>
+      <div class="frame"><div class="bar"><i></i><i></i><i></i><span>localhost:3000/studio/finance</span></div>
+        <img src="screenshots/31-revenue.png" alt="Revenue and Budget tracker" loading="lazy" /></div>
+      <div class="anno"><div class="lbl">Notes</div>
+        <ul class="notes">
+          <li>Stat tiles for the totals; net is colour-coded green/pink.</li>
+          <li class="opp"><b>Opportunity:</b> add charts (income vs expense over time, category donut) — currently numbers only.</li>
+        </ul></div>
+    </article>
+
+    <article class="screen" id="s32">
+      <div class="cap"><span class="num">32</span><h3>Link-in-Bio editor</h3><span class="route">/studio/link-in-bio</span></div>
+      <p class="lead">Edit handle, title, bio, theme, and links — with a live preview — then Publish to a public page.</p>
+      <div class="frame"><div class="bar"><i></i><i></i><i></i><span>localhost:3000/studio/link-in-bio</span></div>
+        <img src="screenshots/32-link-in-bio.png" alt="Link-in-Bio editor" loading="lazy" /></div>
+      <div class="anno"><div class="lbl">Notes</div>
+        <ul class="notes">
+          <li>Split editor + live preview; theme picker is a row of accent swatches.</li>
+          <li class="opp"><b>Opportunity:</b> a Linktree competitor lives or dies on template/theme variety — big design surface (see the public output next).</li>
+        </ul></div>
+    </article>
+  </section>
+
+  <!-- ============ PUBLIC ============ -->
+  <section class="group" id="public">
+    <div class="ghead"><h2>Public — the artist's page</h2><span class="count">1 screen · public · <span class="tag flag">NEW</span></span></div>
+    <p class="gdesc">The only unauthenticated, outward-facing screen besides the landing page — what an artist's
+      fans actually see. It should feel like <i>the artist's</i> page, themed by their accent colour, not like Riff.</p>
+    <hr class="rule" />
+
+    <article class="screen" id="s33">
+      <div class="cap"><span class="num">33</span><h3>Link-in-Bio public page</h3><span class="route">/u/[handle]</span></div>
+      <p class="lead">The published landing page: avatar, name, bio, and themed link buttons. Self-contained, no app chrome, "Made with Riff" footer.</p>
+      <div class="frame"><div class="bar"><i></i><i></i><i></i><span>localhost:3000/u/demo-artist</span></div>
+        <img src="screenshots/33-public-link.png" alt="Public Link-in-Bio page" loading="lazy" /></div>
+      <div class="anno"><div class="lbl">Notes</div>
+        <ul class="notes">
+          <li>Renders with inline styles (independent of the app's Tailwind) so it stands alone; themed by the artist's chosen accent.</li>
+          <li>Link hrefs are scheme-coerced to https and marked <span class="k">rel="nofollow"</span>.</li>
+          <li class="opp"><b>Opportunity:</b> this is a marketing surface for the artist — multiple themes/layouts, cover art, embeds, and social-preview (OG) design are all wide open.</li>
+        </ul></div>
+    </article>
+  </section>
+
+  <!-- ============ ADMIN ============ -->
+  <section class="group" id="admin">
+    <div class="ghead"><h2>Admin back office</h2><span class="count">7 screens · role-gated</span></div>
+    <p class="gdesc">A separate area for staff (admin / reviewer / moderator). Note it uses a <b>left sidebar</b> —
+      a different navigation paradigm from the artist app's top nav. Lower design priority than the artist
+      experience, but part of the package. (More admin screens exist — course editor, content queue, import —
+      captured here are the primary ones.)</p>
+    <hr class="rule" />
+
+    <article class="screen" id="s17">
+      <div class="cap"><span class="num">17</span><h3>Admin overview</h3><span class="route">/admin</span></div>
+      <p class="lead">KPI tiles, 30-day activity, an engagement funnel, and a "needs attention" panel.</p>
+      <div class="frame"><div class="bar"><i></i><i></i><i></i><span>localhost:3000/admin</span></div>
+        <img src="screenshots/17-admin-overview.png" alt="Admin overview" loading="lazy" /></div>
+      <div class="anno"><div class="lbl">Notes</div>
+        <ul class="notes">
+          <li>Left sidebar shell + KPI/analytics dashboard. Most "product-like" admin screen.</li>
+          <li class="opp"><b>Opportunity:</b> a dashboard/data-viz system that could also feed the artist-facing audit screens.</li>
+        </ul></div>
+    </article>
+
+    <article class="screen" id="s18">
+      <div class="cap"><span class="num">18</span><h3>Course authoring</h3><span class="route">/admin/courses</span></div>
+      <p class="lead">Create/edit courses, modules, lessons, quizzes, and assignments; publish/draft toggle.</p>
+      <div class="frame"><div class="bar"><i></i><i></i><i></i><span>localhost:3000/admin/courses</span></div>
+        <img src="screenshots/18-admin-courses.png" alt="Admin courses" loading="lazy" /></div>
+      <div class="anno"><div class="lbl">Notes</div>
+        <ul class="notes">
+          <li>Content-management list; the full builder lives on the course-edit route.</li>
+          <li class="opp"><b>Opportunity:</b> table/list patterns, form design for the authoring flow.</li>
+        </ul></div>
+    </article>
+
+    <article class="screen" id="s19">
+      <div class="cap"><span class="num">19</span><h3>Assignment review queue</h3><span class="route">/admin/submissions</span></div>
+      <p class="lead">Where reviewers confirm or override flagged AI assignment scores.</p>
+      <div class="frame"><div class="bar"><i></i><i></i><i></i><span>localhost:3000/admin/submissions</span></div>
+        <img src="screenshots/19-admin-submissions.png" alt="Admin submissions" loading="lazy" /></div>
+      <div class="anno"><div class="lbl">Notes</div>
+        <ul class="notes">
+          <li>A queue/triage workflow — human-in-the-loop over AI scores.</li>
+          <li class="opp"><b>Opportunity:</b> efficient review UI (side-by-side submission + score + action).</li>
+        </ul></div>
+    </article>
+
+    <article class="screen" id="s20">
+      <div class="cap"><span class="num">20</span><h3>Moderation queue</h3><span class="route">/admin/moderation</span></div>
+      <p class="lead">Reported threads/posts/users, content removal, user blocking.</p>
+      <div class="frame"><div class="bar"><i></i><i></i><i></i><span>localhost:3000/admin/moderation</span></div>
+        <img src="screenshots/20-admin-moderation.png" alt="Admin moderation" loading="lazy" /></div>
+      <div class="anno"><div class="lbl">Notes</div>
+        <ul class="notes">
+          <li>Report triage list with actions.</li>
+          <li class="opp"><b>Opportunity:</b> clear action affordances + status states for a moderation workflow.</li>
+        </ul></div>
+    </article>
+
+    <article class="screen" id="s21">
+      <div class="cap"><span class="num">21</span><h3>Users</h3><span class="route">/admin/users</span></div>
+      <p class="lead">Manage roles and suspensions (with a self-suspend guard). Paginated.</p>
+      <div class="frame"><div class="bar"><i></i><i></i><i></i><span>localhost:3000/admin/users</span></div>
+        <img src="screenshots/21-admin-users.png" alt="Admin users" loading="lazy" /></div>
+      <div class="anno"><div class="lbl">Notes</div>
+        <ul class="notes">
+          <li>A data table with row actions + pagination.</li>
+          <li class="opp"><b>Opportunity:</b> a reusable table system (sort, filter, row actions) used across admin.</li>
+        </ul></div>
+    </article>
+
+    <article class="screen" id="s22">
+      <div class="cap"><span class="num">22</span><h3>Coupons &amp; rewards</h3><span class="route">/admin/coupons</span></div>
+      <p class="lead">Create coupons and issue Top-1000 rewards.</p>
+      <div class="frame"><div class="bar"><i></i><i></i><i></i><span>localhost:3000/admin/coupons</span></div>
+        <img src="screenshots/22-admin-coupons.png" alt="Admin coupons" loading="lazy" /></div>
+      <div class="anno"><div class="lbl">Notes</div>
+        <ul class="notes">
+          <li>Form + list management screen.</li>
+          <li class="opp"><b>Opportunity:</b> consistent form + list patterns shared with the rest of admin.</li>
+        </ul></div>
+    </article>
+
+    <article class="screen" id="s23">
+      <div class="cap"><span class="num">23</span><h3>Security / MFA</h3><span class="route">/admin/security</span></div>
+      <p class="lead">Admins enable TOTP two-factor (authenticator app) here.</p>
+      <div class="frame"><div class="bar"><i></i><i></i><i></i><span>localhost:3000/admin/security</span></div>
+        <img src="screenshots/23-admin-security.png" alt="Admin security" loading="lazy" /></div>
+      <div class="anno"><div class="lbl">Notes</div>
+        <ul class="notes">
+          <li>Setup flow (QR/secret + verify) — a small but real multi-step interaction.</li>
+          <li class="opp"><b>Opportunity:</b> clean, trustworthy security-setup UI patterns.</li>
+        </ul></div>
+    </article>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <p><b>Riff — UI/UX Handover.</b> This visual tour pairs with <b>HANDOVER_FOR_DESIGNER.md</b> (context, design tokens, component inventory, file map, open questions) in the same folder.</p>
+    <p>Screenshots are live captures of the seeded app on <code>localhost:3000</code>. To see any screen yourself: run the app and log in as
+      <code>demo@riff.app / password123</code> (artist) or <code>admin@riff.app / admin12345</code> (admin).</p>
+  </div>
+</footer>
+
+</body>
+</html>

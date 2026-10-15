@@ -1,0 +1,25 @@
+Riff Android App: Complete & Tested
+
+The Riff Android app is finished, installed and tested working on a physical Android device.
+
+USER FEATURES
+
+Dashboard with XP, levels, streaks, badges and goals; courses, lessons, action steps and quizzes; missions, roadmap, leaderboard and certificates; AI Coach; artist audit; community forums, threads and groups; full Kanban project boards; the complete Studio suite (brand kit, merch, gigs, finance, fans, broadcasts, bookings, goals, link-in-bio, caption tool); billing, coupons, notifications, search, file uploads and downloads.
+
+
+ADMIN FEATURES: ALL INCLUDED
+
+Admins log in with their existing accounts and get the full admin area: overview and analytics, course authoring, course import, review queue, moderation, user management and roles, coupons, AI content and security. Permissions are enforced by the server, so a normal user can never reach admin functions.
+
+
+DESIGN
+
+Identical branding, colours, typography and components to the website, adapted for phone screens with a mobile navigation drawer, touch-sized controls and correct keyboard handling.
+
+
+NATIVE ANDROID FEATURES
+
+Splash screen, offline and error screens, pull-to-refresh, back-button navigation, camera and file uploads, downloads, background notifications and deep links.
+
+
+The app is signed and ready to install or publish
