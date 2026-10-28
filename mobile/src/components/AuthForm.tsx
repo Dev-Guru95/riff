@@ -158,6 +158,9 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
       {/* Same policy links as the web's (auth) layout footer: a store reviewer
           must reach them without an account. */}
       <View style={styles.footer}>
+        <Text variant="caption" onPress={() => void openInBrowser(absoluteUrl("/terms"))} accessibilityRole="link" style={styles.footerLink}>
+          Terms of Use
+        </Text>
         <Text variant="caption" onPress={() => void openInBrowser(absoluteUrl("/privacy"))} accessibilityRole="link" style={styles.footerLink}>
           Privacy Policy
         </Text>

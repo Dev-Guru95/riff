@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { ok, withRoute } from "@/lib/api";
 import { requireStaff } from "@/lib/mobile/staff";
+import { reportPreview } from "@/lib/moderation";
 import type { AdminModerationResponse } from "@/lib/mobile/types";
 
 // GET /api/mobile/admin/moderation?status=open|dismissed|resolved|all —
@@ -19,14 +20,7 @@ export const GET = withRoute(async (req: Request) => {
 
   const enriched = await Promise.all(
     reports.map(async (r) => {
-      let preview: string;
-      if (r.targetType === "post") {
-        preview = (await prisma.post.findUnique({ where: { id: r.targetId }, select: { body: true } }))?.body ?? "(deleted)";
-      } else if (r.targetType === "thread") {
-        preview = (await prisma.thread.findUnique({ where: { id: r.targetId }, select: { title: true } }))?.title ?? "(deleted)";
-      } else {
-        preview = (await prisma.user.findUnique({ where: { id: r.targetId }, select: { email: true } }))?.email ?? "(deleted)";
-      }
+      const preview = await reportPreview(r.targetType, r.targetId);
       return {
         id: r.id,
         reporterId: r.reporterId,

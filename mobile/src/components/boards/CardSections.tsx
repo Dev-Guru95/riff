@@ -7,6 +7,7 @@ import { ActivityIndicator, Alert, Pressable, StyleSheet, TextInput, View } from
 import { absoluteUrl } from "@/config/env";
 import { errorMessage } from "@/api/errors";
 import { Markdown } from "@/components/Markdown";
+import { confirmBlock, useReport } from "@/components/moderation/useReport";
 import { Button, Icon, ProgressBar, QueryView, Skeleton, Text, useToast } from "@/components/ui";
 import { useApiQuery, useInvalidate } from "@/hooks/useApi";
 import { openInBrowser } from "@/lib/links";
@@ -308,6 +309,8 @@ export function CommentsSection({
   const { run } = useBoardAction();
   const sheet = useActionSheet();
   const prompt = usePrompt();
+  const report = useReport();
+  const invalidate = useInvalidate();
   const [text, setText] = useState("");
   const [posting, setPosting] = useState(false);
   const all = [...invalidates, path, `/api/cards/${cardId}/activity`];
@@ -324,6 +327,9 @@ export function CommentsSection({
   const others = members.filter((m) => m.userId !== currentUserId).slice(0, 6);
 
   function menu(c: CommentsResponse["comments"][number]) {
+    // The server lets authors edit/delete their own comments and managers any
+    // comment; everyone can report or block someone else's.
+    const canDelete = c.mine || can.manageColumns;
     sheet.show({
       title: `Comment by ${c.author}`,
       options: [
@@ -343,12 +349,42 @@ export function CommentsSection({
               },
             ]
           : []),
-        {
-          label: "Delete",
-          icon: "close" as const,
-          destructive: true,
-          onPress: () => confirm("Delete comment?", "This cannot be undone.", () => void run(`/api/comments/${c.id}`, { method: "DELETE", invalidates: all })),
-        },
+        ...(c.mine
+          ? []
+          : [
+              {
+                label: "Report this comment",
+                icon: "flag" as const,
+                onPress: () =>
+                  report.show({
+                    targetType: "comment" as const,
+                    targetId: c.id,
+                    title: "Report this comment",
+                    authorId: c.userId,
+                    authorName: c.author,
+                  }),
+              },
+              {
+                label: `Block ${c.author}`,
+                icon: "lock" as const,
+                destructive: true,
+                onPress: () =>
+                  confirmBlock(c.author, c.userId, (blocked) => {
+                    // Their comments are filtered server-side, so refetch.
+                    if (blocked) void invalidate(path);
+                  }),
+              },
+            ]),
+        ...(canDelete
+          ? [
+              {
+                label: "Delete",
+                icon: "close" as const,
+                destructive: true,
+                onPress: () => confirm("Delete comment?", "This cannot be undone.", () => void run(`/api/comments/${c.id}`, { method: "DELETE", invalidates: all })),
+              },
+            ]
+          : []),
       ],
     });
   }
@@ -364,29 +400,23 @@ export function CommentsSection({
       >
         {(d) => (
           <View style={{ gap: 12 }}>
-            {d.comments.map((c) => {
-              // The server lets authors delete their own comments and managers any comment.
-              const canAct = c.mine || can.manageColumns;
-              return (
-                <View key={c.id} style={{ gap: 2 }}>
-                  <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                    <Initials name={c.author} size={20} />
-                    <Text variant="caption" weight="medium" color={colors.foreground} numberOfLines={1} style={{ flexShrink: 1 }}>
-                      {c.author}
-                    </Text>
-                    <Text variant="caption" style={{ flex: 1 }}>{fmtTime(c.createdAt)}</Text>
-                    {canAct ? (
-                      <Pressable onPress={() => menu(c)} accessibilityRole="button" accessibilityLabel="Comment actions" style={styles.iconBtnSm}>
-                        <Icon name="more" size={16} color={colors.muted} />
-                      </Pressable>
-                    ) : null}
-                  </View>
-                  <View style={{ paddingLeft: 28 }}>
-                    <Markdown>{c.body}</Markdown>
-                  </View>
+            {d.comments.map((c) => (
+              <View key={c.id} style={{ gap: 2 }}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                  <Initials name={c.author} size={20} />
+                  <Text variant="caption" weight="medium" color={colors.foreground} numberOfLines={1} style={{ flexShrink: 1 }}>
+                    {c.author}
+                  </Text>
+                  <Text variant="caption" style={{ flex: 1 }}>{fmtTime(c.createdAt)}</Text>
+                  <Pressable onPress={() => menu(c)} accessibilityRole="button" accessibilityLabel={`Actions for ${c.author}'s comment`} style={styles.iconBtnSm}>
+                    <Icon name="more" size={16} color={colors.muted} />
+                  </Pressable>
                 </View>
-              );
-            })}
+                <View style={{ paddingLeft: 28 }}>
+                  <Markdown>{c.body}</Markdown>
+                </View>
+              </View>
+            ))}
           </View>
         )}
       </QueryView>
@@ -408,6 +438,7 @@ export function CommentsSection({
       ) : null}
       {sheet.element}
       {prompt.element}
+      {report.element}
     </View>
   );
 }

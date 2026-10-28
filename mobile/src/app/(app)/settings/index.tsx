@@ -148,6 +148,7 @@ export default function Settings() {
               </View>
               <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 16 }}>
                 <Button title="Billing" variant="ghost" onPress={() => router.push("/settings/billing")} />
+                <Button title="Terms of Use" variant="ghost" onPress={() => void openLink("/terms")} />
                 <Button title="Privacy policy" variant="ghost" onPress={() => void openLink("/privacy")} />
               </View>
             </Card>

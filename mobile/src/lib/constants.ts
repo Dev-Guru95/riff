@@ -20,6 +20,40 @@ export type SubmissionStatus = (typeof SUBMISSION_STATUS)[number];
 export const XP_SOURCES = ["lesson", "quiz", "assignment", "mission", "streak", "bonus"] as const;
 export type XpSource = (typeof XP_SOURCES)[number];
 
+// ===== Moderation =====
+// What a person can report from inside the product. `thread` and `post` are the
+// retired in-app forums, kept so historical reports still render in the admin
+// queue; the rest are the surfaces that exist today:
+//   coach_message  an AI Coach reply. Google Play's Generative AI policy
+//                  requires apps that generate content with AI to let users
+//                  report offensive output without leaving the app.
+//   comment        a comment on a board card. App Store guideline 1.2 requires
+//                  reporting and blocking wherever users see each other's
+//                  content.
+//   user           the author behind either of those.
+export const REPORT_TARGET_TYPES = ["thread", "post", "user", "coach_message", "comment"] as const;
+export type ReportTargetType = (typeof REPORT_TARGET_TYPES)[number];
+
+// A fixed reason list keeps reporting one tap and keeps the moderation queue
+// sortable. `Report.reason` stays free text: the label is stored, with the
+// reporter's own words appended when they add any.
+export const REPORT_REASONS = [
+  { key: "offensive", label: "Hateful or offensive" },
+  { key: "sexual", label: "Sexual or explicit" },
+  { key: "dangerous", label: "Violent or dangerous" },
+  { key: "harassment", label: "Harassment or bullying" },
+  { key: "spam", label: "Spam or a scam" },
+  { key: "other", label: "Something else" },
+] as const;
+export type ReportReasonKey = (typeof REPORT_REASONS)[number]["key"];
+
+/** The stored `reason` string: the chosen label, plus any detail typed by the reporter. */
+export function composeReportReason(key: ReportReasonKey, detail?: string): string {
+  const label = REPORT_REASONS.find((r) => r.key === key)?.label ?? "Something else";
+  const extra = detail?.trim();
+  return extra ? `${label} — ${extra}` : label;
+}
+
 // ===== Project Management (Kanban) =====
 // Per-board roles, most→least privileged. `owner` is the board creator (exactly
 // one); the rest are grantable. Capability checks live in src/lib/boards.ts.

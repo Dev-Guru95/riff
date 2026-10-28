@@ -2,6 +2,9 @@
 // Data: GET /api/mobile/coach (latest thread, or the community-locked state).
 // Send: POST /api/coach/threads/:id/messages, streamed token by token (SSE).
 // Feedback: PATCH /api/coach/messages/:id { feedback: "up" | "down" | null }.
+// Report: POST /api/community/report { targetType: "coach_message" } — Google
+// Play's Generative AI policy requires in-app reporting of AI output, so every
+// coach reply carries a ⚑ alongside the 👍/👎.
 
 import { useCallback, useRef, useState } from "react";
 import { Pressable, StyleSheet, TextInput, View, type NativeScrollEvent, type NativeSyntheticEvent } from "react-native";
@@ -15,7 +18,8 @@ import * as Haptics from "expo-haptics";
 import { get } from "@/api/client";
 import { ApiError, errorMessage } from "@/api/errors";
 import { StreamUnavailableError, streamCoachReply } from "@/components/coach/coachStream";
-import { Button, QueryView, Screen, Text, useToast } from "@/components/ui";
+import { useReport } from "@/components/moderation/useReport";
+import { Button, Icon, QueryView, Screen, Text, useToast } from "@/components/ui";
 import { useApiMutation, useApiQuery, useInvalidate } from "@/hooks/useApi";
 import { colors, fonts, gradients, radius, TOUCH, type as scale } from "@/theme/tokens";
 import type { CoachMessageItem, CoachResponse } from "@/types/api";
@@ -82,7 +86,15 @@ function CoachLocked({ pending, onRefresh }: { pending: boolean; onRefresh: () =
   );
 }
 
-function FeedbackButtons({ message, onChange }: { message: Msg; onChange: (f: Msg["feedback"]) => void }) {
+function FeedbackButtons({
+  message,
+  onChange,
+  onReport,
+}: {
+  message: Msg;
+  onChange: (f: Msg["feedback"]) => void;
+  onReport: () => void;
+}) {
   const mutation = useApiMutation();
   function rate(value: "up" | "down") {
     const next = message.feedback === value ? null : value;
@@ -109,11 +121,29 @@ function FeedbackButtons({ message, onChange }: { message: Msg; onChange: (f: Ms
           <Text style={{ fontSize: 12, lineHeight: 16, opacity: message.feedback === v ? 1 : 0.4 }}>{v === "up" ? "👍" : "👎"}</Text>
         </Pressable>
       ))}
+      {/* 👍/👎 tune the coach; ⚑ sends the reply to a human moderator. */}
+      <Pressable
+        onPress={onReport}
+        accessibilityRole="button"
+        accessibilityLabel="Report this reply"
+        hitSlop={6}
+        style={styles.feedbackBtn}
+      >
+        <Icon name="flag" size={12} color={colors.muted} />
+      </Pressable>
     </View>
   );
 }
 
-function Bubble({ m, onFeedback }: { m: Msg; onFeedback: (id: string, f: Msg["feedback"]) => void }) {
+function Bubble({
+  m,
+  onFeedback,
+  onReport,
+}: {
+  m: Msg;
+  onFeedback: (id: string, f: Msg["feedback"]) => void;
+  onReport: (m: Msg) => void;
+}) {
   const toast = useToast();
   const mine = m.role === "user";
   const copy = async () => {
@@ -138,7 +168,7 @@ function Bubble({ m, onFeedback }: { m: Msg; onFeedback: (id: string, f: Msg["fe
         <Button title="See plans" size="sm" variant="ghost" icon="card" onPress={() => router.push("/pricing")} style={{ marginTop: 6 }} />
       ) : null}
       {m.role === "assistant" && !m.error && !m.id.startsWith("a-") ? (
-        <FeedbackButtons message={m} onChange={(f) => onFeedback(m.id, f)} />
+        <FeedbackButtons message={m} onChange={(f) => onFeedback(m.id, f)} onReport={() => onReport(m)} />
       ) : null}
     </View>
   );
@@ -152,6 +182,15 @@ function CoachChat({ threadId, initial, stageName }: { threadId: string; initial
   const [streaming, setStreaming] = useState(false);
   const listRef = useRef<FlashListRef<Msg>>(null);
   const atBottom = useRef(true);
+  const report = useReport();
+  // Destructured so renderItem stays referentially stable: useReport() returns
+  // a fresh object each render, but show() itself is memoized.
+  const { show: showReport } = report;
+
+  const reportMessage = useCallback(
+    (m: Msg) => showReport({ targetType: "coach_message", targetId: m.id, title: "Report this AI Coach reply" }),
+    [showReport],
+  );
 
   const onScroll = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
@@ -239,7 +278,7 @@ function CoachChat({ threadId, initial, stageName }: { threadId: string; initial
           ref={listRef}
           data={messages}
           keyExtractor={(m) => m.id}
-          renderItem={({ item }) => <Bubble m={item} onFeedback={setFeedback} />}
+          renderItem={({ item }) => <Bubble m={item} onFeedback={setFeedback} onReport={reportMessage} />}
           ListEmptyComponent={
             <View style={styles.empty}>
               <Text style={{ fontSize: 36, lineHeight: 40, marginBottom: 12 }}>👋</Text>
@@ -303,6 +342,7 @@ function CoachChat({ threadId, initial, stageName }: { threadId: string; initial
           </Pressable>
         </View>
       </View>
+      {report.element}
     </KeyboardAvoidingView>
   );
 }

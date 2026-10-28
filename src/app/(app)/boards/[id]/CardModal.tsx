@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { MarkdownEditor } from "@/components/MarkdownEditor";
 import { renderMarkdown } from "@/lib/markdown";
+import { ReportControl } from "@/components/ReportControl";
 
 type Cap = Record<string, boolean>;
 type Label = { id: string; name: string; color: string };
@@ -448,8 +449,23 @@ export function CardModal({
                         </span>
                         <span className="text-xs font-medium">{c.author}</span>
                         <span className="text-xs text-[var(--muted)]">{fmtTime(c.createdAt)}</span>
-                        {c.mine && (
+                        {c.mine ? (
                           <button className="text-xs text-[var(--muted)] opacity-0 group-hover:opacity-100 hover:text-[var(--brand-2)] ml-auto" onClick={() => deleteComment(c.id)}>Delete</button>
+                        ) : (
+                          // Report + block on anyone else's comment (App Store
+                          // guideline 1.2). Blocking filters their comments
+                          // server-side, so reload the card afterwards.
+                          <span className="ml-auto opacity-0 group-hover:opacity-100 focus-within:opacity-100">
+                            <ReportControl
+                              targetType="comment"
+                              targetId={c.id}
+                              title="Report this comment"
+                              authorId={c.userId}
+                              authorName={c.author}
+                              onBlocked={() => void loadComments()}
+                              className="text-xs text-[var(--muted)] hover:text-[var(--brand-2)]"
+                            />
+                          </span>
                         )}
                       </div>
                       <div className="markdown-body text-sm pl-7" dangerouslySetInnerHTML={{ __html: renderMarkdown(c.body) }} />

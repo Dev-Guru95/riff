@@ -550,7 +550,17 @@ export type CommentDTO = { id: string; userId: string; author: string; body: str
 export async function loadCardComments(cardId: string, userId: string): Promise<CommentDTO[] | null> {
   const card = await prisma.card.findUnique({ where: { id: cardId }, select: { boardId: true } });
   if (!card || !(await boardAccess(card.boardId, userId))) return null;
-  const rows = await prisma.comment.findMany({ where: { cardId }, orderBy: { createdAt: "asc" }, take: 200 });
+  // Blocking has to do something visible, or it is not a block (App Store
+  // guideline 1.2): a blocked artist's comments disappear for the blocker, and
+  // only for them — everyone else on the board still sees the thread intact.
+  const blocked = (
+    await prisma.userBlock.findMany({ where: { blockerId: userId }, select: { blockedId: true } })
+  ).map((b) => b.blockedId);
+  const rows = await prisma.comment.findMany({
+    where: blocked.length ? { cardId, userId: { notIn: blocked } } : { cardId },
+    orderBy: { createdAt: "asc" },
+    take: 200,
+  });
   const names = await nameMap(rows.map((r) => r.userId));
   return rows.map((r) => ({
     id: r.id,

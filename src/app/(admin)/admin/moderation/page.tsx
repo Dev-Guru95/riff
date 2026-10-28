@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { reportPreview } from "@/lib/moderation";
 import { PageHeader, EmptyState, Chip } from "@/components/ui";
 import { ReportActions } from "./ModerationClient";
 
@@ -11,15 +12,9 @@ export default async function ModerationPage({ searchParams }: { searchParams: P
     take: 100,
   });
 
-  // Resolve reporter + a content preview per report.
+  // A readable one-line preview per report, in place of the raw target id.
   const enriched = await Promise.all(
-    reports.map(async (r) => {
-      let preview = "";
-      if (r.targetType === "post") preview = (await prisma.post.findUnique({ where: { id: r.targetId } }))?.body ?? "(deleted)";
-      else if (r.targetType === "thread") preview = (await prisma.thread.findUnique({ where: { id: r.targetId } }))?.title ?? "(deleted)";
-      else preview = (await prisma.user.findUnique({ where: { id: r.targetId } }))?.email ?? "(deleted)";
-      return { ...r, preview };
-    }),
+    reports.map(async (r) => ({ ...r, preview: await reportPreview(r.targetType, r.targetId) })),
   );
 
   const tabs = [
@@ -31,7 +26,7 @@ export default async function ModerationPage({ searchParams }: { searchParams: P
 
   return (
     <div className="max-w-3xl">
-      <PageHeader title="Moderation" subtitle="Reported threads, posts, and users." />
+      <PageHeader title="Moderation" subtitle="Reported comments, AI Coach replies, and artists." />
 
       <div className="flex gap-1 mb-5 overflow-x-auto">
         {tabs.map((t) => (

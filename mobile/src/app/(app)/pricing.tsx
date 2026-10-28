@@ -8,6 +8,7 @@ import { Stack } from "expo-router";
 import { useStripeRedirect } from "@/components/account/useStripeRedirect";
 import { Button, Card, QueryView, Screen, Text } from "@/components/ui";
 import { useApiQuery } from "@/hooks/useApi";
+import { openLink } from "@/lib/links";
 import { colors, fonts } from "@/theme/tokens";
 import type { BillingResponse } from "@/types/api";
 
@@ -72,9 +73,39 @@ export default function Pricing() {
             })}
 
             {d.billingConfigured ? (
-              <Text variant="caption" style={{ textAlign: "center" }}>
-                Checkout opens securely in your browser. Your plan updates here when you come back.
-              </Text>
+              <>
+                <Text variant="caption" style={{ textAlign: "center" }}>
+                  Checkout opens securely in your browser. Your plan updates here when you come back.
+                </Text>
+                {/* Price, billing period and cancellation route have to be
+                    visible where plans are sold, with Terms and Privacy linked
+                    (App Store 3.1.2, and Google Play's subscriptions policy). */}
+                <Text variant="caption" style={{ textAlign: "center" }}>
+                  Paid plans are billed monthly in US dollars and renew automatically until you cancel.
+                  Cancel any time from Settings → Billing; you keep your plan until the end of the month
+                  you have paid for.
+                </Text>
+                <View style={{ flexDirection: "row", justifyContent: "center", flexWrap: "wrap", columnGap: 20, rowGap: 8 }}>
+                  <Text
+                    variant="caption"
+                    color={colors.accent}
+                    accessibilityRole="link"
+                    style={{ paddingVertical: 6 }}
+                    onPress={() => void openLink("/terms")}
+                  >
+                    Terms of Use
+                  </Text>
+                  <Text
+                    variant="caption"
+                    color={colors.accent}
+                    accessibilityRole="link"
+                    style={{ paddingVertical: 6 }}
+                    onPress={() => void openLink("/privacy")}
+                  >
+                    Privacy Policy
+                  </Text>
+                </View>
+              </>
             ) : null}
           </>
         )}

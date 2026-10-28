@@ -8,7 +8,7 @@ export const metadata = {
 
 // Last substantive change to this policy. Update it whenever the content below
 // changes — reviewers and users both look for a real date.
-const LAST_UPDATED = "23 September 2026";
+const LAST_UPDATED = "28 October 2026";
 
 /**
  * Public, unauthenticated. The URL goes in the Play Console listing and must
@@ -30,19 +30,23 @@ export default function PrivacyPolicyPage() {
         </header>
 
         <p className="text-sm text-[var(--muted)]">
-          This policy covers the Riff website and the Riff Android app
-          (<span className="font-mono">com.riff.app</span>). Both are the same product and share
-          one account and one database, so everything here applies equally to whichever you use.
+          This policy covers the Riff website and the Riff mobile app for Android and iOS
+          (<span className="font-mono">com.riff.app</span>). All three are the same product and
+          share one account and one database, so everything here applies equally to whichever
+          you use.
         </p>
 
         <section className="card p-5">
           <h2 className="font-semibold mb-2">Who we are</h2>
           <p className="text-sm text-[var(--muted)]">
-            Riff is operated by [LEGAL ENTITY NAME], [REGISTERED ADDRESS]. For anything about
-            your data, contact{" "}
-            <a className="text-[var(--accent)] underline" href="mailto:support@soundring.io">
-              support@soundring.io
-            </a>.
+            Riff is operated by SoundRig, under our{" "}
+            <Link href="/terms" className="text-[var(--accent)] underline">Terms of Use</Link>. For
+            anything about your data — access, correction, export, deletion, or a complaint —
+            contact{" "}
+            <a className="text-[var(--accent)] underline" href="mailto:support@soundrig.io">
+              support@soundrig.io
+            </a>{" "}
+            and we will answer within 30 days.
           </p>
         </section>
 
@@ -53,7 +57,8 @@ export default function PrivacyPolicyPage() {
           <ul className="text-sm text-[var(--muted)] space-y-1 list-disc pl-5 mt-1">
             <li><strong className="text-[var(--foreground)]">Account:</strong> email address and a password. Passwords are stored only as a bcrypt hash — we never hold the password itself and cannot read it.</li>
             <li><strong className="text-[var(--foreground)]">Profile:</strong> artist/stage name, genres and country, if you provide them.</li>
-            <li><strong className="text-[var(--foreground)]">Your work:</strong> assignment submissions, uploaded files and images, project boards and cards, comments, Studio records (merch, gigs, finances, fans, bookings, goals), and community threads and posts.</li>
+            <li><strong className="text-[var(--foreground)]">Your work:</strong> assignment submissions, uploaded files and images, project boards, cards and the comments you leave on them, and Studio records (merch, gigs, finances, fans, bookings, goals).</li>
+            <li><strong className="text-[var(--foreground)]">Reports and blocks:</strong> if you report content or block another artist, we store who reported what, the reason you gave, and the outcome, so our moderators can act on it and so the same thing can be dealt with if it happens again.</li>
             <li><strong className="text-[var(--foreground)]">AI Coach messages:</strong> what you write to the coach, and a memory summarised from it.</li>
             <li><strong className="text-[var(--foreground)]">Two-factor secret:</strong> if you enable 2FA.</li>
           </ul>
@@ -71,10 +76,12 @@ export default function PrivacyPolicyPage() {
           </ul>
 
           <p className="text-sm text-[var(--muted)] mt-3">
-            The Android app collects nothing on its own. It has no advertising identifier, no
-            analytics SDK and no location, contacts or microphone access. It asks only for
-            notification permission, and for access to a file or the camera at the moment you
-            choose to upload something.
+            The mobile app collects nothing on its own. It has no advertising identifier, no
+            analytics or tracking SDK, and no access to your location, contacts, microphone or
+            call history. The only permissions it ever asks for are the camera and your photo
+            library, and only at the moment you choose to attach something to an assignment, a
+            card or your brand kit. It sends no push notifications, so it never asks for
+            notification access.
           </p>
         </section>
 
@@ -85,7 +92,7 @@ export default function PrivacyPolicyPage() {
             <li>To deliver the courses, track your progress and issue certificates.</li>
             <li>To run features you ask for — the AI coach, audits, boards, Studio tools and the leaderboard.</li>
             <li>To take payment for a paid plan and give you the right level of access.</li>
-            <li>To keep the community safe, by acting on reports and blocks.</li>
+            <li>To keep Riff safe: reviewing content you or others report — including replies from the AI Coach — hiding people you have blocked, and removing content or accounts that break the rules.</li>
             <li>To keep the service secure — rate limiting and abuse prevention.</li>
           </ul>
           <p className="text-sm text-[var(--muted)] mt-2">
@@ -134,7 +141,7 @@ export default function PrivacyPolicyPage() {
           <ul className="text-sm text-[var(--muted)] space-y-1 list-disc pl-5">
             <li><strong className="text-[var(--foreground)]">Delete your account</strong> at any time from Settings — see <Link href="/account/deletion" className="text-[var(--accent)] underline">how to delete your account</Link>.</li>
             <li><strong className="text-[var(--foreground)]">Disconnect a social account</strong> at any time from the audit screen.</li>
-            <li><strong className="text-[var(--foreground)]">Turn off notifications</strong> in your device settings.</li>
+            <li><strong className="text-[var(--foreground)]">Report content or block an artist</strong> from the ⋯ menu on any comment, or from the ⚑ button under any AI Coach reply. Blocking hides that person&apos;s comments from you.</li>
             <li>Depending on where you live you may also have the right to access, correct, export or restrict use of your data. Email us and we will action it.</li>
           </ul>
         </section>

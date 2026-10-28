@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { ReportControl } from "@/components/ReportControl";
 
 type Msg = { id: string; role: string; content: string };
 
@@ -21,9 +22,11 @@ function FeedbackButtons({ messageId }: { messageId: string }) {
     });
   }
   return (
-    <div className="flex gap-1 mt-1 ml-1">
+    <div className="flex gap-1 mt-1 ml-1 items-center">
       <button onClick={() => rate("up")} className={`text-xs ${rated === "up" ? "opacity-100" : "opacity-40 hover:opacity-80"}`} aria-label="Helpful">👍</button>
       <button onClick={() => rate("down")} className={`text-xs ${rated === "down" ? "opacity-100" : "opacity-40 hover:opacity-80"}`} aria-label="Not helpful">👎</button>
+      {/* 👍/👎 tune the coach; ⚑ sends the reply to a human moderator. */}
+      <ReportControl targetType="coach_message" targetId={messageId} title="Report this AI Coach reply" />
     </div>
   );
 }

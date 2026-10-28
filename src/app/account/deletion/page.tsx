@@ -44,8 +44,8 @@ export default function AccountDeletionPage() {
           <h2 className="font-semibold mb-2">Cannot sign in?</h2>
           <p className="text-sm text-[var(--muted)]">
             Email{" "}
-            <a className="text-[var(--accent)] underline" href="mailto:support@soundring.io">
-              support@soundring.io
+            <a className="text-[var(--accent)] underline" href="mailto:support@soundrig.io">
+              support@soundrig.io
             </a>{" "}
             from the address on the account and ask for it to be deleted. We will confirm it
             is you before acting, and complete the request within 30 days.

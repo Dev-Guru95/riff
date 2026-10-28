@@ -13,6 +13,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           reviewer must be able to reach them without an account. */}
       <footer className="border-t border-[var(--border)] py-5">
         <div className="max-w-5xl mx-auto px-4 flex flex-wrap justify-center gap-x-5 gap-y-2 text-xs text-[var(--muted)]">
+          <Link href="/terms" className="hover:text-[var(--foreground)]">Terms of Use</Link>
           <Link href="/privacy" className="hover:text-[var(--foreground)]">Privacy Policy</Link>
           <Link href="/account/deletion" className="hover:text-[var(--foreground)]">Delete your account</Link>
         </div>

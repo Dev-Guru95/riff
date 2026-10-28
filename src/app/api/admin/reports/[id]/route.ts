@@ -2,6 +2,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin, writeAudit } from "@/lib/admin";
 import { parseBody, ok, fail, withRoute } from "@/lib/api";
+import { removeReportedContent } from "@/lib/moderation";
 
 const schema = z.object({ action: z.enum(["resolve", "dismiss", "delete_content"]) });
 
@@ -16,10 +17,10 @@ export const PATCH = withRoute(async (req: Request, { params }: { params: Promis
   if (!report) return fail("Report not found", 404);
 
   if (body.data.action === "delete_content") {
-    // Remove the offending content, then mark resolved.
-    if (report.targetType === "post") await prisma.post.deleteMany({ where: { id: report.targetId } });
-    else if (report.targetType === "thread") await prisma.thread.deleteMany({ where: { id: report.targetId } });
-    else if (report.targetType === "user") await prisma.user.updateMany({ where: { id: report.targetId }, data: { status: "suspended" } });
+    // Remove the offending content, then mark resolved. What "remove" means per
+    // target type lives in lib/moderation so this route and the two moderation
+    // views cannot drift.
+    await removeReportedContent(report.targetType, report.targetId);
   }
 
   const status = body.data.action === "dismiss" ? "dismissed" : "resolved";

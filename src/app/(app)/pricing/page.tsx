@@ -2,6 +2,7 @@ import { requirePageSession } from "@/lib/auth";
 import { getPlan } from "@/lib/entitlements";
 import { isStripeConfigured, PLANS } from "@/lib/stripe";
 import { UpgradeButton } from "./PricingClient";
+import Link from "next/link";
 
 export default async function PricingPage() {
   const session = await requirePageSession();
@@ -55,6 +56,17 @@ export default async function PricingPage() {
           );
         })}
       </div>
+
+      {/* Price, billing period and cancellation route have to be visible where
+          plans are sold, with Terms and Privacy linked (App Store 3.1.2, and
+          Google Play's subscriptions policy). */}
+      <p className="text-xs text-[var(--muted)] text-center mt-6 max-w-xl mx-auto">
+        Paid plans are billed monthly in US dollars and renew automatically until you cancel.
+        Cancel any time from Settings → Billing; you keep your plan until the end of the month you
+        have paid for. See our{" "}
+        <Link href="/terms" className="text-[var(--accent)] underline">Terms of Use</Link> and{" "}
+        <Link href="/privacy" className="text-[var(--accent)] underline">Privacy Policy</Link>.
+      </p>
     </main>
   );
 }
