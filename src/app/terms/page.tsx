@@ -131,7 +131,8 @@ export default function TermsPage() {
               billed monthly. Any tax due is added at checkout.
             </li>
             <li><strong className="text-[var(--foreground)]">They renew automatically.</strong> A paid plan renews every month on the same date and charges the card you gave us, until you cancel it.</li>
-            <li><strong className="text-[var(--foreground)]">Cancel whenever you like</strong> — Settings → Billing, which opens our payment provider&apos;s portal. Cancelling stops the next charge; you keep the paid features until the end of the month you have already paid for. We do not refund part-months.</li>
+            <li><strong className="text-[var(--foreground)]">Plans are bought and managed on the Riff website</strong>, at Settings → Billing. The mobile apps do not sell plans and cannot change them — whatever you do on the website takes effect in the app straight away.</li>
+            <li><strong className="text-[var(--foreground)]">Cancel whenever you like</strong>, from that same page. Cancelling stops the next charge; you keep the paid features until the end of the month you have already paid for. We do not refund part-months.</li>
             <li><strong className="text-[var(--foreground)]">14-day cooling-off.</strong> If you are a consumer in the UK or EU you may cancel within 14 days of subscribing for a full refund. Because a paid plan unlocks content immediately, starting to use it means you agree we can begin straight away and accept that your refund may be reduced in proportion to what you have used. Email <Contact /> to exercise this right.</li>
             <li><strong className="text-[var(--foreground)]">Payments are handled by Stripe.</strong> Your card details go to Stripe and never reach us.</li>
             <li><strong className="text-[var(--foreground)]">If a price changes</strong> we will tell you at least 30 days before it affects you, and you can cancel before it does.</li>

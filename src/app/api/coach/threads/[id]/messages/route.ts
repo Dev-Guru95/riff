@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { getSession, isNativeClient } from "@/lib/auth";
 import { buildCoachContext, coachReply } from "@/lib/ai-coach";
 import { track } from "@/lib/analytics";
 import { withinCoachQuota } from "@/lib/entitlements";
@@ -21,7 +21,16 @@ export const POST = withRoute(async (req: Request, { params }: { params: Promise
   if (!rl.ok) return tooMany(rl.retryAfterSec);
   // Plan gate: free tier has a daily coach-message quota.
   if (!(await withinCoachQuota(session.id))) {
-    return fail("Daily coach limit reached on your plan. Upgrade for unlimited coaching.", 402);
+    // The app renders this string verbatim in the chat. Paid plans are not sold
+    // in the app (App Store 3.1.1 / Play Payments), and pointing a native user
+    // at an upgrade is itself the call to action those policies prohibit — so
+    // only the web gets the nudge.
+    return fail(
+      isNativeClient(req)
+        ? "You've reached today's coach limit on your plan. It resets tomorrow."
+        : "Daily coach limit reached on your plan. Upgrade for unlimited coaching.",
+      402,
+    );
   }
   const { id } = await params;
   const body = await parseBody(req, schema);

@@ -29,8 +29,8 @@ type Msg = {
   role: string;
   content: string;
   feedback: "up" | "down" | null;
-  /** Client-side error bubble (no feedback, optional action). */
-  error?: "upgrade" | "generic";
+  /** Client-side error bubble: no feedback buttons, no report. */
+  error?: boolean;
 };
 
 const SUGGESTIONS = [
@@ -164,9 +164,6 @@ function Bubble({
           </View>
         )}
       </Pressable>
-      {m.error === "upgrade" ? (
-        <Button title="See plans" size="sm" variant="ghost" icon="card" onPress={() => router.push("/pricing")} style={{ marginTop: 6 }} />
-      ) : null}
       {m.role === "assistant" && !m.error && !m.id.startsWith("a-") ? (
         <FeedbackButtons message={m} onChange={(f) => onFeedback(m.id, f)} onReport={() => onReport(m)} />
       ) : null}
@@ -242,7 +239,7 @@ function CoachChat({ threadId, initial, stageName }: { threadId: string; initial
         try {
           await reloadFromServer();
         } catch (e) {
-          setMessages((m) => [...m, { id: clientMsgId("e"), role: "assistant", content: errorMessage(e), feedback: null, error: "generic" }]);
+          setMessages((m) => [...m, { id: clientMsgId("e"), role: "assistant", content: errorMessage(e), feedback: null, error: true }]);
         }
       } else {
         const apiErr = err instanceof ApiError ? err : null;
@@ -252,10 +249,7 @@ function CoachChat({ threadId, initial, stageName }: { threadId: string; initial
         // Like the web: the error appears as a coach bubble (the server's own text
         // for quota / rate limits / validation).
         const content = apiErr && !["network", "timeout", "server"].includes(apiErr.kind) ? apiErr.message : errorMessage(err);
-        setMessages((m) => [
-          ...m,
-          { id: clientMsgId("e"), role: "assistant", content, feedback: null, error: apiErr?.status === 402 ? "upgrade" : "generic" },
-        ]);
+        setMessages((m) => [...m, { id: clientMsgId("e"), role: "assistant", content, feedback: null, error: true }]);
       }
     } finally {
       setLoading(false);

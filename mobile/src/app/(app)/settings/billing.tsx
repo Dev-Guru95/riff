@@ -1,11 +1,16 @@
-// Billing — the web's /settings/billing page.
-// Data: GET /api/mobile/billing. Manage: POST /api/billing/portal → Stripe
-// Billing Portal in the in-app browser, then the plan is re-read on return.
+// Billing — what you are on and what it gets you. Read-only.
+//
+// The web version opens the Stripe Billing Portal from here. The app must not:
+// that portal can start and change paid subscriptions, which makes it a
+// purchasing mechanism under App Store guideline 3.1.1 and Google Play's
+// Payments policy, and linking out to one is the same violation as embedding
+// it. Subscriptions are bought, changed and cancelled on the Riff website.
+//
+// Data: GET /api/mobile/billing.
 
 import { View } from "react-native";
 import { router, Stack } from "expo-router";
 
-import { useStripeRedirect } from "@/components/account/useStripeRedirect";
 import { Button, Card, QueryView, Screen, Text } from "@/components/ui";
 import { useApiQuery } from "@/hooks/useApi";
 import type { BillingResponse } from "@/types/api";
@@ -21,7 +26,6 @@ function Line({ label, value }: { label: string; value: string | number }) {
 
 export default function Billing() {
   const query = useApiQuery<BillingResponse>("/api/mobile/billing");
-  const { start, pending } = useStripeRedirect();
 
   return (
     <Screen onRefresh={query.refetch} contentStyle={{ gap: 20 }}>
@@ -50,16 +54,12 @@ export default function Billing() {
                 </View>
               </Card>
 
+              <Text variant="caption">
+                Your plan is managed on the Riff website. Anything you change there appears here
+                automatically.
+              </Text>
+
               <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-                {ent.plan === "free" ? (
-                  <Button title="Upgrade" onPress={() => router.push("/pricing")} />
-                ) : (
-                  <Button
-                    title={pending ? "Opening…" : "Manage subscription"}
-                    loading={pending === "portal"}
-                    onPress={() => void start("portal", "/api/billing/portal")}
-                  />
-                )}
                 <Button title="View plans" variant="ghost" onPress={() => router.push("/pricing")} />
               </View>
             </>

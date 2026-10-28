@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { getSession, isNativeClient } from "@/lib/auth";
 import { stripe, isStripeConfigured, PLANS, APP_URL } from "@/lib/stripe";
 import { parseBody, ok, fail, withRoute } from "@/lib/api";
 
@@ -9,6 +9,13 @@ const schema = z.object({ plan: z.enum(["pro", "premium"]) });
 export const POST = withRoute(async (req: Request) => {
   const session = await getSession();
   if (!session) return fail("Not authenticated", 401);
+  // Defence in depth. The app ships no purchase UI (App Store 3.1.1 / Play
+  // Payments: paid plans are sold on the website, and the app may not even
+  // link to a purchasing mechanism). Refusing the native client here means a
+  // stray link, a deep link or an older build cannot open one either.
+  if (isNativeClient(req)) {
+    return fail("Plans are managed on the Riff website.", 403, { reason: "not_available_in_app" });
+  }
   if (!isStripeConfigured() || !stripe) {
     console.warn("billing/checkout: Stripe is not configured — set STRIPE_SECRET_KEY and price IDs.");
     return fail("Upgrades aren't available yet.", 503);

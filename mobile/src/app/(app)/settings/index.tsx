@@ -57,7 +57,7 @@ function DeleteAccountForm() {
       Alert.alert(
         "Account deleted",
         res?.billingNeedsAttention
-          ? "Your account and its data have been permanently deleted. We couldn't reach the billing provider to cancel your subscription — please check your Stripe receipts or contact support so you aren't charged again."
+          ? "Your account and its data have been permanently deleted. We couldn't reach the billing provider to cancel your subscription — please check your payment receipts or contact support so you aren't charged again."
           : "Your account and its data have been permanently deleted.",
       );
     } catch (e) {

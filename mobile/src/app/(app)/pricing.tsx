@@ -1,112 +1,84 @@
-// Plans — the web's /pricing page.
-// Data: GET /api/mobile/billing. Upgrade: POST /api/billing/checkout { plan }
-// → Stripe Checkout in the in-app browser, then the plan is re-read on return.
+// Plans — what each tier includes, and which one you are on.
+//
+// This screen deliberately sells nothing. Pro and Premium unlock digital
+// content, so App Store guideline 3.1.1 and Google Play's Payments policy would
+// require them to be sold through in-app purchase. Riff sells them on the
+// website instead, which means the app must contain no purchase mechanism AND
+// no button, link or other call to action pointing at one — a link out is the
+// same violation as a checkout screen (outside the US storefront, where the
+// 2025 injunctions carved out an exception Riff does not rely on).
+//
+// So: no prices, no Upgrade buttons, no "subscribe at …" copy, nothing that
+// opens a browser. Just what you get, and what you are on. If that ever needs
+// to change, the compliant route is StoreKit / Play Billing, not a link.
+//
+// Data: GET /api/mobile/billing (read-only).
 
 import { View } from "react-native";
 import { Stack } from "expo-router";
 
-import { useStripeRedirect } from "@/components/account/useStripeRedirect";
-import { Button, Card, QueryView, Screen, Text } from "@/components/ui";
+import { Card, Chip, QueryView, Screen, Text } from "@/components/ui";
 import { useApiQuery } from "@/hooks/useApi";
 import { openLink } from "@/lib/links";
-import { colors, fonts } from "@/theme/tokens";
+import { colors } from "@/theme/tokens";
 import type { BillingResponse } from "@/types/api";
 
 export default function Pricing() {
   const query = useApiQuery<BillingResponse>("/api/mobile/billing");
-  const { start, pending } = useStripeRedirect();
 
   return (
     <Screen onRefresh={query.refetch}>
       <Stack.Screen options={{ title: "Plans" }} />
       <View>
         <Text variant="title">Plans</Text>
-        <Text variant="small" style={{ marginTop: 4 }}>Upgrade to unlock all courses, unlimited coaching, and full audits.</Text>
+        <Text variant="small" style={{ marginTop: 4 }}>
+          What each plan includes. Your plan is managed on the Riff website — changes you make
+          there show up here automatically.
+        </Text>
       </View>
       <QueryView query={query}>
         {(d) => (
           <>
-            {!d.billingConfigured ? (
-              <Card>
-                <Text>
-                  💳 <Text weight="bold">Upgrades are opening soon.</Text> Paid plans aren&apos;t available to purchase just yet — keep learning on Free and we&apos;ll let you know the moment they go live.
-                </Text>
-              </Card>
-            ) : null}
-
             {d.plans.map((p) => {
               const isCurrent = d.currentPlan === p.key;
-              const highlight = p.key === "pro";
               return (
-                <Card key={p.key} style={[{ padding: 24 }, highlight && { borderColor: colors.brand }]}>
-                  {highlight ? (
-                    <Text variant="caption" weight="semibold" color={colors.brand} style={{ marginBottom: 4 }}>MOST POPULAR</Text>
-                  ) : null}
-                  <Text variant="heading" weight="bold">{p.name}</Text>
-                  <Text style={{ fontSize: 30, lineHeight: 36, fontFamily: fonts.bold, color: colors.foreground, marginVertical: 8 }}>
-                    ${p.priceMonthly}
-                    <Text variant="small">/mo</Text>
-                  </Text>
-                  <View style={{ gap: 6, marginVertical: 16 }}>
+                <Card key={p.key} style={[{ padding: 24 }, isCurrent && { borderColor: colors.brand }]}>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                    <Text variant="heading" weight="bold" style={{ flex: 1 }}>{p.name}</Text>
+                    {isCurrent ? <Chip label="Your plan" tone="brand" /> : null}
+                  </View>
+                  <View style={{ gap: 6 }}>
                     {p.features.map((f) => (
                       <View key={f} style={{ flexDirection: "row", gap: 8 }}>
-                        <Text color={colors.success}>✓</Text>
-                        <Text style={{ flex: 1 }}>{f}</Text>
+                        <Text color={isCurrent ? colors.success : colors.muted}>✓</Text>
+                        <Text style={{ flex: 1 }} color={isCurrent ? colors.foreground : colors.muted}>{f}</Text>
                       </View>
                     ))}
                   </View>
-                  {isCurrent ? (
-                    <Button title="Current plan" variant="ghost" fullWidth disabled style={{ opacity: 0.7 }} />
-                  ) : p.key === "free" ? (
-                    <Button title="Free" variant="ghost" fullWidth disabled style={{ opacity: 0.5 }} />
-                  ) : (
-                    <Button
-                      fullWidth
-                      title={pending === p.key ? "Redirecting…" : !d.billingConfigured ? "Coming soon" : `Upgrade to ${p.key}`}
-                      loading={pending === p.key}
-                      disabled={!d.billingConfigured || (pending !== null && pending !== p.key)}
-                      onPress={() => void start(p.key, "/api/billing/checkout", { plan: p.key })}
-                    />
-                  )}
                 </Card>
               );
             })}
 
-            {d.billingConfigured ? (
-              <>
-                <Text variant="caption" style={{ textAlign: "center" }}>
-                  Checkout opens securely in your browser. Your plan updates here when you come back.
-                </Text>
-                {/* Price, billing period and cancellation route have to be
-                    visible where plans are sold, with Terms and Privacy linked
-                    (App Store 3.1.2, and Google Play's subscriptions policy). */}
-                <Text variant="caption" style={{ textAlign: "center" }}>
-                  Paid plans are billed monthly in US dollars and renew automatically until you cancel.
-                  Cancel any time from Settings → Billing; you keep your plan until the end of the month
-                  you have paid for.
-                </Text>
-                <View style={{ flexDirection: "row", justifyContent: "center", flexWrap: "wrap", columnGap: 20, rowGap: 8 }}>
-                  <Text
-                    variant="caption"
-                    color={colors.accent}
-                    accessibilityRole="link"
-                    style={{ paddingVertical: 6 }}
-                    onPress={() => void openLink("/terms")}
-                  >
-                    Terms of Use
-                  </Text>
-                  <Text
-                    variant="caption"
-                    color={colors.accent}
-                    accessibilityRole="link"
-                    style={{ paddingVertical: 6 }}
-                    onPress={() => void openLink("/privacy")}
-                  >
-                    Privacy Policy
-                  </Text>
-                </View>
-              </>
-            ) : null}
+            <View style={{ flexDirection: "row", justifyContent: "center", flexWrap: "wrap", columnGap: 20, rowGap: 8, marginTop: 4 }}>
+              <Text
+                variant="caption"
+                color={colors.accent}
+                accessibilityRole="link"
+                style={{ paddingVertical: 6 }}
+                onPress={() => void openLink("/terms")}
+              >
+                Terms of Use
+              </Text>
+              <Text
+                variant="caption"
+                color={colors.accent}
+                accessibilityRole="link"
+                style={{ paddingVertical: 6 }}
+                onPress={() => void openLink("/privacy")}
+              >
+                Privacy Policy
+              </Text>
+            </View>
           </>
         )}
       </QueryView>

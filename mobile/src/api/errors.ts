@@ -46,7 +46,9 @@ const FRIENDLY: Record<ApiErrorKind, string> = {
   validation: "Please check the details and try again.",
   conflict: "That conflicts with something that already exists.",
   rate_limited: "Too many requests. Wait a moment and try again.",
-  payment_required: "You've reached your plan's limit. Upgrade to continue.",
+  // No upgrade nudge: paid plans are not sold in the app (App Store 3.1.1 /
+  // Play Payments), and a call to action pointing at one is the violation.
+  payment_required: "You've reached your plan's limit.",
   server: "Something went wrong on our side. Please try again.",
 };
 
