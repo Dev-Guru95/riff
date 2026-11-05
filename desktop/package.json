@@ -1,0 +1,22 @@
+{
+  "name": "riff-desktop",
+  "productName": "Riff",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Riff for desktop — the Riff web app in its own window.",
+  "author": "Riff <devs@soundrig.io>",
+  "license": "UNLICENSED",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "start:local": "electron . --url=http://localhost:3000",
+    "build:win": "electron-builder --win",
+    "build:mac": "electron-builder --mac",
+    "build:linux": "electron-builder --linux",
+    "pack": "electron-builder --dir"
+  },
+  "devDependencies": {
+    "electron": "^39.0.0",
+    "electron-builder": "^26.0.12"
+  }
+}

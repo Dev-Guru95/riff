@@ -1,0 +1,59 @@
+# Builds the Riff desktop installers.
+#
+# The Windows installer can be built locally (`cd desktop && npm run build:win`);
+# a macOS .dmg cannot — electron-builder requires macOS to produce one. This
+# workflow exists so the .dmg can be built on a macOS runner without a Mac.
+#
+# Run it from the Actions tab ("Run workflow"), or let it run on a v* tag.
+# Installers are attached as workflow artifacts.
+
+name: Desktop build
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            script: build:mac
+            artifact: riff-desktop-macos
+          - os: windows-latest
+            script: build:win
+            artifact: riff-desktop-windows
+
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: desktop
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: desktop/package-lock.json
+
+      - run: npm ci
+
+      - run: npm run ${{ matrix.script }}
+        env:
+          # Unsigned builds: electron-builder otherwise tries to discover a
+          # signing identity in the runner keychain and fails.
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          if-no-files-found: error
+          path: |
+            desktop/dist/*.exe
+            desktop/dist/*.dmg

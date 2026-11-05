@@ -1,0 +1,44 @@
+appId: io.soundrig.riff.desktop
+productName: Riff
+copyright: Copyright © 2026 Riff
+
+directories:
+  output: dist
+  buildResources: build
+
+# The shell is three files; nothing from the web app is bundled.
+files:
+  - src/**/*
+  - package.json
+
+# Windows and macOS icons are generated from build/icon.png (1024×1024).
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+  artifactName: Riff-Setup-${version}.${ext}
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: Riff
+
+mac:
+  category: public.app-category.education
+  target:
+    - target: dmg
+      arch: [x64, arm64]
+  artifactName: Riff-${version}-${arch}.${ext}
+  # No Apple Developer account is configured yet, so the build is unsigned.
+  # Add signing + notarization here once one exists.
+  identity: null
+
+linux:
+  category: Education
+  target:
+    - target: AppImage
+      arch: [x64]
+  artifactName: Riff-${version}.${ext}
