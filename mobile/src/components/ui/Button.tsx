@@ -85,7 +85,9 @@ export function Button({
 const styles = StyleSheet.create({
   base: { borderRadius: radius.pill, overflow: "hidden", minHeight: TOUCH, justifyContent: "center", alignSelf: "flex-start" },
   full: { alignSelf: "stretch" },
-  gradient: { flex: 1, justifyContent: "center", borderRadius: radius.pill },
+  // flexGrow (not `flex: 1`, which forces flexBasis 0) so the gradient is sized by
+  // the label inside it and only grows to fill a taller Pressable.
+  gradient: { flexGrow: 1, alignSelf: "stretch", justifyContent: "center", borderRadius: radius.pill },
   inner: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 10, paddingHorizontal: 20, minHeight: TOUCH },
   innerSm: { paddingVertical: 6, paddingHorizontal: 14, minHeight: 36 },
   label: { fontFamily: fonts.semibold, fontSize: 14.4 },
