@@ -71,13 +71,13 @@ export function Button({
         style,
       ]}
     >
+      {/* Background layer, not a wrapper: an absolutely-positioned child adds
+          nothing to the Pressable's size, so the button is measured only by its
+          label and can never inflate to fill whatever space is above it. */}
       {variant === "primary" ? (
-        <LinearGradient {...gradients.brand} style={styles.gradient}>
-          {content}
-        </LinearGradient>
-      ) : (
-        content
-      )}
+        <LinearGradient {...gradients.brand} style={styles.gradient} pointerEvents="none" />
+      ) : null}
+      {content}
     </Pressable>
   );
 }
@@ -85,9 +85,10 @@ export function Button({
 const styles = StyleSheet.create({
   base: { borderRadius: radius.pill, overflow: "hidden", minHeight: TOUCH, justifyContent: "center", alignSelf: "flex-start" },
   full: { alignSelf: "stretch" },
-  // flexGrow (not `flex: 1`, which forces flexBasis 0) so the gradient is sized by
-  // the label inside it and only grows to fill a taller Pressable.
-  gradient: { flexGrow: 1, alignSelf: "stretch", justifyContent: "center", borderRadius: radius.pill },
+  // Fills the Pressable exactly. `base` clips it to the pill via overflow:hidden;
+  // the radius here is belt-and-braces for Android, where clipping a rounded
+  // parent has historically been unreliable.
+  gradient: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, borderRadius: radius.pill },
   inner: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 10, paddingHorizontal: 20, minHeight: TOUCH },
   innerSm: { paddingVertical: 6, paddingHorizontal: 14, minHeight: 36 },
   label: { fontFamily: fonts.semibold, fontSize: 14.4 },
