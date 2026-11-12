@@ -1,7 +1,8 @@
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getSession, isNativeClient } from "@/lib/auth";
-import { stripe, isStripeConfigured, PLANS, APP_URL } from "@/lib/stripe";
+import { stripe, isStripeConfigured, PLANS, APP_URL, statusGrantsAccess } from "@/lib/stripe";
+import { syncStripeSubscription } from "@/lib/subscriptions";
 import { parseBody, ok, fail, withRoute } from "@/lib/api";
 
 const schema = z.object({ plan: z.enum(["pro", "premium"]) });
@@ -23,21 +24,40 @@ export const POST = withRoute(async (req: Request) => {
   const body = await parseBody(req, schema);
   if (body.error) return body.error;
 
-  const priceId = PLANS[body.data.plan].priceId;
-  if (!priceId) return fail(`No Stripe price configured for the ${body.data.plan} plan`, 503);
+  const plan = body.data.plan;
+  const priceId = PLANS[plan].priceId;
+  if (!priceId) return fail(`No Stripe price configured for the ${plan} plan`, 503);
 
-  // Reuse the existing Stripe customer if we have one.
-  const sub = await prisma.subscription.findUnique({ where: { userId: session.id } });
-  let customerId = sub?.stripeCustomerId ?? undefined;
-  if (!customerId) {
-    const customer = await stripe.customers.create({ email: session.email, metadata: { userId: session.id } });
-    customerId = customer.id;
-    await prisma.subscription.upsert({
-      where: { userId: session.id },
-      create: { userId: session.id, stripeCustomerId: customerId },
-      update: { stripeCustomerId: customerId },
-    });
+  const existing = await prisma.subscription.findUnique({ where: { userId: session.id } });
+
+  // ---- Already subscribed: change the plan in place ------------------------
+  // Sending an existing subscriber back through Checkout would open a *second*
+  // subscription and bill them twice, so an upgrade or downgrade edits the
+  // live subscription instead. Stripe prorates the difference.
+  if (existing?.stripeSubscriptionId && statusGrantsAccess(existing.status)) {
+    const current = await stripe.subscriptions.retrieve(existing.stripeSubscriptionId);
+    const item = current.items.data[0];
+
+    // A subscription with no items cannot be re-priced, and one that no longer
+    // entitles should start fresh — both fall through to Checkout.
+    if (statusGrantsAccess(current.status) && item) {
+      if (item.price?.id === priceId && !current.cancel_at_period_end) {
+        return fail(`You're already on the ${PLANS[plan].name} plan.`, 409);
+      }
+      const updated = await stripe.subscriptions.update(current.id, {
+        items: [{ id: item.id, price: priceId }],
+        proration_behavior: "create_prorations",
+        // Switching plan also un-cancels a subscription that was set to lapse.
+        cancel_at_period_end: false,
+        metadata: { userId: session.id, plan },
+      });
+      await syncStripeSubscription(updated, session.id);
+      return ok({ changed: true, plan, url: null });
+    }
   }
+
+  // ---- New subscription: Stripe Checkout -----------------------------------
+  const customerId = await ensureCustomer(session.id, session.email, existing?.stripeCustomerId ?? null);
 
   const checkout = await stripe.checkout.sessions.create({
     mode: "subscription",
@@ -46,8 +66,48 @@ export const POST = withRoute(async (req: Request) => {
     success_url: `${APP_URL}/settings/billing?status=success`,
     cancel_url: `${APP_URL}/pricing?status=cancelled`,
     client_reference_id: session.id,
-    metadata: { userId: session.id, plan: body.data.plan },
+    allow_promotion_codes: true,
+    metadata: { userId: session.id, plan },
+    // Stamped on the subscription itself so every later webhook — renewal,
+    // cancellation, a change made from the Stripe dashboard — can map back to
+    // this user without depending on our own customer lookup.
+    subscription_data: { metadata: { userId: session.id, plan } },
   });
 
-  return ok({ url: checkout.url });
+  return ok({ url: checkout.url, changed: false });
 });
+
+/**
+ * Get this user's Stripe customer, creating one only if they truly have none.
+ *
+ * Checks our row first, then Stripe itself: if the local row was lost, finding
+ * the existing customer by its `userId` metadata avoids stranding a second
+ * customer record (and a second payment method) in the account.
+ */
+async function ensureCustomer(userId: string, email: string, known: string | null): Promise<string> {
+  if (!stripe) throw new Error("Stripe is not configured");
+  if (known) return known;
+
+  let customerId: string | null = null;
+  try {
+    const found = await stripe.customers.search({
+      query: `metadata["userId"]:"${userId}"`,
+      limit: 1,
+    });
+    customerId = found.data[0]?.id ?? null;
+  } catch {
+    // Search is best-effort; fall through to creating a customer.
+  }
+
+  if (!customerId) {
+    const customer = await stripe.customers.create({ email, metadata: { userId } });
+    customerId = customer.id;
+  }
+
+  await prisma.subscription.upsert({
+    where: { userId },
+    create: { userId, stripeCustomerId: customerId },
+    update: { stripeCustomerId: customerId },
+  });
+  return customerId;
+}

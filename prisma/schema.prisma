@@ -57,6 +57,7 @@ model User {
   posts        Post[]
   groupMembers GroupMember[]
   subscription Subscription?
+  payments     Payment[]
   certificates Certificate[]
 
   // Project management (Kanban boards) — see "Project Management" section below.
@@ -659,17 +660,83 @@ model SocialAccount {
 }
 
 // ===== Billing =====
+// One row per user — the app's own record of what they are entitled to. Stripe
+// is what charges the card and RevenueCat is what mirrors entitlements to other
+// platforms, but THIS row is what every gate in the app reads, so it must never
+// be written from anything but a verified webhook or a direct read of Stripe.
+// `userId` is unique and the Stripe ids are unique, so a user cannot end up
+// holding two conflicting subscription states.
 model Subscription {
   id                   String    @id @default(cuid())
   userId               String    @unique
   user                 User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   plan                 String    @default("free") // free | pro | premium
-  status               String    @default("active") // active | trialing | past_due | canceled
-  stripeCustomerId     String?
-  stripeSubscriptionId String?
-  currentPeriodEnd     DateTime?
+  status               String    @default("active") // active | trialing | past_due | canceled | incomplete | paused | unpaid
+  // Which store owns the paid subscription. Stripe is the only one that can
+  // charge today; the column exists so an App Store / Play purchase surfaced by
+  // RevenueCat can own the row later without a migration.
+  provider             String    @default("stripe") // stripe | app_store | play_store | promo
+  stripeCustomerId     String?   @unique
+  stripeSubscriptionId String?   @unique
+  stripePriceId        String?
+  // RevenueCat's App User ID for this user. We always use our own user id, so
+  // this is set to userId once RevenueCat has accepted the subscription; null
+  // means "never synced" and is what /api/billing/restore repairs.
+  revenueCatCustomerId String?
+  revenueCatSyncedAt   DateTime?
+  // JSON array of entitlement ids granted (e.g. ["pro"]). Mirrors RevenueCat's
+  // entitlement_ids so the two sides can be compared when they disagree.
+  entitlements         String    @default("[]")
+  startedAt            DateTime?
+  currentPeriodEnd     DateTime? // renewal date while active; access-until once cancelled
+  cancelAtPeriodEnd    Boolean   @default(false)
+  canceledAt           DateTime?
+  endedAt              DateTime? // set when the subscription actually expired
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt
+
+  payments             Payment[]
+
+  @@index([stripeCustomerId])
+}
+
+// Payment history. One row per Stripe invoice (or a refund of one), kept so the
+// billing page can show receipts without a round trip to Stripe. The unique
+// invoice id is what makes a replayed webhook harmless.
+model Payment {
+  id                    String        @id @default(cuid())
+  userId                String
+  user                  User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subscriptionId        String?
+  subscription          Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  provider              String        @default("stripe")
+  stripeInvoiceId       String?       @unique
+  stripePaymentIntentId String?
+  stripeChargeId        String?
+  amount                Int           // minor units (cents)
+  currency              String        @default("usd")
+  status                String        // paid | failed | refunded
+  description           String        @default("")
+  invoiceUrl            String?
+  periodStart           DateTime?
+  periodEnd             DateTime?
+  createdAt             DateTime      @default(now())
+
+  @@index([userId, createdAt])
+}
+
+// Idempotency ledger for incoming webhooks. Stripe and RevenueCat both retry,
+// and both reuse the event id on a retry, so claiming the id before doing the
+// work makes replays no-ops rather than duplicates.
+model WebhookEvent {
+  id         String   @id @default(cuid())
+  provider   String   // stripe | revenuecat
+  eventId    String
+  type       String   @default("")
+  receivedAt DateTime @default(now())
+
+  @@unique([provider, eventId])
+  @@index([receivedAt])
 }
 
 model AuditSnapshot {
@@ -1010,4 +1077,20 @@ model Booking {
   createdAt DateTime  @default(now())
 
   @@index([userId, date])
+}
+
+// ===== Team feedback on the product =====
+// Responses to the review form at the public route /feedback, read by staff at
+// /admin/feedback. Reviewers are teammates who may not have a Riff account, so
+// there is no user relation — they type their own name. `answers` is a JSON
+// object keyed by the question keys in src/lib/feedback-form.ts, stored as text
+// to match the other JSON-in-a-column fields in this schema (see LinkPage).
+model ProjectFeedback {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @default("")
+  answers   String   @default("{}")
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
 }

@@ -1,7 +1,6 @@
-import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { ok, fail, withRoute } from "@/lib/api";
-import { getEntitlements } from "@/lib/entitlements";
+import { getBillingSummary } from "@/lib/entitlements";
 import { isStripeConfigured, PLANS, type PlanKey } from "@/lib/stripe";
 import type { BillingResponse } from "@/lib/mobile/types";
 
@@ -9,18 +8,14 @@ const ORDER: PlanKey[] = ["free", "pro", "premium"];
 
 // GET /api/mobile/billing — src/app/(app)/pricing/page.tsx +
 // settings/billing/page.tsx. Stripe price ids and customer/subscription ids are
-// not returned. Upgrade: POST /api/billing/checkout; manage: POST /api/billing/portal.
+// not returned. The app sells nothing: there is no upgrade path here by design
+// (App Store 3.1.1 / Play Payments). Restoring access is POST /api/billing/restore.
 export const GET = withRoute(async () => {
   const session = await getSession();
   if (!session) return fail("Not authenticated", 401);
 
-  const [ent, sub] = await Promise.all([
-    getEntitlements(session.id),
-    prisma.subscription.findUnique({
-      where: { userId: session.id },
-      select: { plan: true, status: true, currentPeriodEnd: true },
-    }),
-  ]);
+  const summary = await getBillingSummary(session.id);
+  const sub = summary.subscription;
 
   const body: BillingResponse = {
     plans: ORDER.map((key) => ({
@@ -29,13 +24,21 @@ export const GET = withRoute(async () => {
       priceMonthly: PLANS[key].priceMonthly,
       features: PLANS[key].features,
     })),
-    // getPlan() and getEntitlements().plan are the same rule.
-    currentPlan: ent.plan,
+    // getPlan() and getBillingSummary().plan are the same rule.
+    currentPlan: summary.plan,
     billingConfigured: isStripeConfigured(),
-    entitlements: ent,
+    entitlements: { plan: summary.plan, ...summary.entitlements },
     subscription: sub
-      ? { plan: sub.plan, status: sub.status, currentPeriodEnd: sub.currentPeriodEnd?.toISOString() ?? null }
+      ? {
+          plan: summary.plan,
+          status: sub.status,
+          currentPeriodEnd: sub.currentPeriodEnd?.toISOString() ?? null,
+          cancelAtPeriodEnd: sub.cancelAtPeriodEnd,
+          provider: sub.provider,
+          entitlementIds: sub.entitlementIds,
+        }
       : null,
+    canRestore: true,
   };
   return ok(body);
 });

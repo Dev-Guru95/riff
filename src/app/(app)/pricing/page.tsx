@@ -1,6 +1,6 @@
 import { requirePageSession } from "@/lib/auth";
 import { getPlan } from "@/lib/entitlements";
-import { isStripeConfigured, PLANS } from "@/lib/stripe";
+import { isStripeConfigured, PLANS, planRank } from "@/lib/stripe";
 import { UpgradeButton } from "./PricingClient";
 import Link from "next/link";
 
@@ -48,9 +48,25 @@ export default async function PricingPage() {
               {isCurrent ? (
                 <span className="btn btn-ghost w-full pointer-events-none opacity-70">Current plan</span>
               ) : key === "free" ? (
-                <span className="btn btn-ghost w-full pointer-events-none opacity-50">Free</span>
+                // Downgrading to Free means cancelling, which happens in the
+                // Stripe customer portal so the cancellation terms are shown.
+                currentPlan === "free" ? (
+                  <span className="btn btn-ghost w-full pointer-events-none opacity-50">Free</span>
+                ) : (
+                  <Link href="/settings/billing" className="btn btn-ghost w-full">Manage plan</Link>
+                )
               ) : (
-                <UpgradeButton plan={key} disabled={!configured} />
+                <UpgradeButton
+                  plan={key}
+                  disabled={!configured}
+                  label={
+                    currentPlan === "free"
+                      ? `Upgrade to ${key}`
+                      : planRank(key) > planRank(currentPlan)
+                        ? `Upgrade to ${key}`
+                        : `Switch to ${key}`
+                  }
+                />
               )}
             </div>
           );

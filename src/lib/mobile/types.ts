@@ -495,7 +495,19 @@ export type BillingResponse = {
     allCourses: boolean;
     humanReview: boolean;
   };
-  subscription: { plan: string; status: string; currentPeriodEnd: ISODate | null } | null;
+  subscription: {
+    plan: string;
+    status: string;
+    currentPeriodEnd: ISODate | null;
+    /** True once auto-renew is off; access still runs to currentPeriodEnd. */
+    cancelAtPeriodEnd?: boolean;
+    /** Which store owns the subscription: stripe | app_store | play_store | promo. */
+    provider?: string;
+    /** RevenueCat entitlement ids this plan grants. */
+    entitlementIds?: string[];
+  } | null;
+  /** Whether /api/billing/restore is worth offering (it always is when signed in). */
+  canRestore?: boolean;
 };
 
 // ───────────────────────── Admin (staff only) ─────────────────────────
