@@ -58,6 +58,7 @@ model User {
   groupMembers GroupMember[]
   subscription Subscription?
   payments     Payment[]
+  passwordResets PasswordResetToken[]
   certificates Certificate[]
 
   // Project management (Kanban boards) — see "Project Management" section below.
@@ -741,6 +742,22 @@ model WebhookEvent {
 
   @@unique([provider, eventId])
   @@index([receivedAt])
+}
+
+// Password reset tokens. The token itself is never stored — only a SHA-256 of
+// it — so a leaked database backup cannot be used to take over accounts. Single
+// use (consumedAt) and short-lived (expiresAt).
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  consumedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
 }
 
 model AuditSnapshot {

@@ -116,7 +116,16 @@ function weakestArea(a: { marketingScore: number; brandingScore: number; growthS
 // ---- Career Roadmap ----
 export type RoadmapPlan = {
   summary: string;
-  milestones: { title: string; tasks: string[] }[];
+  milestones: {
+    title: string;
+    /**
+     * Why this stage matters — what it buys the artist. Reviewers found the
+     * roadmap listed tasks without ever saying how a step moves a career
+     * forward, which made it read as a to-do list rather than a plan.
+     */
+    why?: string;
+    tasks: string[];
+  }[];
 };
 
 export async function generateRoadmap(ctx: CoachContext, horizon: "30d" | "90d" | "6m" | "12m"): Promise<RoadmapPlan> {
@@ -132,7 +141,13 @@ export async function generateRoadmap(ctx: CoachContext, horizon: "30d" | "90d" 
 
 async function deepseekRoadmap(ctx: CoachContext, horizon: string): Promise<RoadmapPlan> {
   const text = await deepseekChat({
-    system: `Generate a ${horizon} music-career growth roadmap as JSON: {summary:string, milestones:[{title:string, tasks:string[]}]}. 3-5 milestones, concrete tasks. Personalize to the artist context.`,
+    system:
+      `Generate a ${horizon} music-career growth roadmap as JSON: ` +
+      `{summary:string, milestones:[{title:string, why:string, tasks:string[]}]}. ` +
+      `3-5 milestones. Each "why" is one sentence saying what this stage buys the artist ` +
+      `and why it comes now rather than later. Each task names a specific, finishable action ` +
+      `with a number or a named deliverable where possible — never vague advice like ` +
+      `"be consistent" or "build your brand". Personalize to the artist context.`,
     messages: [{ role: "user", content: contextBlock(ctx) }],
     maxTokens: 900,
     json: true,
@@ -145,37 +160,146 @@ function mockRoadmap(ctx: CoachContext, horizon: "30d" | "90d" | "6m" | "12m"): 
   const genre = ctx.genres[0] ?? "your";
   const base: Record<string, RoadmapPlan> = {
     "30d": {
-      summary: `A focused 30-day sprint to establish consistent branding and posting for ${ctx.stageName} in ${genre}.`,
+      summary: `A focused 30-day sprint to make ${ctx.stageName} look and post like a professional ${genre} act.`,
       milestones: [
-        { title: "Week 1 — Brand foundation", tasks: ["Define 3 brand pillars", "Set a 2–3 color palette", "Rewrite your bio with a clear hook"] },
-        { title: "Week 2 — Content system", tasks: ["Batch-create 6 posts", "Pick a 3x/week cadence", "Schedule with a tool"] },
-        { title: "Week 3 — Engagement", tasks: ["Reply to every comment for 7 days", "DM 10 engaged fans", "Collab with 1 peer artist"] },
-        { title: "Week 4 — Measure", tasks: ["Connect socials & run an audit", "Review which posts performed", "Plan next month from the data"] },
+        {
+          title: "Week 1 — Brand foundation",
+          why: "Listeners decide in seconds whether you look like an artist worth following. Fixing this first means every post for the rest of the month lands on a profile that converts.",
+          tasks: [
+            "Write 3 brand pillars and one sentence on why each fits you",
+            "Pick 3 colours and 2 fonts and save them to your Brand Kit",
+            "Rewrite your bio around one hook, and add your city",
+          ],
+        },
+        {
+          title: "Week 2 — Content system",
+          why: "Consistency beats intensity, and you only stay consistent if the work is already done. A batch removes the daily decision that breaks most artists' streaks.",
+          tasks: [
+            "Batch 6 posts in one sitting",
+            "Commit to 3 posts a week on one platform, not five",
+            "Schedule the batch so posting is automatic",
+          ],
+        },
+        {
+          title: "Week 3 — Engagement",
+          why: "Early fans come from conversations, not reach. Ten real replies move an algorithm and a career further than a hundred passive views.",
+          tasks: [
+            "Reply properly to every comment for 7 straight days",
+            "Message 10 people who already engage with you",
+            "Propose one collab or swap to an artist your size",
+          ],
+        },
+        {
+          title: "Week 4 — Measure",
+          why: "Without numbers month two is guesswork. This turns the month into a baseline you can beat.",
+          tasks: [
+            "Connect a social account and run your first audit",
+            "List your 3 best and 3 worst posts, and why",
+            "Plan next month from what the data showed, not from instinct",
+          ],
+        },
       ],
     },
     "90d": {
-      summary: `A 90-day plan to grow ${ctx.stageName}'s ${genre} audience and ship a release with a real marketing push.`,
+      summary: `A 90-day plan to grow ${ctx.stageName}'s ${genre} audience and ship one release with a real campaign behind it.`,
       milestones: [
-        { title: "Month 1 — Brand + cadence", tasks: ["Lock branding", "Establish posting rhythm", "Grow engaged followers 10%"] },
-        { title: "Month 2 — Release prep", tasks: ["Finish a single", "Pitch editorial playlists 4 weeks early", "Build a teaser campaign"] },
-        { title: "Month 3 — Launch + analyze", tasks: ["Execute release week plan", "Run post-release audit", "Double down on what worked"] },
+        {
+          title: "Month 1 — Brand and cadence",
+          why: "A release only works if there is an audience already watching. This month buys you the people who will hear it.",
+          tasks: [
+            "Finish branding: bio, colours, photos matching across platforms",
+            "Hold a 3-posts-a-week rhythm for 4 weeks",
+            "Grow engaged followers by 10% and record the starting number",
+          ],
+        },
+        {
+          title: "Month 2 — Release prep",
+          why: "Editorial playlists need 4 weeks' notice, so the work that decides your release happens before anyone hears the song.",
+          tasks: [
+            "Finish and master one single",
+            "Submit to Spotify editorial at least 4 weeks before release",
+            "Pitch 10 curators and log every one on a Pitch Tracker board",
+            "Cut 3 teaser clips from the track",
+          ],
+        },
+        {
+          title: "Month 3 — Launch and analyse",
+          why: "Most artists stop at release day. The fortnight after it is where you learn what to repeat.",
+          tasks: [
+            "Run release week from a written checklist",
+            "Run an audit 14 days after release",
+            "Write down the one thing that worked best and plan to do it again",
+          ],
+        },
       ],
     },
     "6m": {
-      summary: `A 6-month roadmap to turn ${ctx.stageName} into a recognizable ${genre} act with a repeatable release engine.`,
+      summary: `A 6-month roadmap to turn ${ctx.stageName} into a recognisable ${genre} act with a repeatable release engine.`,
       milestones: [
-        { title: "Months 1–2 — Systemize", tasks: ["Branding + content engine", "Build an email/SMS fan list", "Hit consistency score 70+"] },
-        { title: "Months 3–4 — Release cycle", tasks: ["Ship 2 singles", "Land 3 user/editorial playlists", "Run paid test ($50) on best content"] },
-        { title: "Months 5–6 — Scale", tasks: ["Collaborate with a bigger artist", "Pitch blogs/curators", "Plan an EP rollout"] },
+        {
+          title: "Months 1–2 — Systemise",
+          why: "Owning a fan list means you are not renting your audience from an algorithm that can change overnight.",
+          tasks: [
+            "Get branding and a content calendar running without daily decisions",
+            "Start an email or SMS list and collect 100 real addresses",
+            "Reach a consistency score of 70+ in your audit",
+          ],
+        },
+        {
+          title: "Months 3–4 — Release cycle",
+          why: "Two releases teach you more than one: the second tells you which results were luck and which were your system working.",
+          tasks: [
+            "Ship 2 singles, 8 weeks apart",
+            "Land 3 playlist placements, user or editorial",
+            "Spend $50 testing your best-performing organic post as an ad",
+          ],
+        },
+        {
+          title: "Months 5–6 — Scale",
+          why: "Borrowed audiences are the fastest honest growth there is — a collaborator's fans are pre-qualified listeners.",
+          tasks: [
+            "Collaborate with an artist roughly 3x your size",
+            "Pitch 10 blogs or curators with your press bio",
+            "Plan an EP rollout with dates working backwards from release",
+          ],
+        },
       ],
     },
     "12m": {
-      summary: `A 12-month growth roadmap toward making ${ctx.stageName} a sustainable ${genre} career with diversified income.`,
+      summary: `A 12-month roadmap toward making ${ctx.stageName} a sustainable ${genre} career with income from more than one place.`,
       milestones: [
-        { title: "Q1 — Foundation", tasks: ["Brand, content, and audit systems live", "Email list of 500+"] },
-        { title: "Q2 — Catalog", tasks: ["Release EP", "Consistent playlist placements", "First merch drop"] },
-        { title: "Q3 — Reach", tasks: ["Feature/collab strategy", "Press + curator outreach", "Grow monthly listeners 3x"] },
-        { title: "Q4 — Monetize", tasks: ["Launch fan membership", "Sync/licensing pitches", "Plan year-2 from full-year data"] },
+        {
+          title: "Q1 — Foundation",
+          why: "Everything later compounds on this. A year of releases onto a weak profile wastes the releases.",
+          tasks: [
+            "Branding, content system and monthly audits all running",
+            "Email list past 500",
+            "A full quarter without missing your posting cadence",
+          ],
+        },
+        {
+          title: "Q2 — Catalog",
+          why: "Catalog is what earns while you sleep. One song is a moment; a body of work is an asset.",
+          tasks: ["Release an EP", "Hold playlist placements across all tracks", "Run a first merch drop to test what fans will buy"],
+        },
+        {
+          title: "Q3 — Reach",
+          why: "You have proof now — numbers, catalog, a list. That is what makes bigger artists and press say yes.",
+          tasks: [
+            "Land 2 features or collabs with artists above your level",
+            "Pitch press and curators with real numbers in the email",
+            "Triple monthly listeners from your Q1 baseline",
+          ],
+        },
+        {
+          title: "Q4 — Monetise",
+          why: "Streaming alone rarely pays. This quarter turns an audience into income that does not depend on one platform.",
+          tasks: [
+            "Launch a paid fan membership or subscription",
+            "Pitch 5 sync and licensing opportunities",
+            "Plan year two from twelve months of your own data",
+          ],
+        },
       ],
     },
   };

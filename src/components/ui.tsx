@@ -160,6 +160,16 @@ export function Avatar({
 }
 
 /** Card wrapper for a table; clips the rows to the rounded corners. */
+/** Labelled form field. Shared by the auth screens and password reset. */
+export function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="block">
+      <span className="text-xs text-[var(--muted)] mb-1 block">{label}</span>
+      {children}
+    </label>
+  );
+}
+
 export function TableCard({ children }: { children: React.ReactNode }) {
   return <div className="card overflow-hidden">{children}</div>;
 }

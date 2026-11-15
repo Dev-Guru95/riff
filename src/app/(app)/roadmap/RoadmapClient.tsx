@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-type Plan = { summary: string; milestones: { title: string; tasks: string[] }[] };
+type Plan = { summary: string; milestones: { title: string; why?: string; tasks: string[] }[] };
 const HORIZONS: { key: "30d" | "90d" | "6m" | "12m"; label: string }[] = [
   { key: "30d", label: "30 days" },
   { key: "90d", label: "90 days" },
@@ -58,10 +58,13 @@ export function RoadmapClient({ initial }: { initial: Record<string, Plan> }) {
           <div className="space-y-3">
             {current.milestones.map((m, i) => (
               <div key={i} className="card p-5">
-                <h3 className="font-semibold mb-3 flex items-center gap-2">
+                <h3 className="font-semibold mb-2 flex items-center gap-2">
                   <span className="w-6 h-6 rounded-full bg-[var(--brand)] text-white text-xs flex items-center justify-center">{i + 1}</span>
                   {m.title}
                 </h3>
+                {/* What this stage buys you. Without it the roadmap read as a
+                    to-do list rather than a plan. */}
+                {m.why && <p className="text-sm text-[var(--muted)] mb-3 leading-relaxed">{m.why}</p>}
                 <ul className="space-y-2">
                   {m.tasks.map((t, ti) => (
                     <li key={ti} className="flex items-start gap-2 text-sm">

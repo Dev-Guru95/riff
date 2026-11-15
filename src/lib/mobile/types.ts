@@ -318,7 +318,11 @@ export type CertificatesResponse = {
 // ───────────────────────── GET /api/mobile/roadmaps ─────────────────────────
 
 export type RoadmapHorizon = "30d" | "90d" | "6m" | "12m";
-export type RoadmapPlan = { summary: string; milestones: { title: string; tasks: string[] }[] };
+export type RoadmapPlan = {
+  summary: string;
+  /** `why` is one sentence on what the stage buys the artist; may be absent on older plans. */
+  milestones: { title: string; why?: string; tasks: string[] }[];
+};
 
 export type RoadmapsResponse = {
   /** Current plan per horizon; a missing key means "not generated yet". */

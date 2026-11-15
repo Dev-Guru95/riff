@@ -91,6 +91,9 @@ export default function Roadmap() {
                       </View>
                       <Text weight="semibold" style={[styles.base, { flex: 1 }]}>{m.title}</Text>
                     </View>
+                    {/* What this stage buys you — without it the roadmap read
+                        as a to-do list rather than a plan. */}
+                    {m.why ? <Text variant="small" style={{ marginBottom: 12 }}>{m.why}</Text> : null}
                     <View style={{ gap: 8 }}>
                       {m.tasks.map((t, ti) => (
                         <View key={ti} style={{ flexDirection: "row", alignItems: "flex-start", gap: 8 }}>

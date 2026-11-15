@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { Field } from "@/components/ui";
 import { readReferralCookie } from "@/components/ReferralCapture";
 
 export function AuthForm({ mode, next }: { mode: "login" | "signup"; next?: string | null }) {
@@ -84,6 +85,15 @@ export function AuthForm({ mode, next }: { mode: "login" | "signup"; next?: stri
               <Field label="Password">
                 <input className="input" type="password" required minLength={mode === "signup" ? 8 : 1} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" />
               </Field>
+              {/* Reviewers flagged that there was no way back into an account
+                  once the password was forgotten. */}
+              {mode === "login" && (
+                <p className="text-right -mt-1">
+                  <Link href="/forgot-password" className="text-xs text-[var(--muted)] hover:text-[var(--accent)]">
+                    Forgot your password?
+                  </Link>
+                </p>
+              )}
             </>
           )}
 
@@ -105,14 +115,5 @@ export function AuthForm({ mode, next }: { mode: "login" | "signup"; next?: stri
 
       <style>{`.input{width:100%;background:var(--surface-2);border:1px solid var(--border);border-radius:.625rem;padding:.625rem .75rem;font-size:.9rem;color:var(--foreground);outline:none}.input:focus{border-color:var(--brand)}`}</style>
     </main>
-  );
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <label className="block">
-      <span className="text-xs text-[var(--muted)] mb-1 block">{label}</span>
-      {children}
-    </label>
   );
 }

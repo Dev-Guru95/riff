@@ -4,15 +4,59 @@ import { notify } from "./notifications";
 import { track } from "./analytics";
 
 // ---- Weekly mission generation ----
+//
+// Concrete, artist-specific jobs rather than generic "post more" advice, and
+// each one names what finishing it looks like — completing a mission now asks
+// for proof (a link or a note), so a vague task is an unanswerable one.
+//
+// Ordered branding → content → engagement → release and repeating, so any three
+// consecutive entries are from different categories and a week's slate is varied.
 const MISSION_POOL = [
-  { title: "Define Your Brand Pillars", description: "Write 3 words that describe your artist brand and explain each.", category: "branding", xpReward: 120, badgeKey: null },
-  { title: "Post Every Day for 7 Days", description: "Maintain a daily post on your main platform all week.", category: "content", xpReward: 200, badgeKey: null },
-  { title: "Engage 10 Fans", description: "Reply meaningfully to 10 comments or DMs this week.", category: "engagement", xpReward: 100, badgeKey: null },
-  { title: "Refresh Your Bio & Links", description: "Rewrite your bio with a clear hook and update your link-in-bio.", category: "branding", xpReward: 90, badgeKey: null },
-  { title: "Batch 5 Pieces of Content", description: "Create 5 posts in one session so you never miss a day.", category: "content", xpReward: 150, badgeKey: null },
-  { title: "Run a Release Teaser", description: "Post a teaser clip for an upcoming or recent release.", category: "release", xpReward: 180, badgeKey: null },
-  { title: "Collaborate With a Peer", description: "Reach out to one artist your size about a collab or shoutout.", category: "engagement", xpReward: 160, badgeKey: null },
+  { title: "Define Your Brand Pillars", description: "Write 3 words that describe your artist brand and a sentence on why each one fits you.", category: "branding", xpReward: 120, badgeKey: null },
+  { title: "Post Every Day for 7 Days", description: "Keep a daily post going on your main platform all week. Link the last one when you're done.", category: "content", xpReward: 200, badgeKey: null },
+  { title: "Engage 10 Real Fans", description: "Reply properly to 10 comments or DMs — not emojis, actual replies. Note who you spoke to.", category: "engagement", xpReward: 100, badgeKey: null },
+  { title: "Run a Release Teaser", description: "Post a 10–20 second teaser of an upcoming or recent release. Link the post.", category: "release", xpReward: 180, badgeKey: null },
+
+  { title: "Refresh Your Bio and Links", description: "Rewrite your bio around one clear hook and add your city, then update your link-in-bio.", category: "branding", xpReward: 90, badgeKey: null },
+  { title: "Batch 5 Pieces of Content", description: "Make 5 posts in one sitting so a bad week never breaks your streak. Note what you batched.", category: "content", xpReward: 150, badgeKey: null },
+  { title: "Reach Out to One Peer", description: "Message one artist at your level about a collab, a swap or a shoutout. Note who and what you proposed.", category: "engagement", xpReward: 160, badgeKey: null },
+  { title: "Pitch 5 Playlist Curators", description: "Send 5 genuine pitches and log them on a Playlist Pitch Tracker board so you can follow up.", category: "release", xpReward: 200, badgeKey: null },
+
+  { title: "Lock Your Visual Identity", description: "Pick 3 brand colours and 2 fonts and save them to your Brand Kit in Studio.", category: "branding", xpReward: 130, badgeKey: null },
+  { title: "Teach One Thing You Know", description: "Post explaining how you made something — a hook, a drum sound, a lyric. Teaching posts travel furthest.", category: "content", xpReward: 160, badgeKey: null },
+  { title: "Add 10 Fans to Your CRM", description: "Put 10 real people — fans, curators, promoters — into Fan CRM with a note on how you met.", category: "engagement", xpReward: 140, badgeKey: null },
+  { title: "Write Your Editorial Pitch", description: "Use the Editorial Pitch Writer in Studio to draft your next pitch, then save it.", category: "release", xpReward: 170, badgeKey: null },
+
+  { title: "Say What You Sound Like", description: "Write one sentence describing your sound, and use that same line everywhere. Link one profile using it.", category: "branding", xpReward: 100, badgeKey: null },
+  { title: "Mirror Your Best Post", description: "Take your best-performing post of the month and repost it to a platform it never ran on.", category: "content", xpReward: 120, badgeKey: null },
+  { title: "Ask Your Audience One Question", description: "Run a poll or question sticker and actually reply to the answers. Note what you learned.", category: "engagement", xpReward: 90, badgeKey: null },
+  { title: "Plan Your Next Release", description: "Open a Release Planner board and fill in artwork, distribution, promo and press.", category: "release", xpReward: 190, badgeKey: null },
+
+  { title: "Write Your Press Bio", description: "Write a 50-word and a 150-word version of your bio — the two lengths press and playlists actually ask for.", category: "branding", xpReward: 150, badgeKey: null },
+  { title: "Build a Two-Week Calendar", description: "Fill a Content Calendar board with 14 days of planned posts so you stop deciding daily.", category: "content", xpReward: 180, badgeKey: null },
+  { title: "Start 5 Conversations", description: "Post or reply 5 times in the community — ask something real, answer someone else.", category: "engagement", xpReward: 110, badgeKey: null },
+  { title: "Submit to Editorial Early", description: "Submit an upcoming release to Spotify editorial at least 4 weeks ahead. Note the submission date.", category: "release", xpReward: 220, badgeKey: null },
+
+  { title: "Match Your Profile Photos", description: "Use the same photo and handle on every platform so you are recognisable. Link two that now match.", category: "branding", xpReward: 80, badgeKey: null },
+  { title: "Film Behind the Scenes", description: "Film 30 seconds of you actually working — writing, tracking, mixing. Link the post.", category: "content", xpReward: 140, badgeKey: null },
+  { title: "Thank Ten People", description: "Thank 10 people who shared, saved or played your music. Note how you reached them.", category: "engagement", xpReward: 100, badgeKey: null },
+  { title: "Write Your Release-Day Checklist", description: "List every job for release day — assets, links, posts, messages — so nothing is improvised.", category: "release", xpReward: 160, badgeKey: null },
 ];
+
+export const MISSIONS_PER_WEEK = 3;
+
+/**
+ * The three missions for a given ISO week.
+ *
+ * Strides by three rather than offsetting by one: offsetting by the week number
+ * alone reused two of the three missions every week, so the slate barely moved.
+ * Striding walks the whole pool before anything repeats. Extracted so the
+ * rotation is unit-testable without a database.
+ */
+export function pickMissionsForWeek(weekNum: number) {
+  const start = (weekNum * MISSIONS_PER_WEEK) % MISSION_POOL.length;
+  return Array.from({ length: MISSIONS_PER_WEEK }, (_, i) => MISSION_POOL[(start + i) % MISSION_POOL.length]);
+}
 
 /** ISO-week key like 2026-W25 (no Date.now in tests — uses a passed clock here). */
 function isoWeekKey(d: Date): string {
@@ -32,9 +76,8 @@ export async function ensureWeeklyMissions(now = new Date()): Promise<void> {
   const weekKey = isoWeekKey(now);
   if ((await prisma.mission.count({ where: { weekKey } })) > 0) return;
 
-  // Rotate: pick 3 missions offset by the week number so the slate varies.
   const weekNum = parseInt(weekKey.split("-W")[1], 10);
-  const picks = [0, 1, 2].map((i) => MISSION_POOL[(weekNum + i) % MISSION_POOL.length]);
+  const picks = pickMissionsForWeek(weekNum);
   const activeTo = new Date(now.getTime() + 7 * 86_400_000);
 
   // Two first visits of a new week can both see a count of 0; without a lock

@@ -1,4 +1,6 @@
+import Link from "next/link";
 import { requirePageSession } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 import { computeLeaderboard } from "@/lib/leaderboard";
 import { buildShare } from "@/lib/share";
 import { Pagination } from "@/components/Pagination";
@@ -20,15 +22,39 @@ export default async function LeaderboardPage({ searchParams }: { searchParams: 
   const hasNext = all.length > page * PAGE_SIZE;
   const me = all.find((r) => r.userId === session.id);
 
+  // The board shows an email prefix when no stage name is set, which is why a
+  // small early board looked like it was full of test accounts.
+  const profile = await prisma.artistProfile.findUnique({
+    where: { userId: session.id },
+    select: { stageName: true },
+  });
+  const needsStageName = !profile?.stageName?.trim();
+
+  const REWARD_TOP_N = 1000;
+  const everyoneQualifies = all.length > 0 && all.length <= REWARD_TOP_N;
+
   return (
     <main className="max-w-4xl px-4 sm:px-6 lg:px-8 py-8">
+      {needsStageName && (
+        <div className="card p-4 mb-5 flex items-center justify-between gap-3 flex-wrap">
+          <p className="text-sm">
+            You&apos;re showing as <strong>{me?.stageName}</strong> — that&apos;s your email, not your artist name.
+          </p>
+          <Link href="/settings" className="btn btn-primary py-1.5 px-3 text-sm">Set your artist name</Link>
+        </div>
+      )}
       <PageHeader
         title="Global Leaderboard"
         subtitle={
           <>
             Ranked by a blend of XP, quiz &amp; assignment quality, speed, and consistency.
             <br />
-            Top 1000 each period qualify for subscription discounts and rewards.
+            {/* "Top 1000 qualify" reads as empty talk on a board of seven. While
+                the board is smaller than the reward cut-off, say the true thing:
+                everyone on it qualifies. */}
+            {everyoneQualifies
+              ? `Every artist on the board qualifies for subscription discounts and rewards this period — all ${all.length} of you.`
+              : `Top ${REWARD_TOP_N.toLocaleString()} each period qualify for subscription discounts and rewards.`}
           </>
         }
         action={
