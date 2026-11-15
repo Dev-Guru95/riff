@@ -17,6 +17,14 @@ export function isStripeConfigured(): boolean {
  */
 export const STRIPE_PUBLISHABLE_KEY = process.env.STRIPE_PUBLISHABLE_KEY ?? "";
 
+/**
+ * The currency every plan is priced in. Stripe decides what a Checkout session
+ * is actually charged in (it follows the price object), so this is what we
+ * *display* — totals, discounts and the ₦0.00/$0.00 a full-discount code lands
+ * on. Set BILLING_CURRENCY to the same currency as the Stripe prices.
+ */
+export const BILLING_CURRENCY = (process.env.BILLING_CURRENCY || "usd").toLowerCase();
+
 export type PlanKey = "free" | "pro" | "premium";
 
 /** Low to high. Used to tell an upgrade from a downgrade. */

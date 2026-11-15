@@ -5,7 +5,7 @@
 
 import { useCallback, useState } from "react";
 import { RefreshControl, StyleSheet, View } from "react-native";
-import { Stack } from "expo-router";
+import { router, Stack } from "expo-router";
 import { FlashList } from "@shopify/flash-list";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -18,6 +18,20 @@ import { colors, fonts, radius } from "@/theme/tokens";
 import type { LeaderboardResponse, LeaderboardRow } from "@/types/api";
 
 const PATH = "/api/mobile/leaderboard";
+
+/** Artists in the top N each period qualify for discounts and rewards. */
+const REWARD_TOP_N = 1000;
+
+/**
+ * "Top 1000 qualify" reads as empty talk on a board of eight. While the board
+ * is smaller than the cut-off, say the true thing: everyone on it qualifies.
+ * Same rule as the web page, so the two can never contradict each other.
+ */
+function rewardLine(total: number): string {
+  return total > 0 && total <= REWARD_TOP_N
+    ? `Every artist on the board qualifies for subscription discounts and rewards this period — all ${total} of you.`
+    : `Top ${REWARD_TOP_N.toLocaleString()} each period qualify for subscription discounts and rewards.`;
+}
 
 type RedeemResult = { code: string; type: string; value: number; description: string };
 
@@ -152,9 +166,25 @@ export default function Leaderboard() {
         renderItem={({ item, index }) => <Row r={item} last={index === rows.length - 1} />}
         ListHeaderComponent={
           <View>
+            {/* The board shows an email prefix when no stage name is set, which
+                is why a small early board looked full of test accounts. */}
+            {d.needsStageName ? (
+              <Card style={{ padding: 16, marginBottom: 20, gap: 10 }}>
+                <Text variant="small">
+                  You&apos;re showing as <Text weight="bold" color={colors.foreground}>{d.me?.stageName ?? "your email"}</Text> —
+                  that&apos;s your email, not your artist name.
+                </Text>
+                <Button
+                  title="Set your artist name"
+                  size="sm"
+                  style={{ alignSelf: "flex-start" }}
+                  onPress={() => router.push("/settings")}
+                />
+              </Card>
+            ) : null}
             <PageHeader
               title="Global Leaderboard"
-              subtitle={"Ranked by a blend of XP, quiz & assignment quality, speed, and consistency.\nTop 1000 each period qualify for subscription discounts and rewards."}
+              subtitle={`Ranked by a blend of XP, quiz & assignment quality, speed, and consistency.\n${rewardLine(d.total)}`}
             />
             {d.me && d.share ? (
               <View style={{ marginBottom: 24 }}>

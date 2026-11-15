@@ -1,7 +1,13 @@
 import type Stripe from "stripe";
 import { prisma } from "./prisma";
 import { stripe, planForSubscription, type PlanKey } from "./stripe";
-import { pushStripeSubscription, entitlementsForPlan, isRevenueCatConfigured } from "./revenuecat";
+import {
+  pushStripeSubscription,
+  grantPromotionalEntitlement,
+  entitlementsForPlan,
+  isRevenueCatConfigured,
+  canReadRevenueCat,
+} from "./revenuecat";
 
 /**
  * The one place subscription state is written.
@@ -300,4 +306,79 @@ export async function withWebhookIdempotency<T>(
       .catch(() => {});
     throw err;
   }
+}
+
+/**
+ * Activate a plan that a discount code took to zero.
+ *
+ * The other half of {@link syncStripeSubscription}: same row, same entitlement
+ * ids, same RevenueCat mirror — but no charge, because there is nothing to
+ * charge. `provider: "promo"` is what tells the rest of the app (and the
+ * billing screens) that this access did not come from a card, which matters
+ * when it ends: there is no Stripe subscription to cancel.
+ *
+ * Deliberately refuses to overwrite a live Stripe subscription. Stamping
+ * `promo` over a paying customer's row would leave them billed by Stripe while
+ * our own records said otherwise — they change plan on the website instead.
+ */
+export async function activatePromoSubscription(
+  userId: string,
+  plan: PlanKey,
+  periodEnd: Date | null,
+  couponCode: string,
+): Promise<{ ok: true; revenueCatSynced: boolean } | { ok: false; reason: "has_paid_subscription" }> {
+  const existing = await prisma.subscription.findUnique({ where: { userId } });
+  if (
+    existing?.stripeSubscriptionId &&
+    (existing.status === "active" || existing.status === "trialing") &&
+    existing.provider === "stripe"
+  ) {
+    return { ok: false, reason: "has_paid_subscription" };
+  }
+
+  const entitlements = entitlementsForPlan(plan);
+  const now = new Date();
+  const data = {
+    plan,
+    status: "active",
+    provider: "promo",
+    entitlements: JSON.stringify(entitlements),
+    startedAt: existing?.startedAt ?? now,
+    currentPeriodEnd: periodEnd,
+    cancelAtPeriodEnd: false,
+    canceledAt: null,
+    endedAt: null,
+    // The code that granted it, so support can see why someone is on Pro
+    // without a payment behind it.
+    stripePriceId: `promo:${couponCode}`,
+  };
+
+  await prisma.subscription.upsert({
+    where: { userId },
+    create: { userId, ...data },
+    update: data,
+  });
+
+  // Best effort, exactly as with Stripe: our own row already grants the plan,
+  // and a failed mirror is repaired by /api/billing/restore.
+  let revenueCatSynced = false;
+  if (canReadRevenueCat()) {
+    const results = await Promise.all(
+      entitlements.map((id) => grantPromotionalEntitlement(userId, id, periodEnd)),
+    );
+    if (results.length > 0 && results.every((r) => r.ok)) {
+      revenueCatSynced = true;
+      await prisma.subscription.update({
+        where: { userId },
+        data: { revenueCatCustomerId: userId, revenueCatSyncedAt: new Date() },
+      });
+    } else {
+      const failed = results.find((r) => !r.ok);
+      if (failed && !("skipped" in failed && failed.skipped)) {
+        console.error(`[billing] RevenueCat promo grant failed for user ${userId}: ${failed.reason}`);
+      }
+    }
+  }
+
+  return { ok: true, revenueCatSynced };
 }

@@ -17,3 +17,20 @@ export function toCents(v: string): number {
   const n = parseFloat(s);
   return Number.isFinite(n) ? Math.max(0, Math.round(n * 100)) : 0;
 }
+
+/**
+ * Render integer minor units as money. Client-safe (pure).
+ *
+ * The currency is whatever the deployment bills in (`BILLING_CURRENCY`), so a
+ * zero total prints as "$0.00" on a USD account and "₦0.00" on an NGN one —
+ * the symbol is never hardcoded.
+ */
+export function formatMoney(cents: number, currency: string, locale = "en-US"): string {
+  const code = (currency || "usd").toUpperCase();
+  try {
+    return new Intl.NumberFormat(locale, { style: "currency", currency: code }).format(cents / 100);
+  } catch {
+    // Unknown/!ISO currency code: never throw in the middle of a checkout.
+    return `${code} ${(cents / 100).toFixed(2)}`;
+  }
+}

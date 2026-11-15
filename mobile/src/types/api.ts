@@ -112,6 +112,24 @@ export type MeResponse = {
   subscription: { plan: string; status: string } | null;
 };
 
+// ───────────────────────── GET /api/mobile/profile ─────────────────────────
+
+/**
+ * The artist profile form plus the fixed choices it offers. Country names are
+ * localised server-side, so the app never needs Intl region data.
+ * Saved with PATCH /api/profile { stageName?, countryCode?, genres? }.
+ */
+export type ProfileOptionsResponse = {
+  stageName: string;
+  /** ISO 3166-1 alpha-2, or null when unset. */
+  countryCode: string | null;
+  /** Stored genre values; genres[0] is the one that ranks. */
+  genres: string[];
+  maxGenres: number;
+  countries: { code: string; name: string }[];
+  genreOptions: { value: string; label: string }[];
+};
+
 // ───────────────────────── GET /api/mobile/dashboard ─────────────────────────
 
 export type Goal = {
@@ -195,6 +213,21 @@ export type CourseCard = {
   moduleCount: number;
   lessonCount: number;
   enrollment: { progressPct: number; startedAt: ISODate; completedAt: ISODate | null } | null;
+  /**
+   * The recommended track order (getCourseProgression). Advisory, never a lock:
+   * Skool deep-links into any track's quiz, so the card says "Start here" or
+   * "Recommended after X" and still lets you in.
+   */
+  progression?: {
+    /** Position in the published order, starting at 1. */
+    position: number;
+    /** This track's quiz has been passed. */
+    completed: boolean;
+    /** Every earlier track is done, so this one is next. */
+    unlocked: boolean;
+    /** Title of the earliest unfinished earlier track, when out of order. */
+    blockedBy: string | null;
+  };
 };
 
 export type CoursesResponse = { courses: CourseCard[] };
@@ -357,6 +390,11 @@ export type LeaderboardResponse = {
   me: LeaderboardRow | null;
   /** "Share #N" — only when the artist is ranked. */
   share: SharePayload | null;
+  /**
+   * The artist has no stage name, so the board is showing their email prefix.
+   * That is why an early board looked full of test accounts.
+   */
+  needsStageName?: boolean;
 };
 
 // ───────────────────────── GET /api/mobile/missions ─────────────────────────
@@ -502,7 +540,68 @@ export type AuditResponse = {
 
 // ───────────────────────── GET /api/mobile/billing ─────────────────────────
 
-export type PlanInfo = { key: PlanKey; name: string; priceMonthly: number; features: string[] };
+export type PlanInfo = {
+  key: PlanKey;
+  name: string;
+  /** List price in whole currency units, as the Plans page prints it. */
+  priceMonthly: number;
+  /** The same price in minor units — what the checkout summary does maths on. */
+  priceCents: number;
+  features: string[];
+};
+
+/**
+ * What a discount code does to a plan, priced by the server.
+ *
+ * Every number here comes from POST /api/billing/discount. The client never
+ * computes a total: it shows these, and sends the code (not the amount) back.
+ */
+export type DiscountQuote = {
+  code: string;
+  description: string;
+  /** percent | fixed */
+  type: string;
+  value: number;
+  plan: PlanKey;
+  planName: string;
+  /** ISO 4217, lowercase — format with it, never hardcode a symbol. */
+  currency: string;
+  originalCents: number;
+  discountCents: number;
+  finalCents: number;
+  /** finalCents === 0: POST /api/billing/redeem activates the plan, no payment. */
+  free: boolean;
+  /** Months a free activation lasts. 0 = no end date. */
+  durationMonths: number;
+};
+
+/** Why a code was refused — `reason` on the 4xx body from discount/redeem. */
+export type DiscountRefusal =
+  | "invalid"
+  | "inactive"
+  | "expired"
+  | "exhausted"
+  | "already_used"
+  | "not_applicable"
+  | "not_a_discount"
+  | "payment_required"
+  | "has_paid_subscription";
+
+/** POST /api/billing/redeem, 200. */
+export type RedeemResponse = {
+  activated: true;
+  plan: PlanKey;
+  entitlements: {
+    coachMessagesPerDay: number;
+    socialConnections: number;
+    allCourses: boolean;
+    humanReview: boolean;
+    weeklyMissions: boolean;
+  };
+  currentPeriodEnd: ISODate | null;
+  revenueCatSynced: boolean;
+  discount: DiscountQuote;
+};
 
 export type BillingResponse = {
   /** free, pro, premium — display order. */
@@ -510,6 +609,10 @@ export type BillingResponse = {
   /** Effective plan (only active/trialing subscriptions count). */
   currentPlan: PlanKey;
   billingConfigured: boolean;
+  /** ISO 4217, lowercase. Every amount in this response is in this currency. */
+  currency: string;
+  /** Whether discount codes can be applied at all (there is a coupon table). */
+  discountsEnabled: boolean;
   entitlements: {
     plan: PlanKey;
     coachMessagesPerDay: number;
@@ -517,7 +620,19 @@ export type BillingResponse = {
     allCourses: boolean;
     humanReview: boolean;
   };
-  subscription: { plan: string; status: string; currentPeriodEnd: ISODate | null } | null;
+  subscription: {
+    plan: string;
+    status: string;
+    currentPeriodEnd: ISODate | null;
+    /** True once auto-renew is off; access still runs to currentPeriodEnd. */
+    cancelAtPeriodEnd?: boolean;
+    /** Which store owns the subscription: stripe | app_store | play_store | promo. */
+    provider?: string;
+    /** RevenueCat entitlement ids this plan grants. */
+    entitlementIds?: string[];
+  } | null;
+  /** Whether /api/billing/restore is worth offering (it always is when signed in). */
+  canRestore?: boolean;
 };
 
 // ───────────────────────── Admin (staff only) ─────────────────────────
@@ -674,6 +789,10 @@ export type AdminCouponsResponse = {
     active: boolean;
     expiresAt: ISODate | null;
     createdAt: ISODate;
+    /** Paid plans the code applies to. Empty = all of them. */
+    plans?: string[];
+    /** Months of access a 100% code grants. 0 = no end date. */
+    durationMonths?: number;
   }[];
 };
 

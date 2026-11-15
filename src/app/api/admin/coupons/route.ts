@@ -9,6 +9,11 @@ const schema = z.object({
   value: z.number().min(0),
   description: z.string().default(""),
   maxRedemptions: z.number().int().min(0).default(0),
+  // Which paid plans the code discounts. Empty = every paid plan.
+  plans: z.array(z.enum(["pro", "premium"])).default([]),
+  // Months of access a code that covers the whole price grants. 0 = no end date.
+  durationMonths: z.number().int().min(0).max(120).default(1),
+  expiresAt: z.coerce.date().optional(),
 });
 
 export const POST = withRoute(async (req: Request) => {
@@ -20,7 +25,8 @@ export const POST = withRoute(async (req: Request) => {
   const existing = await prisma.coupon.findUnique({ where: { code: body.data.code } });
   if (existing) return fail("A coupon with that code already exists", 409);
 
-  const coupon = await prisma.coupon.create({ data: body.data });
+  const { plans, ...rest } = body.data;
+  const coupon = await prisma.coupon.create({ data: { ...rest, plans: plans.join(",") } });
   await writeAudit(session.id, "coupon.create", "coupon", coupon.id, { code: coupon.code });
   return ok(coupon, 201);
 });

@@ -12,15 +12,22 @@ import type { CourseCard, CoursesResponse } from "@/types/api";
 
 function CourseItem({ c }: { c: CourseCard }) {
   const enrolled = c.enrollment;
+  const prog = c.progression;
   return (
     <Card
       onPress={() => router.push(`/courses/${c.slug}` as Href)}
-      accessibilityLabel={`${c.title}, ${c.level}${enrolled ? `, enrolled, ${Math.round(enrolled.progressPct)}% complete` : ""}`}
+      accessibilityLabel={`${c.title}, ${c.level}${prog ? `, track ${prog.position}` : ""}${prog?.completed ? ", quiz passed" : enrolled ? `, enrolled, ${Math.round(enrolled.progressPct)}% complete` : ""}${prog?.unlocked && !prog.completed ? ", start here" : ""}`}
       style={{ padding: 24 }}
     >
       <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-        <Text variant="caption" color={colors.accent} style={{ textTransform: "uppercase", letterSpacing: 0.3 }}>{c.level}</Text>
-        {enrolled ? <Text variant="caption" color={colors.success}>Enrolled</Text> : null}
+        <Text variant="caption" color={colors.accent} style={{ textTransform: "uppercase", letterSpacing: 0.3 }}>
+          {prog ? `Track ${prog.position} · ` : ""}{c.level}
+        </Text>
+        {prog?.completed ? (
+          <Text variant="caption" color={colors.success}>✓ Quiz passed</Text>
+        ) : enrolled ? (
+          <Text variant="caption" color={colors.success}>Enrolled</Text>
+        ) : null}
       </View>
       <Text variant="heading">{c.title}</Text>
       <Text variant="small" style={{ marginTop: 4, marginBottom: 16 }}>{c.description}</Text>
@@ -32,6 +39,17 @@ function CourseItem({ c }: { c: CourseCard }) {
           <ProgressBar pct={enrolled.progressPct} />
           <Text variant="caption" style={{ marginTop: 4 }}>{Math.round(enrolled.progressPct)}% complete</Text>
         </>
+      ) : null}
+      {/* The recommended order, shown rather than enforced: Skool deep-links
+          into any track's quiz, and blocking those would dead-end students
+          arriving from the classroom. */}
+      {prog && !prog.completed && !prog.unlocked && prog.blockedBy ? (
+        <Text variant="caption" style={{ marginTop: 8 }}>
+          ↪ Recommended after <Text variant="caption" color={colors.foreground}>{prog.blockedBy}</Text>
+        </Text>
+      ) : null}
+      {prog?.unlocked && !prog.completed ? (
+        <Text variant="caption" color={colors.accent} style={{ marginTop: 8 }}>▶ Start here</Text>
       ) : null}
     </Card>
   );

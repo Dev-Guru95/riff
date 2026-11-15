@@ -1,15 +1,22 @@
 import { getSession } from "@/lib/auth";
 import { ok, fail, withRoute } from "@/lib/api";
 import { getBillingSummary } from "@/lib/entitlements";
-import { isStripeConfigured, PLANS, type PlanKey } from "@/lib/stripe";
+import { isStripeConfigured, BILLING_CURRENCY, PLANS, type PlanKey } from "@/lib/stripe";
+import { planPriceCents } from "@/lib/coupons";
 import type { BillingResponse } from "@/lib/mobile/types";
 
 const ORDER: PlanKey[] = ["free", "pro", "premium"];
 
 // GET /api/mobile/billing — src/app/(app)/pricing/page.tsx +
 // settings/billing/page.tsx. Stripe price ids and customer/subscription ids are
-// not returned. The app sells nothing: there is no upgrade path here by design
-// (App Store 3.1.1 / Play Payments). Restoring access is POST /api/billing/restore.
+// not returned.
+//
+// Paid plans are still bought on the website (App Store 3.1.1 / Play Payments):
+// POST /api/billing/checkout refuses the native client. What the app *can* do
+// is apply a discount code and, when one covers the whole price, activate the
+// plan through POST /api/billing/redeem — no payment, so no purchasing
+// mechanism. Prices are returned so the checkout summary can show what the
+// code took off. Restoring access is POST /api/billing/restore.
 export const GET = withRoute(async () => {
   const session = await getSession();
   if (!session) return fail("Not authenticated", 401);
@@ -22,11 +29,14 @@ export const GET = withRoute(async () => {
       key,
       name: PLANS[key].name,
       priceMonthly: PLANS[key].priceMonthly,
+      priceCents: planPriceCents(key),
       features: PLANS[key].features,
     })),
     // getPlan() and getBillingSummary().plan are the same rule.
     currentPlan: summary.plan,
     billingConfigured: isStripeConfigured(),
+    currency: BILLING_CURRENCY,
+    discountsEnabled: true,
     entitlements: { plan: summary.plan, ...summary.entitlements },
     subscription: sub
       ? {

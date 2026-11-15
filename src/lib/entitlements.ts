@@ -19,6 +19,8 @@ type AccessRow = {
   plan: string;
   status: string;
   currentPeriodEnd: Date | null;
+  /** stripe | app_store | play_store | promo. Absent on older callers. */
+  provider?: string;
 };
 
 /**
@@ -32,6 +34,11 @@ export function planFromSubscription(sub: AccessRow | null | undefined, now: Dat
   if (!sub) return "free";
   const plan = sub.plan as PlanKey;
   if (plan !== "pro" && plan !== "premium") return "free";
+
+  // A plan activated with a 100%-off code has no store behind it: nothing will
+  // ever send a webhook to end it, so the end date on the row is the only thing
+  // that can. Without this a one-month free code would grant Pro forever.
+  if (sub.provider === "promo" && sub.currentPeriodEnd && sub.currentPeriodEnd <= now) return "free";
 
   if (sub.status === "active" || sub.status === "trialing") return plan;
 
@@ -50,7 +57,7 @@ export function planFromSubscription(sub: AccessRow | null | undefined, now: Dat
 export async function getPlan(userId: string): Promise<PlanKey> {
   const sub = await prisma.subscription.findUnique({
     where: { userId },
-    select: { plan: true, status: true, currentPeriodEnd: true },
+    select: { plan: true, status: true, currentPeriodEnd: true, provider: true },
   });
   return planFromSubscription(sub);
 }

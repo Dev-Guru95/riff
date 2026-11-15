@@ -86,6 +86,10 @@ function Onboarding({ data }: { data: CommunityResponse }) {
             Join free on Skool, then request access here. Our team verifies your membership before unlocking Community + AI Coach.
           </Text>
           <Button title="Join the Community on Skool →" fullWidth onPress={() => void openSkool()} />
+          {/* Members who joined long ago were stuck here: the only way to the
+              request step was to re-open Skool first — the exact loop two
+              reviewers hit. */}
+          <Button title="I've already joined" variant="ghost" fullWidth onPress={() => setStage("confirm")} />
         </>
       ) : stage === "confirm" ? (
         <>
@@ -106,7 +110,7 @@ function Onboarding({ data }: { data: CommunityResponse }) {
           <Text style={{ fontSize: 36, lineHeight: 44, textAlign: "center" }}>⏳</Text>
           <Text variant="heading" weight="bold" style={{ textAlign: "center" }}>Request received</Text>
           <Text variant="small" style={{ textAlign: "center" }}>
-            Thanks! An admin is verifying your Skool membership. Once you&apos;re approved, Community and AI Coach unlock here automatically — we&apos;ll notify you.
+            Thanks! An admin is verifying your Skool membership — usually within 24 hours. Once you&apos;re approved, Community and AI Coach unlock here automatically, and we&apos;ll notify you.
           </Text>
           <Button title="Open the Skool community →" variant="ghost" fullWidth onPress={() => void openInBrowser(data.skoolUrl)} />
         </>

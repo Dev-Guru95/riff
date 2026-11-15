@@ -22,6 +22,8 @@ export const GET = withRoute(async () => {
       active: c.active,
       expiresAt: c.expiresAt?.toISOString() ?? null,
       createdAt: c.createdAt.toISOString(),
+      plans: c.plans ? c.plans.split(",").filter(Boolean) : [],
+      durationMonths: c.durationMonths,
     })),
   };
   return ok(body);

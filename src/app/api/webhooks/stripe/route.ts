@@ -70,6 +70,14 @@ async function handleEvent(event: Stripe.Event): Promise<void> {
         : null;
 
       const result = await syncStripeSubscriptionById(subscriptionId, userId);
+
+      // A Riff discount code used at Checkout is only "spent" once the payment
+      // actually went through, which is here — not when it was applied. That is
+      // what makes maxRedemptions and the one-per-artist rule hold for paid
+      // checkouts as well as free activations.
+      const riffCode = session.metadata?.riffCode;
+      if (result && riffCode) await recordCouponUse(result.userId, riffCode);
+
       if (result && before?.plan !== result.plan && result.plan !== "free") {
         await notify(result.userId, {
           type: "reward",
@@ -143,5 +151,29 @@ async function handleEvent(event: Stripe.Event): Promise<void> {
     default:
       // Everything else is acknowledged without action so Stripe stops retrying.
       break;
+  }
+}
+
+/**
+ * Mark a Riff discount code as redeemed by this artist.
+ *
+ * Idempotent on purpose: Stripe retries webhooks, and the unique
+ * (couponId, userId) key turns a replay into a no-op rather than a second
+ * decrement of a limited code.
+ */
+async function recordCouponUse(userId: string, code: string): Promise<void> {
+  const coupon = await prisma.coupon.findUnique({ where: { code: code.toUpperCase() }, select: { id: true } });
+  if (!coupon) return;
+  const already = await prisma.couponRedemption.findUnique({
+    where: { couponId_userId: { couponId: coupon.id, userId } },
+  });
+  if (already) return;
+  try {
+    await prisma.$transaction([
+      prisma.couponRedemption.create({ data: { couponId: coupon.id, userId } }),
+      prisma.coupon.update({ where: { id: coupon.id }, data: { redeemed: { increment: 1 } } }),
+    ]);
+  } catch {
+    // Raced with another delivery of the same event; the row exists either way.
   }
 }

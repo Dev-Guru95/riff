@@ -3,9 +3,12 @@ import { prisma } from "@/lib/prisma";
 import { getSession, isNativeClient } from "@/lib/auth";
 import { stripe, isStripeConfigured, PLANS, APP_URL, statusGrantsAccess } from "@/lib/stripe";
 import { syncStripeSubscription } from "@/lib/subscriptions";
+import { quoteCoupon, ensureStripeCoupon } from "@/lib/coupons";
 import { parseBody, ok, fail, withRoute } from "@/lib/api";
 
-const schema = z.object({ plan: z.enum(["pro", "premium"]) });
+// `code` is optional: an empty checkout is the normal path, and the discount
+// is re-validated here rather than trusted from whatever the client quoted.
+const schema = z.object({ plan: z.enum(["pro", "premium"]), code: z.string().min(1).max(64).optional() });
 
 export const POST = withRoute(async (req: Request) => {
   const session = await getSession();
@@ -28,6 +31,24 @@ export const POST = withRoute(async (req: Request) => {
   const priceId = PLANS[plan].priceId;
   if (!priceId) return fail(`No Stripe price configured for the ${plan} plan`, 503);
 
+  // ---- Discount code ------------------------------------------------------
+  // Quoted from our own prices, never from the request. A code that covers the
+  // whole price is not a Stripe purchase at all — Checkout refuses a zero
+  // total — so it is sent to /api/billing/redeem, which activates the plan and
+  // records the redemption.
+  let stripeCouponId: string | null = null;
+  if (body.data.code) {
+    const quoted = await quoteCoupon(session.id, body.data.code, plan);
+    if (!quoted.ok) return fail(quoted.message, quoted.status, { reason: quoted.reason });
+    if (quoted.quote.free) {
+      return fail("That code covers the full price — activate the plan instead of paying.", 409, {
+        reason: "free_activation",
+        discount: quoted.quote,
+      });
+    }
+    stripeCouponId = await ensureStripeCoupon(quoted.quote);
+  }
+
   const existing = await prisma.subscription.findUnique({ where: { userId: session.id } });
 
   // ---- Already subscribed: change the plan in place ------------------------
@@ -49,6 +70,9 @@ export const POST = withRoute(async (req: Request) => {
         proration_behavior: "create_prorations",
         // Switching plan also un-cancels a subscription that was set to lapse.
         cancel_at_period_end: false,
+        // An existing subscriber applying a code gets it on the subscription
+        // itself — there is no Checkout session to carry it.
+        ...(stripeCouponId ? { discounts: [{ coupon: stripeCouponId }] } : {}),
         metadata: { userId: session.id, plan },
       });
       await syncStripeSubscription(updated, session.id);
@@ -66,8 +90,13 @@ export const POST = withRoute(async (req: Request) => {
     success_url: `${APP_URL}/settings/billing?status=success`,
     cancel_url: `${APP_URL}/pricing?status=cancelled`,
     client_reference_id: session.id,
-    allow_promotion_codes: true,
-    metadata: { userId: session.id, plan },
+    // Stripe refuses both at once: an applied coupon replaces the promo-code
+    // box, which is right — the code has already been validated against our
+    // own Coupon table and priced.
+    ...(stripeCouponId
+      ? { discounts: [{ coupon: stripeCouponId }] }
+      : { allow_promotion_codes: true }),
+    metadata: { userId: session.id, plan, ...(body.data.code ? { riffCode: body.data.code.toUpperCase() } : {}) },
     // Stamped on the subscription itself so every later webhook — renewal,
     // cancellation, a change made from the Stripe dashboard — can map back to
     // this user without depending on our own customer lookup.

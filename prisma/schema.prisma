@@ -560,6 +560,13 @@ model Coupon {
   active         Boolean  @default(true)
   expiresAt      DateTime?
   createdAt      DateTime @default(now())
+  // Which paid plans the code discounts, comma separated ("pro", "pro,premium").
+  // Empty means every paid plan. `reward` codes ignore this: they are redeemed
+  // on the leaderboard, not at checkout.
+  plans          String   @default("")
+  // How many months of access a code that takes the price to zero grants.
+  // 0 means "until we take it away" (no end date).
+  durationMonths Int      @default(1)
 }
 
 // AI-suggested content updates awaiting admin review/approval.

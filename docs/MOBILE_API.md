@@ -122,7 +122,8 @@ All of these are `GET`, need a session (401 otherwise) and are typed in
 | `/api/mobile/community` | `community/page.tsx` | `CommunityResponse` | Returns `status` (`member`, `pending` or `none`) and `skoolUrl`. <br>For members, `redirectTo` is the Skool URL; the web page redirects them there. Everyone else sees the onboarding. `alreadyRequested` means the status is pending. |
 | `/api/mobile/coach` | `coach/page.tsx` | `CoachResponse` | Non-members get `{ locked: true, status, pending }` with a 200, matching the page's locked state. <br>For members it **writes:** finds the latest thread or creates one. It returns `thread`, `messages` (including `feedback`) and `stageName`. |
 | `/api/mobile/audit` | `audit/page.tsx` | `AuditResponse` | Returns `oauthProviders` and social `accounts` (id, platform, handle, connectVia, status, connectedAt; **never tokens**). Also returns the latest `report` (parsed) and `runCount`. |
-| `/api/mobile/billing` | `pricing/page.tsx` + `settings/billing/page.tsx` | `BillingResponse` | Returns `plans` (free, pro, premium; Stripe price ids are not included) and `currentPlan`. Only an active or trialing subscription counts toward `currentPlan`. Also returns `billingConfigured`, `entitlements` and `subscription` (plan, status, currentPeriodEnd). |
+| `/api/mobile/billing` | `pricing/page.tsx` + `settings/billing/page.tsx` | `BillingResponse` | Returns `plans` (free, pro, premium; Stripe price ids are not included) and `currentPlan`. Only an active or trialing subscription counts toward `currentPlan`. Also returns `billingConfigured`, `currency`, `discountsEnabled`, `entitlements` and `subscription` (plan, status, currentPeriodEnd, cancelAtPeriodEnd, provider, entitlementIds). Each plan carries `priceCents` as well as `priceMonthly`, so the checkout summary can do its arithmetic in minor units. |
+| `/api/mobile/profile` | `settings/page.tsx` (profile form) | `ProfileOptionsResponse` | The artist's `stageName`, `countryCode` and `genres`, plus the fixed `countries` (codes with localised names) and `genreOptions` to choose from, and `maxGenres`. The lists are served rather than copied into the app: country names need Intl region data, and free-text genres would splinter the genre leaderboard. Saved with `PATCH /api/profile`. |
 | `/api/mobile/boards/dashboard` | `boards/page.tsx` (my-work panel) | `DashboardDTO` (src/lib/boards.ts) | `loadDashboard()`: open/completed counts, due today, overdue, upcoming, board progress, workload. |
 
 ### Admin (staff only)
@@ -263,8 +264,20 @@ can't use them with a bearer token, so use the manual connect.
 | `GET /api/billing/status` | n/a | `{ plan, coachMessagesPerDay, socialConnections, allCourses, humanReview, billingConfigured }` |
 | `POST /api/billing/checkout` | `{ plan: "pro"\|"premium" }` | `{ url }` (Stripe Checkout; open it in a browser). 503 if Stripe isn't configured. |
 | `POST /api/billing/portal` | none | `{ url }`. 400 if there is no Stripe customer; 503 if Stripe isn't configured. |
+| `POST /api/billing/discount` | `{ plan: "pro"\|"premium", code }` | `{ discount }` — a priced `DiscountQuote` (`originalCents`, `discountCents`, `finalCents`, `free`, `currency`, `durationMonths`). Records nothing, so it is safe to call on every Apply. A refusal is a 4xx carrying `reason` (`invalid`, `inactive`, `expired`, `exhausted`, `already_used`, `not_applicable`, `not_a_discount`). |
+| `POST /api/billing/redeem` | `{ plan: "pro"\|"premium", code }` | `RedeemResponse`. **Only** when the code brings the price to exactly 0: it re-quotes server-side, records the redemption and activates a `provider: "promo"` subscription. A code that still leaves an amount gets a 409 with `reason: "payment_required"`; someone who already pays by card gets `reason: "has_paid_subscription"`. |
+| `POST /api/billing/restore` | none | Re-reads Stripe, then RevenueCat, and rewrites the subscription row. Allowed from the app — restoring is not a purchase. |
 
-App-store payment policies may apply to linking out to Stripe from a native app.
+`POST /api/billing/checkout` **refuses the native client** with a 403 and
+`reason: "not_available_in_app"`: paid plans are sold on the website, and under
+App Store guideline 3.1.1 / Google Play's Payments policy the app may not even
+link to a purchasing mechanism.
+
+`/api/billing/discount` and `/api/billing/redeem` are open to the app, because
+neither takes money. Redeem can only finish at a zero total, which makes it a
+code redemption rather than a sale — the app's `/checkout` screen shows prices
+only so the summary can say what the code took off, and sends anyone with an
+amount left to pay to the website without linking there.
 
 ### Settings and MFA
 

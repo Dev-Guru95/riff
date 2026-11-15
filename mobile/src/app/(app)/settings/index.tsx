@@ -11,6 +11,7 @@ import { router, Stack } from "expo-router";
 import { api } from "@/api/client";
 import { ApiError, errorMessage } from "@/api/errors";
 import { forgetStoredSession, useAuth } from "@/auth/AuthProvider";
+import { ArtistProfileCard } from "@/components/settings/ArtistProfileCard";
 import { Button, Card, Field, PageHeader, QueryView, Screen, Text } from "@/components/ui";
 import { useApiQuery } from "@/hooks/useApi";
 import { openLink } from "@/lib/links";
@@ -152,6 +153,10 @@ export default function Settings() {
                 <Button title="Privacy policy" variant="ghost" onPress={() => void openLink("/privacy")} />
               </View>
             </Card>
+
+            {/* Country and Genre ranks stay blank until these are set, and the
+                leaderboard falls back to the email prefix without a stage name. */}
+            <ArtistProfileCard />
 
             {/* Play's User Data policy requires deletion to be reachable from
                 inside the app, not only from a web page. */}

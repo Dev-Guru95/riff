@@ -11,7 +11,7 @@ import { Stack } from "expo-router";
 import { useStaffAccess } from "@/components/admin/access";
 import { InlineMsg, MONO, NumberField, OptionPicker, ViewOnlyNote } from "@/components/admin/controls";
 import { fieldErrorMessage, useAdminCall } from "@/components/admin/useAdminAction";
-import { Button, Card, Divider, Field, QueryView, Screen, Text } from "@/components/ui";
+import { Button, Card, Divider, Field, Pill, QueryView, Screen, Text } from "@/components/ui";
 import { useApiQuery } from "@/hooks/useApi";
 import { colors, fonts } from "@/theme/tokens";
 import type { AdminCouponsResponse } from "@/types/api";
@@ -55,11 +55,22 @@ function CreateCouponForm() {
   const [value, setValue] = useState(20);
   const [description, setDescription] = useState("");
   const [maxRedemptions, setMax] = useState(0);
+  // Billing scope: which paid plans the code discounts (none = all of them),
+  // and how long free access lasts when a code covers the whole price.
+  const [plans, setPlans] = useState<string[]>([]);
+  const [durationMonths, setDuration] = useState(1);
   const [err, setErr] = useState<string | null>(null);
 
   async function submit() {
     setErr(null);
-    const res = await call("/api/admin/coupons", "POST", { code, type, value, description, maxRedemptions });
+    const res = await call("/api/admin/coupons", "POST", {
+      code,
+      type,
+      value,
+      description,
+      maxRedemptions,
+      ...(type === "reward" ? {} : { plans, durationMonths }),
+    });
     if (res.ok) {
       setCode("");
       setDescription("");
@@ -82,6 +93,35 @@ function CreateCouponForm() {
         </View>
       </View>
       <Field label="Description" value={description} onChangeText={setDescription} />
+      {/* A `reward` code is redeemed on the leaderboard and never touches a
+          price, so the billing scope only applies to percent/fixed. */}
+      {type !== "reward" ? (
+        <>
+          <Text variant="caption">Applies to — none selected means every paid plan.</Text>
+          <View style={{ flexDirection: "row", gap: 8 }}>
+            {(["pro", "premium"] as const).map((planKey) => (
+              <Pill
+                key={planKey}
+                label={planKey}
+                active={plans.includes(planKey)}
+                onPress={() =>
+                  setPlans((cur) => (cur.includes(planKey) ? cur.filter((x) => x !== planKey) : [...cur, planKey]))
+                }
+              />
+            ))}
+          </View>
+          <NumberField
+            label="Free months (100% codes)"
+            value={durationMonths}
+            onChange={(n) => setDuration(Math.max(0, n || 0))}
+            hint="How long access lasts when the code covers the whole price. 0 = no end date."
+          />
+          <Text variant="caption">
+            A percent code of 100 takes the price to zero: the artist activates the plan without paying, on the
+            website or in the app. Anything less is charged through Stripe.
+          </Text>
+        </>
+      ) : null}
       <Button title="Create" onPress={submit} disabled={busy || !code} />
       {err ? <InlineMsg ok={false}>{err}</InlineMsg> : null}
     </Card>
@@ -135,6 +175,14 @@ export default function AdminCoupons() {
                   </View>
                   {c.description ? (
                     <Text variant="small" numberOfLines={1}>{c.description}</Text>
+                  ) : null}
+                  {c.type !== "reward" ? (
+                    <Text variant="caption">
+                      {c.plans && c.plans.length > 0 ? c.plans.join(" + ") : "all paid plans"}
+                      {c.value === 100 && c.type === "percent"
+                        ? ` · free for ${c.durationMonths === 0 ? "good" : `${c.durationMonths} month${c.durationMonths === 1 ? "" : "s"}`}`
+                        : ""}
+                    </Text>
                   ) : null}
                 </View>
               </View>

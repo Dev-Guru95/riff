@@ -23,6 +23,7 @@ const NATIVE_PREFIXES = [
   "/leaderboard",
   "/certificates",
   "/pricing",
+  "/checkout",
   "/settings",
   "/notifications",
   "/admin",

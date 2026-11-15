@@ -238,3 +238,28 @@ describe("verifyRevenueCatWebhook", () => {
     expect(verifyRevenueCatWebhook(body, { authorization: "nope", signature: `t=1,v1=${mac}` }).ok).toBe(false);
   });
 });
+
+describe("planFromSubscription — code-activated plans", () => {
+  const now = new Date("2026-11-15T12:00:00Z");
+  const past = new Date("2026-11-01T12:00:00Z");
+  const soon = new Date("2026-12-15T12:00:00Z");
+
+  it("grants the plan while a promo period is still running", () => {
+    expect(planFromSubscription({ plan: "pro", status: "active", provider: "promo", currentPeriodEnd: soon }, now)).toBe("pro");
+  });
+
+  it("ends access when the promo period has passed — nothing else will", () => {
+    // No store sends a webhook for a 100%-off activation, so the end date on
+    // the row is the only thing that can retire it.
+    expect(planFromSubscription({ plan: "pro", status: "active", provider: "promo", currentPeriodEnd: past }, now)).toBe("free");
+  });
+
+  it("never expires a promo granted with no end date", () => {
+    expect(planFromSubscription({ plan: "premium", status: "active", provider: "promo", currentPeriodEnd: null }, now)).toBe("premium");
+  });
+
+  it("leaves Stripe subscriptions alone — their status is authoritative", () => {
+    // Stripe keeps `active` across a renewal before it moves the period end.
+    expect(planFromSubscription({ plan: "pro", status: "active", provider: "stripe", currentPeriodEnd: past }, now)).toBe("pro");
+  });
+});

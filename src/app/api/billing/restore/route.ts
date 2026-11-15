@@ -63,14 +63,31 @@ export const POST = withRoute(async () => {
     if (entitlementIds.length > 0) {
       const plan = planForEntitlementIds(entitlementIds);
       const storeEntry = Object.values(subscriber?.subscriptions ?? {})[0];
-      const expires = storeEntry?.expires_date ? new Date(storeEntry.expires_date) : null;
+
+      // A plan activated with a 100%-off code is a *promotional* entitlement:
+      // RevenueCat may list it under `entitlements` with no matching
+      // `subscriptions` entry at all. Falling through to the defaults there
+      // would relabel it "stripe" and drop its end date, turning a one-month
+      // free code into permanent access — so read the expiry off the
+      // entitlement when there is no store entry, and keep the promo label.
+      const entitlementExpiry = Object.entries(subscriber?.entitlements ?? {})
+        .filter(([id]) => entitlementIds.includes(id))
+        .map(([, e]) => (e.expires_date ? new Date(e.expires_date) : null));
+      const expires = storeEntry?.expires_date
+        ? new Date(storeEntry.expires_date)
+        : entitlementExpiry.find((d): d is Date => d !== null) ?? null;
+      const provider = storeEntry?.store
+        ? providerForStore(storeEntry.store)
+        : existing?.provider === "promo"
+          ? "promo"
+          : providerForStore(undefined);
       await prisma.subscription.upsert({
         where: { userId: session.id },
         create: {
           userId: session.id,
           plan,
           status: "active",
-          provider: providerForStore(storeEntry?.store),
+          provider,
           entitlements: JSON.stringify(entitlementsForPlan(plan)),
           currentPeriodEnd: expires,
           revenueCatCustomerId: session.id,
@@ -79,7 +96,7 @@ export const POST = withRoute(async () => {
         update: {
           plan,
           status: "active",
-          provider: providerForStore(storeEntry?.store),
+          provider,
           entitlements: JSON.stringify(entitlementsForPlan(plan)),
           currentPeriodEnd: expires,
           revenueCatCustomerId: session.id,

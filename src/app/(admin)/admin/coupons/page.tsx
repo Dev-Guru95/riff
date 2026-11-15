@@ -20,7 +20,18 @@ export default async function AdminCoupons() {
           <div key={c.id} className="grid grid-cols-[8rem_5rem_1fr_6rem] gap-2 px-4 py-3 text-sm border-b border-[var(--border)] last:border-0 items-center">
             <span className="font-mono font-semibold">{c.code}</span>
             <span>{c.type === "percent" ? `${c.value}%` : c.type === "fixed" ? `$${c.value}` : "reward"}</span>
-            <span className="text-[var(--muted)] truncate">{c.description}</span>
+            <span className="text-[var(--muted)] truncate">
+              {c.description}
+              {c.type !== "reward" && (
+                <span className="text-xs ml-2">
+                  ({c.plans ? c.plans.split(",").filter(Boolean).join(" + ") : "all paid plans"}
+                  {c.type === "percent" && c.value === 100
+                    ? ` · free for ${c.durationMonths === 0 ? "good" : `${c.durationMonths}mo`}`
+                    : ""}
+                  )
+                </span>
+              )}
+            </span>
             <span className="text-right text-xs">{c.redeemed}/{c.maxRedemptions || "∞"}</span>
           </div>
         ))}

@@ -6,10 +6,13 @@
 // Payments policy, and linking out to one is the same violation as embedding
 // it. Subscriptions are bought, changed and cancelled on the Riff website.
 //
+// Redeeming a discount code is not a purchase, so that one lives in the app:
+// "Have a code?" opens /checkout. See that screen for where the line is.
+//
 // Data: GET /api/mobile/billing.
 
 import { View } from "react-native";
-import { router, Stack } from "expo-router";
+import { router, Stack, type Href } from "expo-router";
 
 import { Button, Card, QueryView, Screen, Text } from "@/components/ui";
 import { useApiQuery } from "@/hooks/useApi";
@@ -55,12 +58,16 @@ export default function Billing() {
               </Card>
 
               <Text variant="caption">
-                Your plan is managed on the Riff website. Anything you change there appears here
-                automatically.
+                {sub?.provider === "promo"
+                  ? "This plan was activated with a code, so there's nothing to pay and no card on file."
+                  : "Your plan is managed on the Riff website. Anything you change there appears here automatically."}
               </Text>
 
               <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
                 <Button title="View plans" variant="ghost" onPress={() => router.push("/pricing")} />
+                {ent.plan === "free" ? (
+                  <Button title="Have a code?" variant="ghost" onPress={() => router.push("/checkout?plan=pro" as Href)} />
+                ) : null}
               </View>
             </>
           );

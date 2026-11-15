@@ -1,3 +1,4 @@
+import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { ok, fail, withRoute } from "@/lib/api";
 import { computeLeaderboard, type LeaderRow } from "@/lib/leaderboard";
@@ -31,6 +32,13 @@ export const GET = withRoute(async (req: Request) => {
   });
   const meRow = all.find((r) => r.userId === session.id);
 
+  // The board falls back to the email prefix when there is no stage name, which
+  // is what made a small early board look like a list of test accounts.
+  const profile = await prisma.artistProfile.findUnique({
+    where: { userId: session.id },
+    select: { stageName: true },
+  });
+
   const body: LeaderboardResponse = {
     page,
     pageSize: PAGE_SIZE,
@@ -46,6 +54,7 @@ export const GET = withRoute(async (req: Request) => {
           detail: "Climbing the Riff ranks.",
         })
       : null,
+    needsStageName: !profile?.stageName?.trim(),
   };
   return ok(body);
 });

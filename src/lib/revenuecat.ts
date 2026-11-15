@@ -203,3 +203,42 @@ export function providerForStore(store: string | undefined | null): string {
 export function stripeIsAuthoritative(store: string | undefined | null): boolean {
   return (store ?? "").toUpperCase() === "STRIPE";
 }
+
+/**
+ * Grant a promotional entitlement — the RevenueCat side of a 100%-off code.
+ *
+ * A free activation has no receipt to post: no card was charged, so there is no
+ * Stripe subscription id to send to /v1/receipts. RevenueCat's promotional
+ * endpoint exists for exactly this, and it is what makes `provider: "promo"`
+ * resolve to the same entitlements on every other platform the artist signs in
+ * from. Unlike pushStripeSubscription this needs the *secret* v1 key.
+ *
+ * `endsAt` of null grants it with no end date.
+ */
+export async function grantPromotionalEntitlement(
+  appUserId: string,
+  entitlementId: string,
+  endsAt: Date | null,
+): Promise<RevenueCatResult> {
+  if (!canReadRevenueCat()) {
+    return { ok: false, skipped: true, reason: "RevenueCat secret key is not configured" };
+  }
+  try {
+    const res = await fetch(
+      `${API}/v1/subscribers/${encodeURIComponent(appUserId)}/entitlements/${encodeURIComponent(entitlementId)}/promotional`,
+      {
+        method: "POST",
+        headers: { Authorization: `Bearer ${SECRET_KEY()}`, "Content-Type": "application/json" },
+        body: JSON.stringify(endsAt ? { end_time_ms: endsAt.getTime() } : { duration: "lifetime" }),
+      },
+    );
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      return { ok: false, status: res.status, reason: text.slice(0, 200) || res.statusText };
+    }
+    const body = (await res.json()) as { subscriber?: RevenueCatSubscriber };
+    return { ok: true, entitlementIds: activeEntitlementIds(body.subscriber) };
+  } catch (err) {
+    return { ok: false, status: 0, reason: err instanceof Error ? err.message : "network error" };
+  }
+}

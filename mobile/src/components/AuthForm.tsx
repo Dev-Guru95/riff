@@ -3,7 +3,7 @@
 
 import { useRef, useState } from "react";
 import { StyleSheet, TextInput, View } from "react-native";
-import { Link } from "expo-router";
+import { Link, type Href } from "expo-router";
 
 import { useAuth } from "@/auth/AuthProvider";
 import { errorMessage } from "@/api/errors";
@@ -132,6 +132,18 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
             </>
           )}
 
+          {/* Reviewers flagged that there was no way back into an account once
+              the password was forgotten. Same place as the web form. The href
+              is cast because .expo/types/router.d.ts only learns about a new
+              route when the dev server regenerates it. */}
+          {mode === "login" && !mfaStep ? (
+            <Link href={"/forgot-password" as Href} asChild>
+              <Text variant="caption" accessibilityRole="link" style={styles.forgot}>
+                Forgot your password?
+              </Text>
+            </Link>
+          ) : null}
+
           {error ? (
             <Text variant="small" color={colors.danger} accessibilityLiveRegion="polite">{error}</Text>
           ) : null}
@@ -177,6 +189,7 @@ const styles = StyleSheet.create({
   card: { padding: 32, width: "100%", maxWidth: 384, alignSelf: "center" },
   mark: { fontFamily: fonts.bold, fontSize: 18, lineHeight: 28, color: colors.foreground, marginBottom: 24 },
   switch: { flexDirection: "row", justifyContent: "center", marginTop: 20, flexWrap: "wrap" },
+  forgot: { alignSelf: "flex-end", paddingVertical: 6, marginTop: -4 },
   footer: { flexDirection: "row", justifyContent: "center", flexWrap: "wrap", columnGap: 20, rowGap: 8, marginTop: 24, paddingTop: 20, borderTopWidth: 1, borderTopColor: colors.border },
   footerLink: { paddingVertical: 6 },
 });
