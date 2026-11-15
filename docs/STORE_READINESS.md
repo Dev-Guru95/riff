@@ -141,7 +141,7 @@ do pass. **But it is a reviewer's judgement, not a checklist**, so treat approva
 as likely rather than certain.
 
 **To improve the odds:** complete the deep-link verification (item 8) so the app
-handles `riff-app.onrender.com` links natively — reviewers read that as real
+handles `riff.soundrig.io` links natively — reviewers read that as real
 platform integration.
 
 ---
@@ -255,7 +255,7 @@ policy) that its website is also missing, plus a payments decision. Realisticall
 | Deletion logic | `src/lib/account.ts` |
 | API | `DELETE /api/account` — requires password re-entry **and** the typed word `DELETE` |
 | In-app entry point | `/settings` → "Delete my account" (Settings added to the main nav so it is discoverable, as Play requires) |
-| Public URL for Play Console | **`https://riff-app.onrender.com/account/deletion`** |
+| Public URL for Play Console | **`https://riff.soundrig.io/account/deletion`** |
 | Post-deletion page | `/account/deleted` (public — the session is gone by then) |
 
 **No schema migration was needed.** Every `User` relation already declared
@@ -287,7 +287,7 @@ with `onDelete: SetNull`. Say the word if you would prefer that.
 
 ### Blocker 2: Privacy policy — DONE
 
-Published at **`https://riff-app.onrender.com/privacy`** — public, static, no
+Published at **`https://riff.soundrig.io/privacy`** — public, static, no
 auth, so a reviewer can open it directly.
 
 Written from what the code actually does rather than from a template. It names
@@ -314,7 +314,8 @@ it appeared to enable.
 ### Verified live against production (2026-09-23)
 
 Deploy landed in ~105s; the full flow was then exercised end to end against
-`riff-app.onrender.com` with a throwaway account:
+`riff-app.onrender.com` with a throwaway account (that Render deployment has
+since been suspended — the live host is now `riff.soundrig.io`):
 
 | # | Test | Result |
 |---|---|---|

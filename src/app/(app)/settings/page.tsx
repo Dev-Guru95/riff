@@ -4,6 +4,7 @@ import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/ui";
 import { DeleteAccountForm } from "./DeleteAccountClient";
+import { ProfileForm } from "./ProfileForm";
 
 export default async function SettingsPage() {
   const session = await getSession();
@@ -15,7 +16,8 @@ export default async function SettingsPage() {
       email: true,
       createdAt: true,
       mfaEnabled: true,
-      profile: { select: { stageName: true } },
+      countryCode: true,
+      profile: { select: { stageName: true, genres: true } },
       subscription: { select: { plan: true, status: true } },
     },
   });
@@ -54,6 +56,17 @@ export default async function SettingsPage() {
         </div>
       </section>
 
+      {/* Country and genre are what the Country/Genre leaderboards rank on.
+          There was no way to set either, so both ranks sat at "—" forever. */}
+      <section className="card p-5">
+        <h2 className="text-sm font-semibold mb-3">Artist profile</h2>
+        <ProfileForm
+          initialStageName={user?.profile?.stageName ?? ""}
+          initialCountryCode={user?.countryCode ?? null}
+          initialGenres={safeGenres(user?.profile?.genres)}
+        />
+      </section>
+
       {/* Play's User Data policy requires deletion to be reachable from inside
           the app, not only from a web page. This is that entry point. */}
       <section className="card p-5 border-[var(--brand-2)]">
@@ -68,4 +81,13 @@ export default async function SettingsPage() {
       </section>
     </main>
   );
+}
+
+function safeGenres(json: string | undefined | null): string[] {
+  try {
+    const parsed = json ? JSON.parse(json) : [];
+    return Array.isArray(parsed) ? parsed.filter((v): v is string => typeof v === "string") : [];
+  } catch {
+    return [];
+  }
 }

@@ -71,15 +71,22 @@ function CoachLocked({ pending, onRefresh }: { pending: boolean; onRefresh: () =
       <View style={{ alignItems: "center", paddingVertical: 48 }}>
         <Text style={{ fontSize: 48, lineHeight: 56, marginBottom: 12 }}>🔒</Text>
         <Text variant="title" style={{ textAlign: "center" }}>AI Artist Coach</Text>
+        {/* Same wording as the web's /coach and /community: joining Skool is
+            step one, verification is what unlocks it. */}
         <Text variant="small" style={[scale.base, { textAlign: "center", maxWidth: 340, marginTop: 8 }]}>
-          A coach that knows your goals, genre, progress and audit scores. It unlocks when you join the SoundRig community on Skool.
+          A coach that knows your goals, genre, progress and audit scores. It unlocks once you join the SoundRig community on Skool and our team verifies your membership.
         </Text>
         {pending ? (
-          <Text style={{ textAlign: "center", marginTop: 24 }}>
-            ⏳ Your membership is being verified — your coach unlocks as soon as it&apos;s approved.
+          <Text variant="small" style={{ textAlign: "center", marginTop: 24, maxWidth: 340 }}>
+            ⏳ Pending verification. We&apos;re checking your Skool membership — usually within 24 hours. Your coach unlocks automatically once you&apos;re approved.
           </Text>
         ) : (
-          <Button title="Join the community to unlock" onPress={() => router.push("/community")} style={{ alignSelf: "center", marginTop: 24 }} />
+          <>
+            <Button title="Join the community to unlock" onPress={() => router.push("/community")} style={{ alignSelf: "center", marginTop: 24 }} />
+            <Text variant="caption" style={{ textAlign: "center", marginTop: 12, maxWidth: 340 }}>
+              Already a Skool member? Open Community to request verification.
+            </Text>
+          </>
         )}
       </View>
     </Screen>

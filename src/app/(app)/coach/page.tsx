@@ -47,18 +47,27 @@ function CoachLocked({ pending }: { pending: boolean }) {
     <main className="max-w-xl mx-auto px-4 py-16 text-center">
       <div className="text-5xl mb-3">🔒</div>
       <h1 className="text-2xl font-bold">AI Artist Coach</h1>
+      {/* Wording matches /community exactly: joining Skool is step one, and an
+          admin verifying you is what actually unlocks this. The two pages used
+          to describe the same gate differently, which read as a bug. */}
       <p className="text-[var(--muted)] mt-2">
-        A coach that knows your goals, genre, progress and audit scores. It unlocks when you join the
-        SoundRig community on Skool.
+        A coach that knows your goals, genre, progress and audit scores. It unlocks once you join the
+        SoundRig community on Skool and our team verifies your membership.
       </p>
       {pending ? (
         <p className="text-sm mt-6">
-          ⏳ Your membership is being verified — your coach unlocks as soon as it&apos;s approved.
+          ⏳ <strong>Pending verification.</strong> We&apos;re checking your Skool membership — usually within
+          24 hours. Your coach unlocks automatically once you&apos;re approved, and we&apos;ll notify you.
         </p>
       ) : (
-        <Link href="/community" className="btn btn-primary mt-6 inline-block">
-          Join the community to unlock
-        </Link>
+        <>
+          <Link href="/community" className="btn btn-primary mt-6 inline-block">
+            Join the community to unlock
+          </Link>
+          <p className="text-xs text-[var(--muted)] mt-3">
+            Already a Skool member? <Link href="/community" className="text-[var(--accent)] underline">Request verification</Link>.
+          </p>
+        </>
       )}
     </main>
   );

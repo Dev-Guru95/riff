@@ -45,8 +45,9 @@ export default function TabsLayout() {
         headerTintColor: colors.foreground,
         headerTitleStyle: { fontFamily: fonts.semibold, fontSize: 17 },
         // The web's mobile top bar: wordmark left, bell right. Page titles stay
-        // in the page body, as on the web.
-        headerTitle: () => <Wordmark />,
+        // in the page body, as on the web. Tapping the wordmark returns to Home,
+        // matching the web, where it links to /dashboard.
+        headerTitle: () => <Wordmark onPress={() => router.navigate("/")} />,
         headerTitleAlign: "left",
         headerShadowVisible: false,
         headerRight: () => <BellButton />,

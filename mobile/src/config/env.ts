@@ -10,9 +10,12 @@
 
 export type AppEnv = "development" | "testing" | "production";
 
+// All three point at riff.soundrig.io: the old Render deployment is suspended,
+// so dev and testing builds were talking to a dead backend. Point a local build
+// at your machine with EXPO_PUBLIC_API_URL instead.
 const DEFAULT_URLS: Record<AppEnv, string> = {
-  development: "https://riff-app.onrender.com",
-  testing: "https://riff-app.onrender.com",
+  development: "https://riff.soundrig.io",
+  testing: "https://riff.soundrig.io",
   production: "https://riff.soundrig.io",
 };
 

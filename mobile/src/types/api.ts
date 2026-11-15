@@ -151,6 +151,10 @@ export type UserRanks = {
   countryRank: number | null;
   genreRank: number | null;
   composite: number;
+  /** False when no country is set, so a null countryRank means "unset", not "unplaced". */
+  hasCountry?: boolean;
+  /** False when no genre is set, so a null genreRank means "unset", not "unplaced". */
+  hasGenre?: boolean;
 };
 
 export type DashboardResponse = {
@@ -361,9 +365,20 @@ export type MissionItem = {
   xpReward: number;
   /** "available" when the artist has no UserMission row yet. */
   status: string;
+  /** The link or note submitted to complete it; null until completed. */
+  proof?: string | null;
 };
 
-export type MissionsResponse = { missions: MissionItem[]; completed: number; total: number };
+export type MissionsResponse = {
+  missions: MissionItem[];
+  completed: number;
+  total: number;
+  /**
+   * False on Free. Missions are a Pro feature, so the list is shown but cannot
+   * be completed — POST /api/missions/:id/complete answers 403 for Free.
+   */
+  weeklyMissions?: boolean;
+};
 
 // ───────────────────────── Studio ─────────────────────────
 

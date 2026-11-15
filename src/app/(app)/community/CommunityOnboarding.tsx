@@ -82,6 +82,11 @@ export function CommunityOnboarding({ alreadyRequested }: { alreadyRequested: bo
             <button className="btn btn-primary w-full py-3 text-base" onClick={openSkool}>
               Join the Community on Skool →
             </button>
+            {/* Members who joined long ago were stuck here: the only way to the
+                request step was to re-open Skool first. */}
+            <button className="btn btn-ghost w-full py-2 mt-2 text-sm" onClick={() => setStage("confirm")}>
+              I&apos;ve already joined
+            </button>
           </>
         )}
 
@@ -106,8 +111,8 @@ export function CommunityOnboarding({ alreadyRequested }: { alreadyRequested: bo
             <div className="text-4xl mb-2">⏳</div>
             <h2 className="text-lg font-bold mb-1">Request received</h2>
             <p className="text-sm text-[var(--muted)] mb-4">
-              Thanks! An admin is verifying your Skool membership. Once you’re approved, Community and
-              AI Coach unlock here automatically — we’ll notify you.
+              Thanks! An admin is verifying your Skool membership — usually within 24 hours. Once you’re
+              approved, Community and AI Coach unlock here automatically, and we’ll notify you.
             </p>
             <a href={SKOOL_URL} target="_blank" rel="noopener noreferrer" className="btn btn-ghost w-full py-3">
               Open the Skool community →

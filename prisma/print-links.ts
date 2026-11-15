@@ -2,7 +2,7 @@
 //
 //   pnpm exec tsx prisma/print-links.ts
 //   pnpm exec tsx prisma/print-links.ts --md          # markdown table
-//   APP_URL=https://riff-app.onrender.com pnpm exec tsx prisma/print-links.ts
+//   APP_URL=https://riff.soundrig.io pnpm exec tsx prisma/print-links.ts
 //
 // Reads the course files rather than the database, so it works from a developer
 // machine that cannot reach production, and so the output is the same wherever
@@ -15,13 +15,29 @@ import { slugify } from "../src/lib/import/create-course";
 import { parsedCourseSchema } from "../src/lib/import/types";
 import { quizPath, stepPath, absoluteUrl } from "../src/lib/trackLinks";
 
-const ORIGIN = process.env.APP_URL ?? "https://riff-app.onrender.com";
+// riff.soundrig.io is the live site. The old default (riff-app.onrender.com)
+// is suspended, so links generated with it dead-end in the Skool classroom.
+// An empty APP_URL counts as unset, not as an empty origin.
+const LIVE_ORIGIN = "https://riff.soundrig.io";
+const ORIGIN = process.env.APP_URL?.trim() || LIVE_ORIGIN;
+
+// These links get pasted into Skool, where a localhost address is useless to
+// every student. .env sets APP_URL for local development, so without this the
+// script quietly emits http://localhost:3000 links.
+const IS_LOCAL = /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:|\/|$)/i.test(ORIGIN);
 const IMPORT_DIR = path.join(process.cwd(), "course-import");
 const MARKDOWN = process.argv.includes("--md");
 
 type Row = { track: number; title: string; kind: string; label: string; url: string };
 
 function main() {
+  if (IS_LOCAL) {
+    console.error("");
+    console.error(`  !!  APP_URL is ${ORIGIN} — these are LOCAL links.`);
+    console.error("  !!  Do not paste them into Skool. Re-run with the live origin:");
+    console.error(`  !!      APP_URL=${LIVE_ORIGIN} pnpm exec tsx prisma/print-links.ts`);
+    console.error("");
+  }
   const files = fs
     .readdirSync(IMPORT_DIR)
     .filter((f) => /^\d+-.*\.json$/.test(f))

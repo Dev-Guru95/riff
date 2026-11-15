@@ -40,6 +40,26 @@ export function BoardsClient({ initialBoards }: { initialBoards: Board[] }) {
     setTitle(t.kind === "generic" ? "" : t.name);
   }
 
+  /**
+   * Create straight from a template, named after it. The empty Projects page
+   * used to be a single "No boards yet" card with the templates hidden behind
+   * the New board button, so it read as a dead end.
+   */
+  async function startFrom(t: BoardTemplate) {
+    if (busy) return;
+    setBusy(true);
+    setError(null);
+    const res = await fetch("/api/boards", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ title: t.kind === "generic" ? "My board" : t.name, kind: t.kind }),
+    });
+    const data = await res.json().catch(() => ({}));
+    setBusy(false);
+    if (res.ok && data.id) router.push(`/boards/${data.id}`);
+    else setError(data.error ?? "Couldn't create board");
+  }
+
   async function createBoard(e: React.FormEvent) {
     e.preventDefault();
     const t = title.trim();
@@ -105,10 +125,40 @@ export function BoardsClient({ initialBoards }: { initialBoards: Board[] }) {
       </div>
 
       {boards.length === 0 ? (
-        <div className="card p-10 text-center">
-          <div className="text-4xl mb-2">🗂️</div>
-          <p className="font-semibold">No boards yet</p>
-          <p className="text-sm text-[var(--muted)] mt-1">Create your first board — pick a tool like Content Calendar or Release Planner to get started fast.</p>
+        <div>
+          <div className="text-center mb-5">
+            <div className="text-4xl mb-2">🗂️</div>
+            <p className="font-semibold">Start your first board</p>
+            <p className="text-sm text-[var(--muted)] mt-1">
+              Pick a starter below — each one opens with the right columns and labels already set up.
+            </p>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {BOARD_TEMPLATES.filter((t) => t.kind !== "generic").map((t) => (
+              <button
+                key={t.kind}
+                type="button"
+                onClick={() => startFrom(t)}
+                disabled={busy}
+                className="text-left card p-4 transition hover:border-[var(--brand)] disabled:opacity-60"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-2xl">{t.icon}</span>
+                  {t.track && (
+                    <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded-full bg-[var(--surface-2)] text-[var(--muted)]">
+                      Track {t.track}
+                    </span>
+                  )}
+                </div>
+                <div className="text-sm font-medium mt-2">{t.name}</div>
+                <div className="text-xs text-[var(--muted)] mt-0.5 line-clamp-2">{t.tagline}</div>
+              </button>
+            ))}
+          </div>
+          <p className="text-xs text-[var(--muted)] text-center mt-4">
+            Or <button type="button" className="text-[var(--accent)] underline" onClick={() => setCreating(true)}>start a blank board</button>.
+          </p>
+          {error && <p className="text-[var(--brand-2)] text-sm mt-2 text-center">{error}</p>}
         </div>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">

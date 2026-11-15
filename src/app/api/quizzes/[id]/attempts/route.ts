@@ -2,6 +2,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { recordAchievement } from "@/lib/events";
+import { completeCourseIfQuizzesPassed } from "@/lib/enrollment";
 import type { SharePayload } from "@/lib/share";
 import { track } from "@/lib/analytics";
 import { parseBody, ok, fail, withRoute } from "@/lib/api";
@@ -18,7 +19,10 @@ export const POST = withRoute(async (req: Request, { params }: { params: Promise
   const { data, error } = await parseBody(req, schema);
   if (error) return error;
 
-  const quiz = await prisma.quiz.findUnique({ where: { id }, include: { questions: true } });
+  const quiz = await prisma.quiz.findUnique({
+    where: { id },
+    include: { questions: true, lesson: { select: { module: { select: { courseId: true } } } } },
+  });
   if (!quiz) return fail("Quiz not found", 404);
 
   // Score: each question all-or-nothing (selected set === correct set).
@@ -51,6 +55,7 @@ export const POST = withRoute(async (req: Request, { params }: { params: Promise
   let xp = null;
   let streak = null;
   let shares: SharePayload[] | undefined;
+  let courseRewards: Awaited<ReturnType<typeof completeCourseIfQuizzesPassed>> = null;
   if (passed) {
     // Base + bonus for beating the threshold. Idempotent on first pass only.
     const bonus = Math.round(0.5 * Math.max(0, score - quiz.passThreshold));
@@ -58,8 +63,16 @@ export const POST = withRoute(async (req: Request, { params }: { params: Promise
     xp = result.xp;
     streak = result.streak;
     shares = result.shares;
+
+    // Passing the track's quiz is what completes the track. Artists learn on
+    // Skool and only test here, so waiting for every lesson to be opened in
+    // Riff left the program certificate stuck at 0 tracks. Idempotent.
+    const courseId = quiz.lesson.module.courseId;
+    if (courseId) {
+      courseRewards = await completeCourseIfQuizzesPassed(session.id, courseId);
+    }
   }
   await track(passed ? "quiz_pass" : "quiz_fail", session.id, { quizId: id, score });
 
-  return ok({ score, passed, passThreshold: quiz.passThreshold, perQuestion, xp, streak, shares });
+  return ok({ score, passed, passThreshold: quiz.passThreshold, perQuestion, xp, streak, shares, courseRewards });
 });

@@ -133,8 +133,34 @@ export default async function Dashboard() {
       {/* Ranks */}
       <section className="grid sm:grid-cols-3 gap-3">
         <Stat icon="🌍" value={ranks?.globalRank ? `#${ranks.globalRank}` : "—"} label="Global rank" />
-        <Stat icon="📍" value={ranks?.countryRank ? `#${ranks.countryRank}` : "—"} label="Country rank" />
-        <Stat icon="🎵" value={ranks?.genreRank ? `#${ranks.genreRank}` : "—"} label="Genre rank" />
+        {/* A dash with no explanation looked broken. When the field was never
+            set, say so and link to where it is set. */}
+        <Stat
+          icon="📍"
+          value={
+            ranks?.countryRank ? (
+              `#${ranks.countryRank}`
+            ) : ranks && !ranks.hasCountry ? (
+              <Link href="/settings" className="text-sm font-semibold text-[var(--accent)] underline">Set country</Link>
+            ) : (
+              "—"
+            )
+          }
+          label="Country rank"
+        />
+        <Stat
+          icon="🎵"
+          value={
+            ranks?.genreRank ? (
+              `#${ranks.genreRank}`
+            ) : ranks && !ranks.hasGenre ? (
+              <Link href="/settings" className="text-sm font-semibold text-[var(--accent)] underline">Set genre</Link>
+            ) : (
+              "—"
+            )
+          }
+          label="Genre rank"
+        />
       </section>
       {ranks?.globalRank ? (
         <div className="flex justify-center -mt-2">

@@ -26,7 +26,9 @@ const LINKS: NavItem[] = [
   { href: "/audit", label: "Audit", icon: "layers" },
   { href: "/roadmap", label: "Roadmap", icon: "route" },
   { href: "/community", label: "Community", icon: "community" },
-  { href: "/leaderboard", label: "Ranks", icon: "trophy" },
+  // One feature, one name. This read "Ranks" while the page title and the
+  // dashboard card both said "Leaderboard", which made it look like two places.
+  { href: "/leaderboard", label: "Leaderboard", icon: "trophy" },
   { href: "/pricing", label: "Plans", icon: "card" },
   // Settings must be reachable from the app shell, not only by typing the URL:
   // Play's User Data policy requires account deletion to be discoverable from

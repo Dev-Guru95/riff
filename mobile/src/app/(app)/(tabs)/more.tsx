@@ -19,7 +19,8 @@ const LINKS: NavItem[] = [
   { href: "/audit", label: "Audit", icon: "layers" },
   { href: "/roadmap", label: "Roadmap", icon: "route" },
   { href: "/community", label: "Community", icon: "community" },
-  { href: "/leaderboard", label: "Ranks", icon: "trophy" },
+  // Same name as the web nav and the page title: one feature, one name.
+  { href: "/leaderboard", label: "Leaderboard", icon: "trophy" },
   { href: "/pricing", label: "Plans", icon: "card" },
   // Account deletion must be discoverable from inside the app (Play policy).
   { href: "/settings", label: "Settings", icon: "settings" },

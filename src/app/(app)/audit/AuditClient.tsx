@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 type Account = { id: string; platform: string; handle: string; connectVia: string };
 type Report = {
@@ -23,12 +24,27 @@ const PLATFORMS = [
   { key: "spotify", label: "Spotify for Artists", icon: "🎧" },
 ];
 
-export function AuditClient({ accounts, report, runCount, oauthProviders }: { accounts: Account[]; report: Report | null; runCount: number; oauthProviders: string[] }) {
+export function AuditClient({
+  accounts,
+  report,
+  runCount,
+  oauthProviders,
+  plan,
+  connectionLimit,
+}: {
+  accounts: Account[];
+  report: Report | null;
+  runCount: number;
+  oauthProviders: string[];
+  plan: string;
+  connectionLimit: number;
+}) {
   const router = useRouter();
   const [connecting, setConnecting] = useState<string | null>(null);
   const [handle, setHandle] = useState("");
   const [running, setRunning] = useState(false);
   const connected = new Set(accounts.map((a) => a.platform));
+  const atLimit = connected.size >= connectionLimit;
 
   async function connect(platform: string) {
     if (!handle.trim()) return;
@@ -59,7 +75,29 @@ export function AuditClient({ accounts, report, runCount, oauthProviders }: { ac
     <div className="space-y-6">
       {/* Connections */}
       <section className="card p-5">
-        <h2 className="text-sm font-semibold text-[var(--muted)] uppercase tracking-wide mb-3">Connected accounts</h2>
+        <h2 className="text-sm font-semibold text-[var(--muted)] uppercase tracking-wide mb-1">Connected accounts</h2>
+        {/* The Plans page states this limit; the Audit screen used to show six
+            Connect buttons and let people discover it by hitting the error. */}
+        <p className="text-xs text-[var(--muted)] mb-3">
+          {atLimit ? (
+            <>
+              You&apos;ve used all {connectionLimit} connection{connectionLimit === 1 ? "" : "s"} on your{" "}
+              <span className="capitalize">{plan}</span> plan.{" "}
+              {plan === "free" && <Link href="/pricing" className="text-[var(--accent)] underline">Upgrade to connect all six</Link>}
+            </>
+          ) : (
+            <>
+              Your <span className="capitalize">{plan}</span> plan includes {connectionLimit} connected account
+              {connectionLimit === 1 ? "" : "s"} — {connected.size} of {connectionLimit} used.
+              {plan === "free" && (
+                <>
+                  {" "}
+                  <Link href="/pricing" className="text-[var(--accent)] underline">Pro connects all six.</Link>
+                </>
+              )}
+            </>
+          )}
+        </p>
         <div className="grid sm:grid-cols-2 gap-2">
           {PLATFORMS.map((p) => {
             const acc = accounts.find((a) => a.platform === p.key);
@@ -71,6 +109,8 @@ export function AuditClient({ accounts, report, runCount, oauthProviders }: { ac
                     <span className="text-xs text-[var(--success)]">{acc.connectVia === "oauth" ? "🔗 connected" : `@${acc.handle}`}</span>
                     <button className="text-xs text-[var(--muted)] hover:text-[var(--brand-2)]" onClick={() => disconnect(p.key)}>✕</button>
                   </span>
+                ) : atLimit ? (
+                  <span className="text-xs text-[var(--muted)]">🔒 Plan limit</span>
                 ) : oauthProviders.includes(p.key) ? (
                   <a href={`/api/social/oauth/${p.key}/start`} className="text-xs btn btn-primary py-1 px-3">Connect</a>
                 ) : connecting === p.key ? (
@@ -90,6 +130,36 @@ export function AuditClient({ accounts, report, runCount, oauthProviders }: { ac
         </button>
         {connected.size === 0 && <p className="text-xs text-[var(--muted)] mt-2 text-center">Connect at least one account to run an audit.</p>}
       </section>
+
+      {/* Example. Before the first run the screen was a wall of Connect buttons
+          and a disabled button, so there was nothing showing what an audit is
+          worth. Clearly labelled so it is never mistaken for real scores. */}
+      {!report && (
+        <section className="card p-5 border-dashed">
+          <div className="flex items-center justify-between gap-3 mb-3">
+            <h2 className="text-sm font-semibold text-[var(--muted)] uppercase tracking-wide">What you&apos;ll get</h2>
+            <span className="text-xs px-2 py-0.5 rounded-full bg-[var(--surface-2)] text-[var(--muted)]">Example</span>
+          </div>
+          <div className="grid grid-cols-2 gap-3 opacity-80">
+            <ScoreCard label="Marketing" score={72} delta={6} />
+            <ScoreCard label="Branding" score={64} delta={-3} />
+            <ScoreCard label="Growth" score={58} delta={12} />
+            <ScoreCard label="Consistency" score={81} delta={4} />
+          </div>
+          <ul className="space-y-2 mt-4">
+            {[
+              "You post consistently on TikTok but go quiet on Instagram for 9 days at a time — mirror your three best TikToks as Reels this week.",
+              "Your bio names your genre but not your city. Add it: local listeners and playlist curators search that way.",
+              "Growth is up 12% but saves are flat — try one post that teaches something about how you make your music.",
+            ].map((r, i) => (
+              <li key={i} className="flex items-start gap-2 text-sm"><span className="text-[var(--accent)] mt-0.5">→</span><span>{r}</span></li>
+            ))}
+          </ul>
+          <p className="text-xs text-[var(--muted)] mt-4">
+            Connect an account above to get your own scores. Audits build month over month, so the first run is your baseline.
+          </p>
+        </section>
+      )}
 
       {/* Scores */}
       {report && (

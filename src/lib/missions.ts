@@ -59,21 +59,41 @@ export async function getMissionsForUser(userId: string) {
     orderBy: { xpReward: "asc" },
   });
   const userMissions = await prisma.userMission.findMany({ where: { userId } });
-  const statusMap = new Map(userMissions.map((um) => [um.missionId, um.status]));
-  return missions.map((m) => ({
-    id: m.id,
-    title: m.title,
-    description: m.description,
-    category: m.category,
-    xpReward: m.xpReward,
-    status: statusMap.get(m.id) ?? "available",
-  }));
+  const byMission = new Map(userMissions.map((um) => [um.missionId, um]));
+  return missions.map((m) => {
+    const um = byMission.get(m.id);
+    return {
+      id: m.id,
+      title: m.title,
+      description: m.description,
+      category: m.category,
+      xpReward: m.xpReward,
+      status: um?.status ?? "available",
+      // Shown back on a completed mission so the artist can see what they
+      // submitted (and a reviewer can check it).
+      proof: um?.proof ?? null,
+    };
+  });
 }
 
+/** Shortest proof we accept. Long enough to rule out "done" or a stray tap. */
+export const MISSION_PROOF_MIN = 10;
+export const MISSION_PROOF_MAX = 500;
+
 /** Mark a mission complete (idempotent) and award XP + streak + badge + notify. */
-export async function completeMission(userId: string, missionId: string) {
+export async function completeMission(userId: string, missionId: string, proof: string) {
   const mission = await prisma.mission.findUnique({ where: { id: missionId } });
   if (!mission) return { error: "Mission not found" as const };
+
+  // Proof is what makes the XP mean something. Checked here rather than only in
+  // the route so every caller — web, mobile, anything later — gets the rule.
+  const trimmed = proof.trim();
+  if (trimmed.length < MISSION_PROOF_MIN) {
+    return { error: "Add a link or a short note describing what you did." as const };
+  }
+  if (trimmed.length > MISSION_PROOF_MAX) {
+    return { error: `Keep it under ${MISSION_PROOF_MAX} characters.` as const };
+  }
 
   const existing = await prisma.userMission.findUnique({
     where: { userId_missionId: { userId, missionId } },
@@ -84,8 +104,8 @@ export async function completeMission(userId: string, missionId: string) {
 
   await prisma.userMission.upsert({
     where: { userId_missionId: { userId, missionId } },
-    create: { userId, missionId, status: "completed", completedAt: new Date() },
-    update: { status: "completed", completedAt: new Date() },
+    create: { userId, missionId, status: "completed", proof: trimmed, completedAt: new Date() },
+    update: { status: "completed", proof: trimmed, completedAt: new Date() },
   });
 
   const { xp, streak } = await recordAchievement({ userId, xp: mission.xpReward, source: "mission", refId: missionId });

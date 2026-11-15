@@ -128,6 +128,11 @@ export async function getUserRanks(userId: string) {
     countryRank: country.find((r) => r.userId === userId)?.rank ?? null,
     genreRank: genre.find((r) => r.userId === userId)?.rank ?? null,
     composite: me.composite,
+    // A null rank means one of two very different things: the artist never set
+    // a country/genre, or they set one and aren't placed yet. The dashboard
+    // showed "—" for both, so nobody knew there was anything to do.
+    hasCountry: !!me.countryCode,
+    hasGenre: !!me.genres[0],
   };
 }
 

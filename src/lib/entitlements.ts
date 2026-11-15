@@ -2,10 +2,16 @@ import { prisma } from "./prisma";
 import type { PlanKey } from "./stripe";
 
 // Per-plan entitlements. Gate features against these so upgrades unlock value.
-export const ENTITLEMENTS: Record<PlanKey, { coachMessagesPerDay: number; socialConnections: number; allCourses: boolean; humanReview: boolean }> = {
-  free: { coachMessagesPerDay: 5, socialConnections: 1, allCourses: false, humanReview: false },
-  pro: { coachMessagesPerDay: 1000, socialConnections: 6, allCourses: true, humanReview: false },
-  premium: { coachMessagesPerDay: 5000, socialConnections: 6, allCourses: true, humanReview: true },
+export const ENTITLEMENTS: Record<
+  PlanKey,
+  { coachMessagesPerDay: number; socialConnections: number; allCourses: boolean; humanReview: boolean; weeklyMissions: boolean }
+> = {
+  // `weeklyMissions` exists because the Plans page has always advertised weekly
+  // missions as a Pro feature while the app let Free users complete them for XP
+  // — reviewers spotted the contradiction. Pro is the intended tier.
+  free: { coachMessagesPerDay: 5, socialConnections: 1, allCourses: false, humanReview: false, weeklyMissions: false },
+  pro: { coachMessagesPerDay: 1000, socialConnections: 6, allCourses: true, humanReview: false, weeklyMissions: true },
+  premium: { coachMessagesPerDay: 5000, socialConnections: 6, allCourses: true, humanReview: true, weeklyMissions: true },
 };
 
 /** The subscription fields that decide access. */

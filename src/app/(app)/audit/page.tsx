@@ -1,14 +1,16 @@
 import { requirePageSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { configuredProviders } from "@/lib/social-providers";
+import { getEntitlements } from "@/lib/entitlements";
 import { AuditClient } from "./AuditClient";
 
 export default async function AuditPage() {
   const session = await requirePageSession();
-  const [accounts, report, snapshotCount] = await Promise.all([
+  const [accounts, report, snapshotCount, ent] = await Promise.all([
     prisma.socialAccount.findMany({ where: { userId: session.id }, orderBy: { connectedAt: "asc" } }),
     prisma.auditReport.findFirst({ where: { userId: session.id }, orderBy: { createdAt: "desc" } }),
     prisma.auditSnapshot.count({ where: { userId: session.id } }),
+    getEntitlements(session.id),
   ]);
 
   return (
@@ -34,6 +36,8 @@ export default async function AuditPage() {
             : null
         }
         runCount={snapshotCount}
+        plan={ent.plan}
+        connectionLimit={ent.socialConnections}
       />
     </main>
   );

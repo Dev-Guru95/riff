@@ -538,6 +538,10 @@ model UserMission {
   missionId   String
   mission     Mission   @relation(fields: [missionId], references: [id], onDelete: Cascade)
   status      String    @default("assigned") // assigned | submitted | completed | expired
+  // What the artist actually did: a link to the work, or a short note. Required
+  // before a mission can be completed — without it "Mark done" was a button
+  // that handed out XP, badges and leaderboard points for nothing.
+  proof       String?
   completedAt DateTime?
 
   @@unique([userId, missionId])
