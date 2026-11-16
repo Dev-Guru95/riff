@@ -344,6 +344,23 @@ describe("grantPromotionalEntitlement", () => {
     expect(calls).toHaveLength(1);
   });
 
+  it("waits out RevenueCat's per-subscriber lock and retries once", async () => {
+    // Two entitlements for the same artist used to be granted in parallel and
+    // collide; callers are sequential now, but a webhook can still land while a
+    // restore is running.
+    stubFetch([
+      jsonResponse(409, { code: 7694, message: "There is another request in flight that is conflicting with this one." }),
+      jsonResponse(200, { subscriber: { entitlements: { premium: { expires_date: null } } } }),
+    ]);
+
+    const r = await grantPromotionalEntitlement("user_1", "premium", null);
+
+    expect(r.ok).toBe(true);
+    // Straight to a second grant — no subscriber read, the subscriber exists.
+    expect(calls).toHaveLength(2);
+    expect(calls.every((c) => c.url.includes("/promotional"))).toBe(true);
+  });
+
   it("gives up rather than looping when the subscriber cannot be created", async () => {
     stubFetch([jsonResponse(404, { code: 7259, message: "The subscriber was not found." })]);
     const r = await grantPromotionalEntitlement("user_1", "pro", null);

@@ -285,20 +285,46 @@ export async function grantPromotionalEntitlement(
   }
 
   const first = await postPromotionalGrant(appUserId, entitlementId, endsAt);
-  if (first.ok || !isSubscriberNotFound(first)) return first;
+  if (first.ok) return first;
 
-  // The artist exists for us but not yet for RevenueCat, which is the usual
-  // case for a web signup redeeming a code: create the record, then grant once
-  // more. One retry only — if the subscriber still is not there, the cause is
-  // something other than the lazy creation this handles.
-  if (!(await ensureSubscriberExists(appUserId))) return first;
-  return postPromotionalGrant(appUserId, entitlementId, endsAt);
+  if (isSubscriberNotFound(first)) {
+    // The artist exists for us but not yet for RevenueCat, which is the usual
+    // case for a web signup redeeming a code: create the record, then grant
+    // once more. One retry only — if the subscriber still is not there, the
+    // cause is something other than the lazy creation this handles.
+    if (!(await ensureSubscriberExists(appUserId))) return first;
+    return postPromotionalGrant(appUserId, entitlementId, endsAt);
+  }
+
+  if (isConflict(first)) {
+    // RevenueCat locks per subscriber, so a grant that overlaps another one for
+    // the same person is refused rather than queued. Callers grant one at a
+    // time; this covers two of them arriving at once, such as a webhook landing
+    // while a restore is running.
+    await delay(CONFLICT_RETRY_MS);
+    return postPromotionalGrant(appUserId, entitlementId, endsAt);
+  }
+
+  return first;
+}
+
+/** How long to wait out RevenueCat's per-subscriber lock before retrying. */
+const CONFLICT_RETRY_MS = 400;
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 /** RevenueCat's "the subscriber was not found": error code 7259, HTTP 404. */
 function isSubscriberNotFound(result: RevenueCatResult): boolean {
   if (result.ok || result.skipped) return false;
   return result.status === 404 || result.reason.includes("7259");
+}
+
+/** RevenueCat's "another request in flight for this subscriber": 7694. */
+function isConflict(result: RevenueCatResult): boolean {
+  if (result.ok || result.skipped) return false;
+  return result.status === 409 || result.reason.includes("7694");
 }
 
 /** The grant request itself, split out so it can be retried unchanged. */

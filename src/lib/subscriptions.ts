@@ -7,6 +7,7 @@ import {
   entitlementsForPlan,
   isRevenueCatConfigured,
   canReadRevenueCat,
+  type RevenueCatResult,
 } from "./revenuecat";
 
 /**
@@ -363,9 +364,15 @@ export async function activatePromoSubscription(
   // and a failed mirror is repaired by /api/billing/restore.
   let revenueCatSynced = false;
   if (canReadRevenueCat()) {
-    const results = await Promise.all(
-      entitlements.map((id) => grantPromotionalEntitlement(userId, id, periodEnd)),
-    );
+    // One at a time, deliberately not Promise.all: RevenueCat locks per
+    // subscriber and answers 7694 ("another request in flight") when two grants
+    // for the same person overlap — which is precisely what a premium plan's
+    // two entitlements did to each other. Nothing is gained by the parallelism,
+    // since RevenueCat serialises them anyway.
+    const results: RevenueCatResult[] = [];
+    for (const id of entitlements) {
+      results.push(await grantPromotionalEntitlement(userId, id, periodEnd));
+    }
     if (results.length > 0 && results.every((r) => r.ok)) {
       revenueCatSynced = true;
       await prisma.subscription.update({
