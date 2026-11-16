@@ -10,13 +10,14 @@
 
 export type AppEnv = "development" | "testing" | "production";
 
-// All three point at riff.soundrig.io: the old Render deployment is suspended,
-// so dev and testing builds were talking to a dead backend. Point a local build
-// at your machine with EXPO_PUBLIC_API_URL instead.
+// riffartists.com is the primary domain. riff.soundrig.io still serves the same
+// app and is deliberately NOT redirected, so builds already installed on test
+// devices keep working — a 301 would turn their POSTs into GETs and break login.
+// Point a local build at your machine with EXPO_PUBLIC_API_URL instead.
 const DEFAULT_URLS: Record<AppEnv, string> = {
-  development: "https://riff.soundrig.io",
-  testing: "https://riff.soundrig.io",
-  production: "https://riff.soundrig.io",
+  development: "https://riffartists.com",
+  testing: "https://riffartists.com",
+  production: "https://riffartists.com",
 };
 
 const rawEnv = process.env.EXPO_PUBLIC_APP_ENV;

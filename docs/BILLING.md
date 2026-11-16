@@ -40,7 +40,7 @@ in the production environment.
 | `REVENUECAT_STRIPE_PUBLIC_API_KEY` | `strp_sb_…` (sandbox) | `strp_…` (live config) |
 | `REVENUECAT_SECRET_API_KEY` | `sk_…` | same or a separate key |
 | `REVENUECAT_WEBHOOK_AUTHORIZATION` | shared secret | same value set in RevenueCat |
-| `APP_URL` | `http://localhost:3000` | `https://riff.soundrig.io` |
+| `APP_URL` | `http://localhost:3000` | `https://riffartists.com` |
 
 Every webhook endpoint has its **own** signing secret. Using the test secret
 against the live endpoint makes every delivery fail verification with a 400.

@@ -35,7 +35,7 @@ if (key.startsWith("sk_live_")) {
 
 const stripe = new Stripe(key);
 
-const APP_ORIGIN = process.env.LIVE_APP_URL || "https://riff.soundrig.io";
+const APP_ORIGIN = process.env.LIVE_APP_URL || "https://riffartists.com";
 const WEBHOOK_URL = `${APP_ORIGIN}/api/webhooks/stripe`;
 
 const EVENTS: Stripe.WebhookEndpointCreateParams.EnabledEvent[] = [

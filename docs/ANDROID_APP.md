@@ -20,7 +20,7 @@
 | Client components | 47 |
 | Auth | Custom JWT (`jsonwebtoken`) in an httpOnly cookie `riff_session`, 30-day expiry, bcryptjs cost 12, TOTP MFA via `otplib` |
 | Roles | `artist`, `reviewer`, `moderator`, `admin` — enforced per page and per route (there is no `middleware.ts`) |
-| Hosting | VPS, `riff.soundrig.io` (the old Render deployment is suspended) |
+| Hosting | VPS. Primary domain `riffartists.com`; `riff.soundrig.io` serves the same app and is not redirected |
 
 ### The finding that drove the decision
 
@@ -123,7 +123,7 @@ the app by the same backend that serves the website, with the same session.
 | Server error handling | ✅ Native screen, raw `net::` codes never shown |
 | Rotation / state | ✅ `saveState`/`restoreState`, no form loss |
 | Back navigation | ✅ History, then double-tap to exit |
-| Deep links | ✅ `https://riff.soundrig.io/*` (legacy `riff-app.onrender.com` still registered) |
+| Deep links | ✅ `https://riffartists.com/*` (plus `riff.soundrig.io` and legacy `riff-app.onrender.com`) |
 
 ---
 

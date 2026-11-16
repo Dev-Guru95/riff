@@ -56,7 +56,7 @@ async function main() {
 
   // Send the actual reset email so the formatting, sender name and spam
   // placement can be checked — the link is deliberately a dead example.
-  const { subject, text, html } = passwordResetEmail("https://riff.soundrig.io/reset-password?token=EXAMPLE", 60);
+  const { subject, text, html } = passwordResetEmail("https://riffartists.com/reset-password?token=EXAMPLE", 60);
   const sent = await sendMail(to, `[test] ${subject}`, text, html);
   if (sent.ok) {
     console.log(`Test message sent to ${to}. Check inbox and spam.`);

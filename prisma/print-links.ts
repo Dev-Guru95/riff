@@ -2,7 +2,7 @@
 //
 //   pnpm exec tsx prisma/print-links.ts
 //   pnpm exec tsx prisma/print-links.ts --md          # markdown table
-//   APP_URL=https://riff.soundrig.io pnpm exec tsx prisma/print-links.ts
+//   APP_URL=https://riffartists.com pnpm exec tsx prisma/print-links.ts
 //
 // Reads the course files rather than the database, so it works from a developer
 // machine that cannot reach production, and so the output is the same wherever
@@ -15,10 +15,11 @@ import { slugify } from "../src/lib/import/create-course";
 import { parsedCourseSchema } from "../src/lib/import/types";
 import { quizPath, stepPath, absoluteUrl } from "../src/lib/trackLinks";
 
-// riff.soundrig.io is the live site. The old default (riff-app.onrender.com)
-// is suspended, so links generated with it dead-end in the Skool classroom.
+// riffartists.com is the primary domain. riff.soundrig.io still works and is
+// not redirected, so older links in the classroom keep resolving — but new ones
+// should use the new domain. (riff-app.onrender.com is suspended entirely.)
 // An empty APP_URL counts as unset, not as an empty origin.
-const LIVE_ORIGIN = "https://riff.soundrig.io";
+const LIVE_ORIGIN = "https://riffartists.com";
 const ORIGIN = process.env.APP_URL?.trim() || LIVE_ORIGIN;
 
 // These links get pasted into Skool, where a localhost address is useless to

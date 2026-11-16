@@ -14,7 +14,10 @@ const ANDROID_PACKAGE = "com.riff.app";
 const IOS_BUNDLE_ID = process.env.IOS_BUNDLE_ID ?? "com.riff.app";
 
 // Website hosts whose links should open the app (paths mirror the web routes).
-const LINK_HOSTS = ["riff.soundrig.io", "riff-app.onrender.com"];
+// riffartists.com is the primary domain; riff.soundrig.io stays registered
+// because installed builds and the Skool classroom still link to it, and
+// riff-app.onrender.com for links already out in the world.
+const LINK_HOSTS = ["riffartists.com", "www.riffartists.com", "riff.soundrig.io", "riff-app.onrender.com"];
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,

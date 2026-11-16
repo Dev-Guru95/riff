@@ -7,10 +7,26 @@ const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 // Display face for the Riff wordmark only — see components/Wordmark.tsx.
 const display = Pirata_One({ variable: "--font-display", weight: "400", subsets: ["latin"] });
 
+// metadataBase makes every relative URL Next generates — canonical links, Open
+// Graph and Twitter image URLs — absolute against the right host. Driven by
+// APP_URL so it follows the domain rather than hardcoding one, which is the
+// mistake that leaves social previews pointing at an old domain for years.
+const siteUrl = process.env.APP_URL || "http://localhost:3000";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
   title: "Riff — Learn the Business Behind the Music",
   description:
     "AI-powered education for independent artists: marketing, branding, growth, and the music business.",
+  alternates: { canonical: "/" },
+  openGraph: {
+    type: "website",
+    siteName: "Riff",
+    url: "/",
+    title: "Riff — Learn the Business Behind the Music",
+    description:
+      "AI-powered education for independent artists: marketing, branding, growth, and the music business.",
+  },
 };
 
 // Pinch-zoom is deliberately left enabled (no maximum-scale): disabling it is an
