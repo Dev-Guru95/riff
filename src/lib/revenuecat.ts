@@ -53,6 +53,35 @@ function safeEqual(a: string, b: string): boolean {
 }
 
 /**
+ * Make an Authorization value comparable before it is matched.
+ *
+ * The expected value and the one RevenueCat sends are typed into two different
+ * boxes by a person, so they drift in ways that are invisible on screen: a
+ * space picked up by the paste, the quotes from a `.env` line copied verbatim,
+ * or a `Bearer ` prefix added because every other Authorization header has one.
+ * None of those change which secret is being presented, so both sides are
+ * normalised and the secret itself still has to match exactly.
+ */
+function normalizeAuthValue(value: string): string {
+  let v = value.trim();
+  const quoted =
+    v.length >= 2 &&
+    ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'")));
+  if (quoted) v = v.slice(1, -1).trim();
+  return v.replace(/^bearer\s+/i, "").trim();
+}
+
+/**
+ * First 12 hex characters of the sha256 — enough to tell two secrets apart in a
+ * log, far too little to recover either. Without it a wrong secret and a
+ * missing header look identical, and the only way to debug a rejected webhook
+ * is to paste real secrets around.
+ */
+function fingerprint(value: string): string {
+  return createHash("sha256").update(value, "utf8").digest("hex").slice(0, 12);
+}
+
+/**
  * Push a Stripe subscription to RevenueCat so it owns the entitlement too.
  *
  * `appUserId` is always our own user id — the mobile SDK logs in with the same
@@ -125,6 +154,28 @@ export async function getSubscriber(appUserId: string): Promise<RevenueCatSubscr
 }
 
 /**
+ * Bring a subscriber into existence, reporting whether it is there afterwards.
+ *
+ * RevenueCat creates a subscriber lazily: the record appears the first time the
+ * SDK logs in as that app_user_id, or the first time one is read back. An
+ * artist who signs up on the web and redeems a 100%-off code has never opened
+ * the app, so a promotional grant is the first RevenueCat hears of them and it
+ * fails with 7259. A plain GET is the documented way to create the record from
+ * the server, so reading the subscriber is what fixes it.
+ */
+async function ensureSubscriberExists(appUserId: string): Promise<boolean> {
+  if (!canReadRevenueCat()) return false;
+  try {
+    const res = await fetch(`${API}/v1/subscribers/${encodeURIComponent(appUserId)}`, {
+      headers: { Authorization: `Bearer ${SECRET_KEY()}`, "Content-Type": "application/json" },
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Verify an inbound RevenueCat webhook.
  *
  * RevenueCat authenticates webhooks with a shared Authorization header value
@@ -136,7 +187,7 @@ export async function getSubscriber(appUserId: string): Promise<RevenueCatSubscr
 export function verifyRevenueCatWebhook(
   rawBody: string,
   headers: { authorization: string | null; signature: string | null },
-): { ok: true } | { ok: false; reason: string } {
+): { ok: true } | { ok: false; reason: string; detail?: string } {
   const expectedAuth = WEBHOOK_AUTH();
   const signingSecret = WEBHOOK_SIGNING_SECRET();
 
@@ -145,8 +196,17 @@ export function verifyRevenueCatWebhook(
   }
 
   if (expectedAuth) {
-    if (!headers.authorization || !safeEqual(headers.authorization, expectedAuth)) {
-      return { ok: false, reason: "bad authorization header" };
+    const got = normalizeAuthValue(headers.authorization ?? "");
+    const want = normalizeAuthValue(expectedAuth);
+    if (!got || !safeEqual(got, want)) {
+      return {
+        ok: false,
+        reason: "bad authorization header",
+        // Logged by the caller, never returned in the response: an
+        // unauthenticated prober must not learn the length or the fingerprint
+        // of the secret it is guessing at.
+        detail: `got len=${got.length} fp=${got ? fingerprint(got) : "none"}, want len=${want.length} fp=${fingerprint(want)}`,
+      };
     }
   }
 
@@ -223,6 +283,30 @@ export async function grantPromotionalEntitlement(
   if (!canReadRevenueCat()) {
     return { ok: false, skipped: true, reason: "RevenueCat secret key is not configured" };
   }
+
+  const first = await postPromotionalGrant(appUserId, entitlementId, endsAt);
+  if (first.ok || !isSubscriberNotFound(first)) return first;
+
+  // The artist exists for us but not yet for RevenueCat, which is the usual
+  // case for a web signup redeeming a code: create the record, then grant once
+  // more. One retry only — if the subscriber still is not there, the cause is
+  // something other than the lazy creation this handles.
+  if (!(await ensureSubscriberExists(appUserId))) return first;
+  return postPromotionalGrant(appUserId, entitlementId, endsAt);
+}
+
+/** RevenueCat's "the subscriber was not found": error code 7259, HTTP 404. */
+function isSubscriberNotFound(result: RevenueCatResult): boolean {
+  if (result.ok || result.skipped) return false;
+  return result.status === 404 || result.reason.includes("7259");
+}
+
+/** The grant request itself, split out so it can be retried unchanged. */
+async function postPromotionalGrant(
+  appUserId: string,
+  entitlementId: string,
+  endsAt: Date | null,
+): Promise<RevenueCatResult> {
   try {
     const res = await fetch(
       `${API}/v1/subscribers/${encodeURIComponent(appUserId)}/entitlements/${encodeURIComponent(entitlementId)}/promotional`,

@@ -1,7 +1,7 @@
 // Riff for desktop.
 //
 // This is a thin shell around the Riff web app, not a second implementation of
-// it: the window loads https://riff.soundrig.io, so the desktop build can never
+// it: the window loads https://riffartists.com, so the desktop build can never
 // drift from the website. The only desktop-specific behaviour lives here —
 // window state, an offline screen, link handling, and the app menu.
 
@@ -11,10 +11,22 @@ const path = require("node:path");
 
 // Same production backend the mobile app talks to (mobile/src/config/env.ts).
 // Override for development: `npm run start:local`, or --url=<origin>.
-const DEFAULT_URL = "https://riff.soundrig.io";
+const DEFAULT_URL = "https://riffartists.com";
 const urlArg = process.argv.find((a) => a.startsWith("--url="));
 const APP_URL = (urlArg ? urlArg.slice("--url=".length) : process.env.RIFF_URL || DEFAULT_URL).replace(/\/+$/, "");
 const APP_ORIGIN = new URL(APP_URL).origin;
+
+// Every origin that is us. The domain move means a link minted before it — an
+// older password-reset email, a shared course link — still points at
+// riff.soundrig.io, and that origin is still served. Matching only APP_ORIGIN
+// would kick those out to a browser mid-session, which looks like the app
+// losing the user's login. Mirrors LINK_HOSTS in mobile/app.config.ts.
+const APP_ORIGINS = new Set([
+  APP_ORIGIN,
+  "https://riffartists.com",
+  "https://www.riffartists.com",
+  "https://riff.soundrig.io",
+]);
 
 // Brand background (colors.background in mobile/src/theme/tokens.ts) so the
 // window never flashes white before the page paints.
@@ -56,7 +68,7 @@ function showOfflinePage() {
 /** Links to other sites open in the real browser, never inside the app window. */
 function isAppUrl(target) {
   try {
-    return new URL(target).origin === APP_ORIGIN;
+    return APP_ORIGINS.has(new URL(target).origin);
   } catch {
     return false;
   }

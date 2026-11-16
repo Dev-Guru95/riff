@@ -45,7 +45,11 @@ export async function POST(req: Request) {
     signature: req.headers.get("x-revenuecat-webhook-signature"),
   });
   if (!verified.ok) {
-    console.error(`[revenuecat] rejected webhook: ${verified.reason}`);
+    // The detail carries fingerprints, not secrets, and stays in the log — the
+    // response body below is all an unauthenticated caller gets to see.
+    console.error(
+      `[revenuecat] rejected webhook: ${verified.reason}${verified.detail ? ` — ${verified.detail}` : ""}`,
+    );
     // 401 for a bad secret, 503 when none is configured — an endpoint that can
     // grant entitlements must never accept unauthenticated calls.
     const status = verified.reason.includes("not configured") ? 503 : 401;

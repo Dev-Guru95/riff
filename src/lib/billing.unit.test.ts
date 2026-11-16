@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import type Stripe from "stripe";
 import { planFromSubscription } from "./entitlements";
 import { planForPrice, planForSubscription, statusGrantsAccess, planRank, PLANS } from "./stripe";
@@ -9,6 +9,7 @@ import {
   providerForStore,
   stripeIsAuthoritative,
   entitlementsForPlan,
+  grantPromotionalEntitlement,
 } from "./revenuecat";
 import { periodEndOf, subscriptionIdForInvoice } from "./subscriptions";
 import { createHmac } from "node:crypto";
@@ -236,6 +237,119 @@ describe("verifyRevenueCatWebhook", () => {
     expect(verifyRevenueCatWebhook(body, { authorization: "s3cret-value", signature: `t=1,v1=${mac}` }).ok).toBe(true);
     expect(verifyRevenueCatWebhook(body, { authorization: "s3cret-value", signature: "t=1,v1=bad" }).ok).toBe(false);
     expect(verifyRevenueCatWebhook(body, { authorization: "nope", signature: `t=1,v1=${mac}` }).ok).toBe(false);
+  });
+
+  it("tolerates a Bearer prefix, stray spaces and copied quotes", () => {
+    // The secret has to be typed into two different boxes by a person, and
+    // these are the ways the same value arrives looking different. None of
+    // them is a different secret, so none should reject the webhook.
+    process.env.REVENUECAT_WEBHOOK_AUTHORIZATION = "s3cret-value";
+    for (const sent of [
+      "Bearer s3cret-value",
+      "bearer   s3cret-value",
+      "  s3cret-value  ",
+      '"s3cret-value"',
+      "'s3cret-value'",
+    ]) {
+      expect(verifyRevenueCatWebhook(body, { authorization: sent, signature: null }).ok).toBe(true);
+    }
+  });
+
+  it("matches when the configured value carries the quotes from a .env line", () => {
+    process.env.REVENUECAT_WEBHOOK_AUTHORIZATION = '"s3cret-value"';
+    expect(verifyRevenueCatWebhook(body, { authorization: "s3cret-value", signature: null }).ok).toBe(true);
+  });
+
+  it("still rejects a genuinely different secret, and says so without leaking it", () => {
+    process.env.REVENUECAT_WEBHOOK_AUTHORIZATION = "s3cret-value";
+    const r = verifyRevenueCatWebhook(body, { authorization: "Bearer other-value", signature: null });
+    expect(r.ok).toBe(false);
+    if (r.ok) return;
+    // The reason is what the caller sees; the detail is for our log only.
+    expect(r.reason).toBe("bad authorization header");
+    expect(r.detail).toMatch(/got len=11 fp=[0-9a-f]{12}, want len=12 fp=[0-9a-f]{12}/);
+    expect(r.detail).not.toContain("s3cret-value");
+  });
+
+  it("reports a missing header as such rather than as a mismatch", () => {
+    process.env.REVENUECAT_WEBHOOK_AUTHORIZATION = "s3cret-value";
+    const r = verifyRevenueCatWebhook(body, { authorization: null, signature: null });
+    expect(r.ok).toBe(false);
+    if (r.ok) return;
+    expect(r.detail).toContain("got len=0 fp=none");
+  });
+});
+
+function jsonResponse(status: number, payload: unknown): Response {
+  return {
+    ok: status >= 200 && status < 300,
+    status,
+    statusText: String(status),
+    json: async () => payload,
+    text: async () => JSON.stringify(payload),
+  } as unknown as Response;
+}
+
+describe("grantPromotionalEntitlement", () => {
+  const saved = { ...process.env };
+  let calls: Array<{ url: string; method: string }>;
+
+  beforeEach(() => {
+    process.env.REVENUECAT_SECRET_API_KEY = "sk_test";
+    calls = [];
+  });
+  afterEach(() => {
+    process.env = { ...saved };
+    vi.unstubAllGlobals();
+  });
+
+  function stubFetch(responses: Response[]) {
+    let i = 0;
+    vi.stubGlobal("fetch", async (url: string | URL, init?: { method?: string }) => {
+      calls.push({ url: String(url), method: init?.method ?? "GET" });
+      return responses[Math.min(i++, responses.length - 1)];
+    });
+  }
+
+  it("creates the subscriber and retries when RevenueCat answers 7259", async () => {
+    // An artist who signed up on the web and redeemed a 100%-off code has
+    // never opened the app, so RevenueCat holds no record of them until one is
+    // read back. This is the case that was failing in production.
+    stubFetch([
+      jsonResponse(404, { code: 7259, message: "The subscriber was not found." }),
+      jsonResponse(200, { subscriber: { entitlements: {} } }),
+      jsonResponse(200, { subscriber: { entitlements: { pro: { expires_date: null } } } }),
+    ]);
+
+    const r = await grantPromotionalEntitlement("user_1", "pro", null);
+
+    expect(r.ok).toBe(true);
+    expect(calls).toHaveLength(3);
+    expect(calls[1].method).toBe("GET");
+    expect(calls[1].url).toContain("/v1/subscribers/user_1");
+    expect(calls[2].url).toContain("/promotional");
+  });
+
+  it("does not retry an error that is not a missing subscriber", async () => {
+    stubFetch([jsonResponse(500, { code: 7000, message: "server error" })]);
+    const r = await grantPromotionalEntitlement("user_1", "pro", null);
+    expect(r.ok).toBe(false);
+    expect(calls).toHaveLength(1);
+  });
+
+  it("grants in a single call when the subscriber already exists", async () => {
+    stubFetch([jsonResponse(200, { subscriber: { entitlements: { pro: { expires_date: null } } } })]);
+    const r = await grantPromotionalEntitlement("user_1", "pro", null);
+    expect(r.ok).toBe(true);
+    expect(calls).toHaveLength(1);
+  });
+
+  it("gives up rather than looping when the subscriber cannot be created", async () => {
+    stubFetch([jsonResponse(404, { code: 7259, message: "The subscriber was not found." })]);
+    const r = await grantPromotionalEntitlement("user_1", "pro", null);
+    expect(r.ok).toBe(false);
+    // Grant, failed create, and no second grant.
+    expect(calls).toHaveLength(2);
   });
 });
 
