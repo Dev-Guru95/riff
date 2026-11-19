@@ -53,7 +53,8 @@ export default function Billing() {
                   <Line label="Coach messages/day" value={ent.coachMessagesPerDay >= 1000 ? "Unlimited" : ent.coachMessagesPerDay} />
                   <Line label="Social connections" value={ent.socialConnections} />
                   <Line label="All courses" value={ent.allCourses ? "Yes" : "No"} />
-                  <Line label="Human-reviewed assignments" value={ent.humanReview ? "Yes" : "No"} />
+                  {/* No plan promises a person will review an artist's work:
+                      the human-review benefit was withdrawn on 2026-11-19. */}
                 </View>
               </Card>
 

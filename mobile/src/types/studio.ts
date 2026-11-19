@@ -1,5 +1,5 @@
 // Studio tool types, copied from the web repo. Re-copy when these change:
-//   src/lib/studio-tools.ts   BrandKitDTO, FinanceDTO, MerchDTO, GigDTO
+//   src/lib/studio-tools.ts   BrandKitDTO, FinanceDTO
 //   src/lib/studio-growth.ts  GoalDTO, FanDTO, BroadcastDTO, BookingDTO, LinkPageDTO
 //   src/lib/caption.ts        CaptionResult
 // and the enums from the zod schemas in src/app/api/studio/** and the
@@ -34,8 +34,6 @@ export type FinanceDTO = {
   byCategory: { category: string; net: number }[];
 };
 
-export type MerchDTO = { id: string; name: string; status: string; cost: number; price: number; stock: number; notes: string };
-export type GigDTO = { id: string; venue: string; city: string; date: string | null; status: string; fee: number; notes: string };
 
 // ── studio-growth.ts ──
 export type Milestone = { text: string; done: boolean };
@@ -64,7 +62,6 @@ export type CreatedResponse = { id: string };
 export type BrandKitResponse = { kit: BrandKitDTO };
 export type BrandAssetResponse = BrandAsset;
 export type UploadResponse = { url: string; category: string; size: number };
-export type MerchGigsResponse = { merch: MerchDTO[]; gigs: GigDTO[] };
 export type GoalsResponse = { goals: GoalDTO[] };
 export type BroadcastsResponse = { broadcasts: BroadcastDTO[] };
 export type SendBroadcastResponse = { recipientCount: number };
@@ -80,3 +77,7 @@ export const FINANCE_CATEGORIES = ["streaming", "merch", "shows", "ads", "gear",
 export const CAPTION_PLATFORMS = ["instagram", "tiktok", "youtube", "x", "facebook"] as const;
 export const CAPTION_TONES = ["authentic", "hype", "playful", "professional", "moody"] as const;
 export const LINK_THEMES = ["brand", "brand-2", "accent", "success", "warning"] as const;
+
+// Merch & Gigs were withdrawn from the product on 2026-11-19; their DTOs are
+// gone with the screens. FINANCE_CATEGORIES still contains "merch" because a
+// merch spend is a real cost an artist can log, not a feature.
