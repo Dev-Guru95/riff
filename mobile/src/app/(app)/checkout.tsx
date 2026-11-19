@@ -40,7 +40,9 @@ function Row({ label, value, tone, strong }: { label: string; value: string; ton
 
 export default function Checkout() {
   const params = useLocalSearchParams<{ plan?: string }>();
-  const plan: PlanKey = params.plan === "premium" ? "premium" : "pro";
+  // Pro is the only purchasable plan; anything else in the deep link
+  // resolves to it rather than opening a checkout for a retired tier.
+  const plan: PlanKey = "pro";
 
   const query = useApiQuery<BillingResponse>("/api/mobile/billing");
   const invalidate = useInvalidate();

@@ -57,7 +57,7 @@ export default function PrivacyPolicyPage() {
           <ul className="text-sm text-[var(--muted)] space-y-1 list-disc pl-5 mt-1">
             <li><strong className="text-[var(--foreground)]">Account:</strong> email address and a password. Passwords are stored only as a bcrypt hash — we never hold the password itself and cannot read it.</li>
             <li><strong className="text-[var(--foreground)]">Profile:</strong> artist/stage name, genres and country, if you provide them.</li>
-            <li><strong className="text-[var(--foreground)]">Your work:</strong> assignment submissions, uploaded files and images, project boards, cards and the comments you leave on them, and Studio records (merch, gigs, finances, fans, bookings, goals).</li>
+            <li><strong className="text-[var(--foreground)]">Your work:</strong> assignment submissions, uploaded files and images, project boards, cards and the comments you leave on them, and Studio records (finances, fans, bookings, goals).</li>
             <li><strong className="text-[var(--foreground)]">Reports and blocks:</strong> if you report content or block another artist, we store who reported what, the reason you gave, and the outcome, so our moderators can act on it and so the same thing can be dealt with if it happens again.</li>
             <li><strong className="text-[var(--foreground)]">AI Coach messages:</strong> what you write to the coach, and a memory summarised from it.</li>
             <li><strong className="text-[var(--foreground)]">Two-factor secret:</strong> if you enable 2FA.</li>

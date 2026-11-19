@@ -1,5 +1,5 @@
 import { prisma } from "./prisma";
-import { BILLING_CURRENCY, PLANS, type PlanKey } from "./stripe";
+import { BILLING_CURRENCY, planDisplay, type PlanKey } from "./stripe";
 import {
   PROMO,
   isPromoActive,
@@ -95,8 +95,10 @@ export function normalizeCode(code: string): string {
  * is only comparable if both are measured from the same starting figure.
  */
 export function planPriceCents(plan: PlanKey, interval: BillingInterval = "monthly"): number {
-  if (plan === "free") return 0;
-  return listPriceCents(plan, interval);
+  // Only Pro is sold. "free" has no price, and "premium" is retired - a code
+  // cannot be quoted against a plan nobody can buy.
+  if (plan !== "pro") return 0;
+  return listPriceCents("pro", interval);
 }
 
 /** The coupon fields that decide a quote. A subset of the Prisma row. */
@@ -155,7 +157,7 @@ export function evaluateCoupon(
       type: coupon.type,
       value: coupon.value,
       plan,
-      planName: PLANS[plan].name,
+      planName: planDisplay(plan).name,
       interval,
       currency: BILLING_CURRENCY,
       originalCents,
@@ -364,7 +366,7 @@ export async function ensureCampaignCoupon(
 
   const created = await stripe.coupons.create({
     id,
-    name: `${PROMO.name} — ${PLANS[plan].name} ${interval}`,
+    name: `${PROMO.name} — ${planDisplay(plan).name} ${interval}`,
     amount_off: discount.discountCents,
     currency: BILLING_CURRENCY,
     ...duration,

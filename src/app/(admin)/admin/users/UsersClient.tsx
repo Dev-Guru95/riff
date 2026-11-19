@@ -48,7 +48,6 @@ export function UserActions({
       >
         <option value="free">free</option>
         <option value="pro">pro</option>
-        <option value="premium">premium</option>
       </select>
       <select
         className={sel}

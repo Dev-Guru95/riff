@@ -386,7 +386,7 @@ function AssignmentStep({ assignment, onDone }: { assignment: Assignment; onDone
           <div>
             <div className="font-semibold">AI Review · {assignment.title}</div>
             <div className="text-xs text-[var(--muted)]">
-              {review.flaggedForHumanReview ? "Flagged for human review" : review.passed ? "Passed" : "Below passing — revise & resubmit"}
+              {review.flaggedForHumanReview ? "Held for a second look" : review.passed ? "Passed" : "Below passing — revise & resubmit"}
             </div>
           </div>
         </div>

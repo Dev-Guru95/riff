@@ -5,7 +5,7 @@ import { parseBody, ok, fail, tooMany, withRoute } from "@/lib/api";
 import { rateLimit, clientIp } from "@/lib/ratelimit";
 
 const schema = z.object({
-  plan: z.enum(["pro", "premium"]),
+  plan: z.literal("pro"),
   interval: z.enum(["monthly", "annual"]).default("monthly"),
   code: z.string().min(1).max(64),
 });

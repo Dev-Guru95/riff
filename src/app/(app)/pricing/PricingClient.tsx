@@ -35,10 +35,10 @@ export function UpgradeButton({
   label,
   variant = "primary",
 }: {
-  plan: "pro" | "premium";
+  plan: "pro";
   interval: BillingInterval;
   disabled?: boolean;
-  /** "Upgrade to Pro", "Switch to Premium", … decided by the server. */
+  /** "Get Pro", "Upgrade to Pro", … decided by the server. */
   label: string;
   variant?: "primary" | "ghost";
 }) {

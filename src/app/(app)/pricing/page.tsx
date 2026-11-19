@@ -9,12 +9,14 @@ import {
   promoEndsAt,
   type PaidPlanKey,
 } from "@/lib/pricing";
-import { FEATURE_GROUPS, PLAN_HIGHLIGHTS, PLAN_META, PREMIUM_DIFFERENCE, type PlanKeyLike } from "@/lib/plan-features";
+import { FEATURE_GROUPS, PLAN_HIGHLIGHTS, PLAN_META, type PlanKeyLike } from "@/lib/plan-features";
 import { PlansClient, type PlanCard } from "./PlansClient";
 
 export const metadata = { title: "Plans — Riff" };
 
-const ORDER: PlanKeyLike[] = ["free", "pro", "premium"];
+// Free + Pro is the launch structure. Enterprise, for management companies
+// and labels, is a later conversation and is not modelled here.
+const ORDER: PlanKeyLike[] = ["free", "pro"];
 
 export default async function PricingPage() {
   const session = await requirePageSession();
@@ -53,10 +55,11 @@ export default async function PricingPage() {
         }),
         daysLeft: promoDaysLeft(now),
       }}
-      currentPlan={currentPlan}
+      // A historical Premium row resolves to Pro-level access, and Pro is the
+      // card it should light up - there is no Premium card to highlight.
+      currentPlan={currentPlan === "premium" ? "pro" : currentPlan}
       currency={BILLING_CURRENCY}
       configured={isStripeConfigured()}
-      premiumDifference={PREMIUM_DIFFERENCE}
     />
   );
 }

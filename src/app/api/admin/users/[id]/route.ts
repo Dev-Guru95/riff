@@ -11,7 +11,9 @@ const schema = z.object({
   // Tier, set by hand. Until now a plan could only change by paying through
   // Stripe, so there was no way to comp an artist, run a promo, or move someone
   // between free and paid — the thing Skool admins actually need to do.
-  plan: z.enum(["free", "pro", "premium"]).optional(),
+  // Premium is retired: an existing row keeps working, but nobody may be
+  // moved onto it.
+  plan: z.enum(["free", "pro"]).optional(),
 });
 
 export const PATCH = withRoute(async (req: Request, { params }: { params: Promise<{ id: string }> }) => {

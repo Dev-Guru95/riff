@@ -131,7 +131,7 @@ secret; the matching secrets live only in the production environment.
 | Thing | Live value |
 | --- | --- |
 | Pro product / price | `prod_VcCvwSF266MMGr` / `price_1UayVuAJE2OwYQbsnRQiQ8hN` ($19/mo) |
-| Premium product / price | `prod_VcCvX8gsnM6tQ2` / `price_1UayVwAJE2OwYQbsuE7EN7OL` ($39/mo) |
+| Premium product / price | **RETIRED 2026-11-19.** Left active in Stripe so any historical subscription keeps renewing; not sold. |
 | Stripe webhook | `we_1UayVxAJE2OwYQbsdw4JXwlZ` → `/api/webhooks/stripe`, 9 events |
 | RevenueCat live config | `app33ca8dfaa4` ("Riff (Stripe live)") |
 | RevenueCat test config | `appd6c27d3457` ("Riff (Stripe sandbox)") |

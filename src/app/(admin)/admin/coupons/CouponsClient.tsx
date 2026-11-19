@@ -53,7 +53,7 @@ export function CreateCouponForm() {
           <fieldset className="flex items-center gap-3">
             <legend className="sr-only">Applies to</legend>
             <span className="text-xs text-[var(--muted)]">Applies to</span>
-            {(["pro", "premium"] as const).map((p) => (
+            {(["pro"] as const).map((p) => (
               <label key={p} className="flex items-center gap-1.5 text-sm">
                 <input
                   type="checkbox"

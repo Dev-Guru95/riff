@@ -1,12 +1,20 @@
 /**
- * What each plan actually gives you.
+ * What each plan gives you.
  *
  * Pure and client-safe, like `pricing.ts`. This file is the *copy* half of the
  * plan definition; `entitlements.ts` is the *enforcement* half. Every claim
  * below has to be enforced somewhere — a feature list that promises more than
- * the code checks is the bug reviewers found last time ("weekly missions" was
- * sold as Pro while Free users could complete them), so the enforcement point
- * is named in a comment next to anything gated.
+ * the code checks is the bug reviewers found once already ("weekly missions"
+ * was sold as Pro while Free users could complete them for XP) — so the
+ * enforcement point is named in a comment next to anything gated.
+ *
+ * Two rules this file exists to keep:
+ *
+ *  1. **Free and Pro only.** Enterprise, for management companies and labels,
+ *     is a later conversation. There is no third column here until it is real.
+ *  2. **Nothing may imply a person.** Riff is an AI platform. Every generated
+ *     or scored thing is labelled AI, and no plan promises that a human will
+ *     look at an artist's work, account or strategy.
  */
 
 import type { PaidPlanKey } from "./pricing";
@@ -23,38 +31,25 @@ export const PLAN_META: Record<PlanKeyLike, { name: string; tagline: string; aud
   pro: {
     name: "Pro",
     tagline: "Run your music like a business",
-    audience: "For independent artists actively releasing, marketing and selling.",
-  },
-  premium: {
-    name: "Premium",
-    tagline: "Your strategist, not just your toolkit",
-    audience: "For artists who want a plan built around them and a human in the loop.",
+    audience: "For independent artists actively releasing, marketing and growing.",
   },
 };
 
-/** The 5–6 lines on a pricing card. Short, concrete, and true. */
+/** The lines on a pricing card. Short, concrete, and true. */
 export const PLAN_HIGHLIGHTS: Record<PlanKeyLike, string[]> = {
   free: [
     "All 8 course tracks, quizzes & certificates",
     "AI Coach — 5 messages a day",
     "1 social account audited",
-    "Studio planners: brand kit, merch, finance, fans",
-    "30-day career roadmap",
+    "Studio planners: brand kit, fans, finance, goals",
+    "30-day AI career roadmap",
   ],
   pro: [
     "Everything in Free",
     "Unlimited AI Coach",
     "All 6 socials audited, every month",
-    "Full career roadmap — 30-day to 12-month",
+    "Full AI career roadmap — 30-day to 12-month",
     "Weekly missions, XP & leaderboard rewards",
-    "AI merch concepts + margin coach — 3 plans a day",
-  ],
-  premium: [
-    "Everything in Pro",
-    "Human-reviewed assignments, queued first",
-    "AI merch launch campaigns — week-by-week",
-    "12 AI merch plans a day",
-    "Deeper, longer AI strategy on every tool",
   ],
 };
 
@@ -66,7 +61,6 @@ export type FeatureRow = {
   hint?: string;
   free: FeatureValue;
   pro: FeatureValue;
-  premium: FeatureValue;
 };
 
 export type FeatureGroup = { title: string; rows: FeatureRow[] };
@@ -84,22 +78,12 @@ export const FEATURE_GROUPS: FeatureGroup[] = [
         hint: "Riff is the assessment half of the Skool loop — never paywalled.",
         free: true,
         pro: true,
-        premium: true,
       },
       {
         label: "Assignment feedback",
-        hint: "Every submission is AI-scored against a rubric.",
+        hint: "Every submission is scored against a rubric by AI.",
         free: "AI-scored",
         pro: "AI-scored",
-        premium: "AI + human review",
-      },
-      {
-        label: "Priority in the human review queue",
-        // Enforced: src/app/(admin)/admin/submissions — Premium sorts first.
-        hint: "Premium submissions are reviewed before everyone else's.",
-        free: false,
-        pro: false,
-        premium: true,
       },
     ],
   },
@@ -112,22 +96,13 @@ export const FEATURE_GROUPS: FeatureGroup[] = [
         hint: "A music-marketing mentor that knows your genre, goals and scores.",
         free: "5 a day",
         pro: "Unlimited",
-        premium: "Unlimited",
       },
       {
-        label: "Career roadmap horizons",
+        label: "AI career roadmap",
         // Enforced: src/app/api/roadmap/route.ts — free is 30d only.
         hint: "A dated milestone plan generated from your real progress.",
         free: "30-day",
         pro: "30-day → 12-month",
-        premium: "30-day → 12-month",
-      },
-      {
-        label: "AI depth on generated plans",
-        hint: "How much the AI tools write before they stop.",
-        free: "Standard",
-        pro: "Standard",
-        premium: "Extended",
       },
     ],
   },
@@ -140,20 +115,17 @@ export const FEATURE_GROUPS: FeatureGroup[] = [
         hint: "Marketing, branding, growth and consistency scored per platform.",
         free: "1",
         pro: "All 6",
-        premium: "All 6",
       },
       {
-        label: "Caption & hashtag generator",
+        label: "AI caption & hashtag generator",
         free: true,
         pro: true,
-        premium: true,
       },
       {
         label: "Fan CRM, segments & broadcasts",
         hint: "Tag your audience and send targeted updates.",
         free: true,
         pro: true,
-        premium: true,
       },
       {
         label: "Weekly missions, XP & leaderboard rewards",
@@ -161,60 +133,16 @@ export const FEATURE_GROUPS: FeatureGroup[] = [
         hint: "Weekly marketing tasks that pay XP and reward codes.",
         free: false,
         pro: true,
-        premium: true,
-      },
-    ],
-  },
-  {
-    title: "Money & merch",
-    rows: [
-      {
-        label: "Merch planner — margins, break-even, pipeline",
-        hint: "Cost, price and stock turned into profit per unit and per drop.",
-        free: true,
-        pro: true,
-        premium: true,
-      },
-      {
-        label: "Log merch sales straight into Revenue",
-        free: true,
-        pro: true,
-        premium: true,
-      },
-      {
-        label: "AI merch concepts & pricing",
-        // Enforced: src/app/api/studio/merch/plan — merchPlansPerDay.
-        hint: "Product ideas costed for your genre, with a suggested retail price.",
-        free: false,
-        pro: "3 plans a day",
-        premium: "12 plans a day",
-      },
-      {
-        label: "AI merch launch campaign",
-        // Enforced: src/app/api/studio/merch/plan — merchCampaignPlans.
-        hint: "A week-by-week drop plan: teasers, launch day, restock, bundles.",
-        free: false,
-        pro: false,
-        premium: true,
-      },
-      {
-        label: "Revenue & budget tracker, gig fees",
-        free: true,
-        pro: true,
-        premium: true,
       },
     ],
   },
   {
     title: "Organise the work",
     rows: [
-      { label: "Project boards, content calendar, pitch tracker", free: true, pro: true, premium: true },
-      { label: "Brand kit, link-in-bio, booking scheduler", free: true, pro: true, premium: true },
-      { label: "Goals & milestone tracking", free: true, pro: true, premium: true },
+      { label: "Revenue & budget tracker", free: true, pro: true },
+      { label: "Project boards, content calendar, pitch tracker", free: true, pro: true },
+      { label: "Brand kit, link-in-bio, booking scheduler", free: true, pro: true },
+      { label: "Goals & milestone tracking", free: true, pro: true },
     ],
   },
 ];
-
-/** The one sentence that explains why Premium exists next to Pro. */
-export const PREMIUM_DIFFERENCE =
-  "Pro gives you the tools. Premium adds the strategist: human-reviewed assignments at the front of the queue, week-by-week launch campaigns, and longer, deeper AI output on every plan it writes.";

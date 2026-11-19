@@ -15,58 +15,46 @@ export type PlanEntitlements = {
    * mobile clients read it.
    */
   allCourses: boolean;
-  humanReview: boolean;
   weeklyMissions: boolean;
   /** Which career-roadmap horizons can be generated. Free is the 30-day plan. */
   roadmapHorizons: readonly RoadmapHorizonKey[];
-  /** AI merch concept plans per day. 0 means the generator is not available. */
-  merchPlansPerDay: number;
-  /** Whether the AI can also write a week-by-week merch launch campaign. */
-  merchCampaignPlans: boolean;
-  /** Longer, more detailed AI output on the tools that generate plans. */
-  extendedAiDepth: boolean;
 };
 
 // Per-plan entitlements. Gate features against these so upgrades unlock value.
 //
 // Every line here is enforced somewhere — a feature sold on the Plans page but
-// not checked in code is the contradiction reviewers found last time
+// not checked in code is the contradiction reviewers found once already
 // (`weeklyMissions` was advertised as Pro while Free users could complete them
 // for XP). `plan-features.ts` is the copy that describes this table; the two
 // are meant to be read side by side.
+//
+// Only Free and Pro are sold. `premium` survives purely so that a historical
+// subscription row, a replayed Stripe webhook or a stale RevenueCat
+// entitlement still resolves to *something* — and it resolves to exactly what
+// Pro gets, so nobody who once held it is worse off and nobody gains a
+// capability that is no longer offered.
 export const ENTITLEMENTS: Record<PlanKey, PlanEntitlements> = {
   free: {
     coachMessagesPerDay: 5,
     socialConnections: 1,
     allCourses: true,
-    humanReview: false,
     weeklyMissions: false,
     roadmapHorizons: ["30d"],
-    merchPlansPerDay: 0,
-    merchCampaignPlans: false,
-    extendedAiDepth: false,
   },
   pro: {
     coachMessagesPerDay: 1000,
     socialConnections: 6,
     allCourses: true,
-    humanReview: false,
     weeklyMissions: true,
     roadmapHorizons: ROADMAP_HORIZONS,
-    merchPlansPerDay: 3,
-    merchCampaignPlans: false,
-    extendedAiDepth: false,
   },
+  // Legacy only; identical to Pro. Not purchasable — see pricing.ts.
   premium: {
-    coachMessagesPerDay: 5000,
+    coachMessagesPerDay: 1000,
     socialConnections: 6,
     allCourses: true,
-    humanReview: true,
     weeklyMissions: true,
     roadmapHorizons: ROADMAP_HORIZONS,
-    merchPlansPerDay: 12,
-    merchCampaignPlans: true,
-    extendedAiDepth: true,
   },
 };
 
@@ -164,39 +152,6 @@ function safeParseIds(json: string): string[] {
   } catch {
     return [];
   }
-}
-
-/**
- * How many AI merch plans this artist has left today.
- *
- * Counted the same way as coach messages — from the analytics events already
- * written for every generation — so there is no second place for the number to
- * drift out of step. Returns `limit: 0` when the plan has no access at all,
- * which is what the upgrade prompt renders from.
- */
-export async function merchPlanQuota(userId: string): Promise<{
-  plan: PlanKey;
-  limit: number;
-  used: number;
-  remaining: number;
-  campaigns: boolean;
-  /** Longer, more detailed AI output — the "Extended" row on the Plans page. */
-  extended: boolean;
-}> {
-  const plan = await getPlan(userId);
-  const {
-    merchPlansPerDay: limit,
-    merchCampaignPlans: campaigns,
-    extendedAiDepth: extended,
-  } = ENTITLEMENTS[plan];
-  if (limit <= 0) return { plan, limit: 0, used: 0, remaining: 0, campaigns, extended };
-
-  const since = new Date();
-  since.setHours(0, 0, 0, 0);
-  const used = await prisma.analyticsEvent.count({
-    where: { userId, type: "merch_plan", createdAt: { gte: since } },
-  });
-  return { plan, limit, used, remaining: Math.max(0, limit - used), campaigns, extended };
 }
 
 /** True when the plan may generate the given career-roadmap horizon. */

@@ -70,7 +70,9 @@ describe("planForPrice", () => {
 
   it("falls back to the lookup key", () => {
     expect(planForPrice(price({ metadata: {}, lookup_key: PLANS.pro.lookupKey! }))).toBe("pro");
-    expect(planForPrice(price({ metadata: {}, lookup_key: PLANS.premium.lookupKey! }))).toBe("premium");
+    // Premium is retired but its lookup key must still resolve, or a renewal
+    // webhook for a historical subscription would silently downgrade them.
+    expect(planForPrice(price({ metadata: {}, lookup_key: "riff_premium_monthly" }))).toBe("premium");
   });
 
   it("gives free for an unknown price rather than guessing", () => {
@@ -151,9 +153,16 @@ describe("planForEntitlementIds", () => {
   });
 
   it("round-trips with the entitlements a plan grants", () => {
-    expect(planForEntitlementIds(entitlementsForPlan("premium"))).toBe("premium");
     expect(planForEntitlementIds(entitlementsForPlan("pro"))).toBe("pro");
     expect(planForEntitlementIds(entitlementsForPlan("free"))).toBe("free");
+  });
+
+  it("maps the retired Premium plan to Pro's entitlements rather than throwing", () => {
+    // Premium is gone from the sellable catalogue, but a renewal webhook or a
+    // restore can still carry it. Indexing PLANS with it used to crash inside
+    // the webhook handler.
+    expect(() => entitlementsForPlan("premium")).not.toThrow();
+    expect(entitlementsForPlan("premium")).toEqual(entitlementsForPlan("pro"));
   });
 });
 

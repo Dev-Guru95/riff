@@ -43,9 +43,8 @@ type Spec = {
 const SPECS: Spec[] = [
   { plan: "pro", interval: "monthly", name: "Riff Pro", amount: LIST_PRICE_CENTS.pro.monthly, lookupKey: "riff_pro_monthly", env: "STRIPE_PRICE_PRO" },
   { plan: "pro", interval: "annual", name: "Riff Pro", amount: LIST_PRICE_CENTS.pro.annual, lookupKey: "riff_pro_annual", env: "STRIPE_PRICE_PRO_ANNUAL" },
-  { plan: "premium", interval: "monthly", name: "Riff Premium", amount: LIST_PRICE_CENTS.premium.monthly, lookupKey: "riff_premium_monthly", env: "STRIPE_PRICE_PREMIUM" },
-  { plan: "premium", interval: "annual", name: "Riff Premium", amount: LIST_PRICE_CENTS.premium.annual, lookupKey: "riff_premium_annual", env: "STRIPE_PRICE_PREMIUM_ANNUAL" },
 ];
+// Premium was withdrawn from the product; only Free and Pro are sold.
 
 /** One product per plan, matched on the `plan` metadata the app falls back to. */
 async function productFor(spec: Spec): Promise<string> {

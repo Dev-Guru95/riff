@@ -1,12 +1,15 @@
 import { getSession } from "@/lib/auth";
 import { ok, fail, withRoute } from "@/lib/api";
 import { getBillingSummary } from "@/lib/entitlements";
-import { isStripeConfigured, BILLING_CURRENCY, PLANS, type PlanKey } from "@/lib/stripe";
+import { isStripeConfigured, BILLING_CURRENCY, PLANS } from "@/lib/stripe";
+import type { PlanKeyLike } from "@/lib/plan-features";
 import { planPriceCents } from "@/lib/coupons";
 import { PROMO, isPromoActive, planPrices, type PaidPlanKey } from "@/lib/pricing";
 import type { BillingResponse, PlanIntervalPrice } from "@/lib/mobile/types";
 
-const ORDER: PlanKey[] = ["free", "pro", "premium"];
+// Free + Pro only. A retired Premium row still resolves for access, but it
+// is not something the app may offer.
+const ORDER: PlanKeyLike[] = ["free", "pro"];
 
 // GET /api/mobile/billing — src/app/(app)/pricing/page.tsx +
 // settings/billing/page.tsx. Stripe price ids and customer/subscription ids are

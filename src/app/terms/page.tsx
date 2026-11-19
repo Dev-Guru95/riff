@@ -153,16 +153,13 @@ export default function TermsPage() {
             <li>
               <strong className="text-[var(--foreground)]">What they cost.</strong>{" "}
               {PLANS.free.name} is free. {PLANS.pro.name} is {price("pro", "monthly")} per month
-              or {price("pro", "annual")} per year, and {PLANS.premium.name} is{" "}
-              {price("premium", "monthly")} per month or {price("premium", "annual")} per year — all in
-              US dollars. Any tax due is added at checkout.
+              or {price("pro", "annual")} per year, in US dollars. Any tax due is added at checkout.
             </li>
             {isPromoActive() && (
               <li>
                 <strong className="text-[var(--foreground)]">{PROMO.name}.</strong> For a limited time, new
                 subscriptions get {PROMO.percentOff}% off: {PLANS.pro.name} at {promoPrice("pro", "monthly")} per
-                month or {promoPrice("pro", "annual")} per year, and {PLANS.premium.name} at{" "}
-                {promoPrice("premium", "monthly")} per month or {promoPrice("premium", "annual")} per year. The
+                month or {promoPrice("pro", "annual")} per year. The
                 offer price holds for {promoHoldsFor("monthly")} on a monthly plan and{" "}
                 {promoHoldsFor("annual")} on an annual one; after that the standard price above applies, and we
                 will tell you before it does. The offer closes on{" "}

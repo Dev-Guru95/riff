@@ -20,7 +20,7 @@ Product pillars you'll be designing around:
 - **Gamification** — XP, 9 levels (Beginner Artist → Music Entrepreneur), daily streaks, badges, progress rings/bars. This is where most of the "feel" lives — it should be celebratory and motivating.
 - **AI features** — assignment review (score + strengths/weaknesses/next actions), an AI Artist Coach (streaming chat mentor), a Career Roadmap generator, and a Social Media Audit.
 - **Community & competition** — forums, peer feedback, leaderboards (global/country/genre), weekly missions.
-- **Native execution tools (NEW — biggest recent addition)** — beyond *learning*, artists now **do the work inside Riff** instead of leaving for Trello/Canva/Buffer/Mailchimp/Linktree/spreadsheets. Two surfaces: **Projects** (Trello-style Kanban boards with ready-made templates) and **Studio** (AI writing tools, Brand Kit, Fan CRM, Broadcasts, a public Link-in-Bio page, Revenue/Merch/Gigs, Bookings, Goals, and a Career Dashboard). ~19 tools across all 8 course tracks — a major new design surface.
+- **Native execution tools (NEW — biggest recent addition)** — beyond *learning*, artists now **do the work inside Riff** instead of leaving for Trello/Canva/Buffer/Mailchimp/Linktree/spreadsheets. Two surfaces: **Projects** (Trello-style Kanban boards with ready-made templates) and **Studio** (AI writing tools, Brand Kit, Fan CRM, Broadcasts, a public Link-in-Bio page, Revenue, Bookings, Goals, and a Career Dashboard). ~19 tools across all 8 course tracks — a major new design surface.
 - **Admin** — a full role-gated back office for authoring courses, reviewing AI scores, moderation, etc.
 
 > Deeper product background lives in `PLATFORM.md` and `APP_BRIEF_FOR_COURSE.md`. Read those if you want the full story; this doc is the design-focused subset.
@@ -105,7 +105,6 @@ The card drawer (`CardModal.tsx`) and the drag-and-drop board (`BoardView.tsx`) 
 | **Broadcasts** — compose + segment targeting | `/studio/broadcasts` | `src/app/(app)/studio/broadcasts/…` |
 | **Link-in-Bio** — editor for the public page | `/studio/link-in-bio` | `src/app/(app)/studio/link-in-bio/…` |
 | **Revenue & Budget** — income/expense ledger + totals | `/studio/finance` | `src/app/(app)/studio/finance/…` |
-| **Merch & Gigs** — inline-editable planners | `/studio/merch` | `src/app/(app)/studio/merch/…` |
 | **Booking Scheduler** — inquiry → confirmed pipeline | `/studio/bookings` | `src/app/(app)/studio/bookings/…` |
 | **Goals & Milestones** — goals with milestone checklists | `/studio/goals` | `src/app/(app)/studio/goals/…` |
 

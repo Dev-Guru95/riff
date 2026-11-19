@@ -21,7 +21,7 @@ export function RoadmapClient({
   initial: Record<string, Plan>;
   /** Horizons this plan may generate. Free is the 30-day plan. */
   allowedHorizons: readonly string[];
-  plan: "free" | "pro" | "premium";
+  plan: "free" | "pro" | "premium";  // premium is legacy-only; treated as pro
 }) {
   const [plans, setPlans] = useState<Record<string, Plan>>(initial);
   const [horizon, setHorizon] = useState<HorizonKey>("30d");

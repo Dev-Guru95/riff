@@ -13,7 +13,6 @@ const MANAGERS = [
   { href: "/studio/broadcasts", icon: "📣", name: "Broadcasts", track: 5, tagline: "Compose fan updates and target them by segment." },
   { href: "/studio/link-in-bio", icon: "🔗", name: "Link-in-Bio", track: 5, tagline: "A public landing page for all your links." },
   { href: "/studio/finance", icon: "💰", name: "Revenue & Budget", track: 6, tagline: "Track what your music earns and costs." },
-  { href: "/studio/merch", icon: "🧢", name: "Merch Planner", track: 6, tagline: "Price merch for profit, plan the drop, log every sale." },
   { href: "/studio/bookings", icon: "📆", name: "Booking Scheduler", track: 7, tagline: "Track show inquiries from first contact to confirmed." },
   { href: "/studio/goals", icon: "🎯", name: "Goals & Milestones", track: 8, tagline: "Set career goals and track milestone progress." },
 ];

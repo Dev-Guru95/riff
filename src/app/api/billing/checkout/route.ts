@@ -11,7 +11,7 @@ import { parseBody, ok, fail, withRoute } from "@/lib/api";
 // `interval` defaults to monthly so an older client — or the app — keeps
 // working unchanged.
 const schema = z.object({
-  plan: z.enum(["pro", "premium"]),
+  plan: z.literal("pro"),
   interval: z.enum(["monthly", "annual"]).default("monthly"),
   code: z.string().min(1).max(64).optional(),
 });

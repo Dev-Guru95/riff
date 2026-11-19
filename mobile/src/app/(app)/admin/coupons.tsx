@@ -99,7 +99,7 @@ function CreateCouponForm() {
         <>
           <Text variant="caption">Applies to — none selected means every paid plan.</Text>
           <View style={{ flexDirection: "row", gap: 8 }}>
-            {(["pro", "premium"] as const).map((planKey) => (
+            {(["pro"] as const).map((planKey) => (
               <Pill
                 key={planKey}
                 label={planKey}

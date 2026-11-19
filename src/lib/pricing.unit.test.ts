@@ -21,8 +21,12 @@ import {
 import { formatMoney } from "./money";
 
 // The published prices and every claim made about them. These tests exist so a
-// future price edit that quietly breaks "2 months free", "50% off" or the
-// Pro↔Premium relationship fails here instead of on the pricing page.
+// future price edit that quietly breaks "2 months free" or "50% off" fails
+// here instead of on the pricing page.
+//
+// Only Free and Pro are sold. Premium was withdrawn, so there is nothing to
+// assert about it: `PaidPlanKey` is "pro", and anything that tried to price a
+// second paid plan would not compile.
 
 const DURING = new Date("2026-11-27T12:00:00.000Z"); // Black Friday 2026
 const BEFORE = new Date("2026-11-01T12:00:00.000Z");
@@ -34,21 +38,6 @@ describe("published prices", () => {
     expect(listPriceCents("pro", "annual")).toBe(29999);
     expect(formatMoney(listPriceCents("pro", "monthly"), "usd")).toBe("$29.99");
     expect(formatMoney(listPriceCents("pro", "annual"), "usd")).toBe("$299.99");
-  });
-
-  it("lists Premium at $59.99/mo and $599.99/yr", () => {
-    expect(listPriceCents("premium", "monthly")).toBe(5999);
-    expect(listPriceCents("premium", "annual")).toBe(59999);
-  });
-
-  it("keeps the Pro↔Premium relationship that existed before the price rise", () => {
-    // Premium used to be $39 against Pro's $19 — 2.05x. The new prices hold
-    // that multiple to within a rounding of a credible price point.
-    const oldRatio = 39 / 19;
-    for (const interval of BILLING_INTERVALS) {
-      const ratio = listPriceCents("premium", interval) / listPriceCents("pro", interval);
-      expect(Math.abs(ratio - oldRatio)).toBeLessThan(0.1);
-    }
   });
 
   it("prices annual at ten monthly charges, so two months are free", () => {
@@ -74,8 +63,6 @@ describe("the BFCM launch offer", () => {
   it("halves every price", () => {
     expect(promoPriceCents("pro", "monthly")).toBe(1499);
     expect(promoPriceCents("pro", "annual")).toBe(14999);
-    expect(promoPriceCents("premium", "monthly")).toBe(2999);
-    expect(promoPriceCents("premium", "annual")).toBe(29999);
   });
 
   it("is a true 50% off on every plan and interval", () => {
@@ -115,8 +102,6 @@ describe("the BFCM launch offer", () => {
   it("charges the promotional price during the window and the list price outside it", () => {
     expect(effectivePriceCents("pro", "monthly", DURING)).toBe(1499);
     expect(effectivePriceCents("pro", "monthly", AFTER)).toBe(2999);
-    expect(effectivePriceCents("premium", "annual", DURING)).toBe(29999);
-    expect(effectivePriceCents("premium", "annual", AFTER)).toBe(59999);
   });
 
   it("counts down to the close and stops at zero", () => {
@@ -133,7 +118,6 @@ describe("the BFCM launch offer", () => {
 describe("annual savings", () => {
   it("is the difference against twelve monthly charges", () => {
     expect(annualSavingCents("pro")).toBe(2999 * 12 - 29999); // $59.89
-    expect(annualSavingCents("premium")).toBe(5999 * 12 - 59999); // $119.89
     expect(annualSavingCents("pro", true)).toBe(1499 * 12 - 14999);
   });
 
@@ -161,7 +145,7 @@ describe("priceView", () => {
   });
 
   it("shows no discount and nothing struck through outside the offer", () => {
-    const v = priceView("premium", "monthly", AFTER);
+    const v = priceView("pro", "monthly", AFTER);
     expect(v.promo).toBe(false);
     expect(v.payCents).toBe(v.listCents);
     expect(v.discountCents).toBe(0);

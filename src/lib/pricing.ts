@@ -13,34 +13,36 @@
  */
 
 export type BillingInterval = "monthly" | "annual";
-export type PaidPlanKey = "pro" | "premium";
+
+/**
+ * The paid plans that can actually be bought.
+ *
+ * Free + Pro is the launch structure. Enterprise, for management companies and
+ * labels, is a later conversation and is deliberately not modelled here: an
+ * unsold tier in the type system is how a half-built plan leaks into the UI.
+ *
+ * `PlanKey` in `stripe.ts` still carries "premium" so that a historical
+ * subscription row or a stale webhook stays resolvable. Nothing may *sell* it.
+ */
+export type PaidPlanKey = "pro";
 
 export const BILLING_INTERVALS: BillingInterval[] = ["monthly", "annual"];
-export const PAID_PLANS: PaidPlanKey[] = ["pro", "premium"];
+export const PAID_PLANS: PaidPlanKey[] = ["pro"];
 
 /**
  * List prices, in minor units (cents). Integers only — a float price is how a
  * displayed total and a charged total drift apart.
  *
- * Pro is the anchor: $29.99/mo, $299.99/yr.
- *
- * Premium is *derived*, not chosen. Before this update Pro was $19/mo and
- * Premium $39/mo — Premium sat at 2.05x Pro. Holding that relationship against
- * the new Pro anchor gives 29.99 x 2.05 = $61.56, and the nearest credible
- * price point on that multiple is $59.99 (exactly 2.00x Pro, 0.03x off the old
- * ratio). Annual follows the same rule as Pro.
+ * Pro: $29.99/mo, $299.99/yr.
  *
  * Annual is priced at 10 months for 12 ("2 months free"), so it is ten times
- * the monthly amount, less a cent of rounding:
- *   pro:     29.99 x 10 = 299.90 -> 299.99
- *   premium: 59.99 x 10 = 599.90 -> 599.99
- * `pricing.unit.test.ts` asserts both relationships, so a future price edit
- * that breaks the "2 months free" claim fails the tests rather than quietly
- * making the marketing copy untrue.
+ * the monthly amount, less a cent of rounding: 29.99 x 10 = 299.90 -> 299.99.
+ * `pricing.unit.test.ts` asserts that relationship, so a future price edit that
+ * breaks the "2 months free" claim fails the tests rather than quietly making
+ * the marketing copy untrue.
  */
 export const LIST_PRICE_CENTS: Record<PaidPlanKey, Record<BillingInterval, number>> = {
   pro: { monthly: 2999, annual: 29999 },
-  premium: { monthly: 5999, annual: 59999 },
 };
 
 /**
@@ -57,7 +59,6 @@ export const LIST_PRICE_CENTS: Record<PaidPlanKey, Record<BillingInterval, numbe
  */
 export const PROMO_PRICE_CENTS: Record<PaidPlanKey, Record<BillingInterval, number>> = {
   pro: { monthly: 1499, annual: 14999 },
-  premium: { monthly: 2999, annual: 29999 },
 };
 
 export type PromoCampaign = {
@@ -81,7 +82,7 @@ export const PROMO: PromoCampaign = {
   shortName: "BFCM",
   badge: "50% OFF",
   percentOff: 50,
-  tagline: "Our first-ever Black Friday / Cyber Monday offer — 50% off every plan.",
+  tagline: "Our first-ever Black Friday / Cyber Monday offer — 50% off Riff Pro.",
   /** Inclusive start, exclusive end. Absolute instants, not local dates. */
   startsAt: "2026-11-19T00:00:00.000Z",
   /** Midnight PT on Dec 3 2026 — the end of Cyber Monday week. */

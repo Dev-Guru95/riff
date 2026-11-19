@@ -18,7 +18,6 @@ import { listPriceCents, promoDiscountCents } from "./pricing";
 // is where the published prices are actually asserted.
 const PRO_MONTHLY = listPriceCents("pro", "monthly");
 const PRO_ANNUAL = listPriceCents("pro", "annual");
-const PREMIUM_MONTHLY = listPriceCents("premium", "monthly");
 
 // The arithmetic behind a discount code, isolated from the database. These are
 // the rules a client must never be able to influence: it sends a code, and
@@ -133,11 +132,17 @@ describe("evaluateCoupon", () => {
     expect(res.quote.free).toBe(false);
   });
 
-  it("prices each plan from the server's own list price", () => {
+  it("prices Pro from the server's own list price", () => {
     const pro = evaluateCoupon({ ...base, value: 10 }, ctx);
-    const premium = evaluateCoupon({ ...base, value: 10 }, { ...ctx, plan: "premium" });
     expect(pro.ok && pro.quote.originalCents).toBe(PRO_MONTHLY);
-    expect(premium.ok && premium.quote.originalCents).toBe(PREMIUM_MONTHLY);
+  });
+
+  it("gives a retired plan no price, so a code cannot be quoted against it", () => {
+    // Premium was withdrawn. A code aimed at it must be worth nothing rather
+    // than silently falling back to Pro's price.
+    const retired = evaluateCoupon({ ...base, value: 50 }, { ...ctx, plan: "premium" });
+    expect(retired.ok && retired.quote.originalCents).toBe(0);
+    expect(retired.ok && retired.quote.discountCents).toBe(0);
   });
 
   it("refuses an unknown, inactive, expired or exhausted code", () => {
@@ -156,9 +161,8 @@ describe("evaluateCoupon", () => {
   it("honours plan scope, and treats an empty scope as every paid plan", () => {
     const proOnly = { ...base, plans: "pro" };
     expect(evaluateCoupon(proOnly, ctx).ok).toBe(true);
-    const wrongPlan = evaluateCoupon(proOnly, { ...ctx, plan: "premium" });
+    const wrongPlan = evaluateCoupon(proOnly, { ...ctx, plan: "free" });
     expect(wrongPlan.ok ? null : wrongPlan.reason).toBe("not_applicable");
-    expect(evaluateCoupon(base, { ...ctx, plan: "premium" }).ok).toBe(true);
   });
 
   it("never lets a leaderboard reward code buy a subscription", () => {
@@ -210,7 +214,7 @@ describe("quoting a code against a billing interval", () => {
 
   it("still takes a 100% code to zero on either interval", () => {
     for (const interval of ["monthly", "annual"] as const) {
-      const res = evaluateCoupon({ ...base, value: 100 }, { plan: "premium", interval, alreadyRedeemed: false });
+      const res = evaluateCoupon({ ...base, value: 100 }, { plan: "pro", interval, alreadyRedeemed: false });
       expect(res.ok && res.quote.finalCents).toBe(0);
       expect(res.ok && res.quote.free).toBe(true);
     }
@@ -255,7 +259,6 @@ describe("campaignDiscount", () => {
 
   it("offers nothing outside the campaign window", () => {
     expect(campaignDiscount("pro", "monthly", AFTER)).toBeNull();
-    expect(campaignDiscount("premium", "annual", AFTER)).toBeNull();
   });
 
   it("prices the offer from the pricing module, to the cent", () => {

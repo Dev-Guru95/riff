@@ -143,7 +143,7 @@ export function AiBuilder({ builder, initialDrafts }: { builder: Builder; initia
                     <div className="font-bold">Your Riff Score</div>
                     <div className="text-xs text-[var(--muted)]">
                       {active.scoredAt ? `Scored ${new Date(active.scoredAt).toLocaleString()}` : ""}
-                      {fb.confidence < 0.6 && " · low confidence — consider human review"}
+                      {fb.confidence < 0.6 && " · low confidence — worth a second look"}
                     </div>
                   </div>
                 </div>

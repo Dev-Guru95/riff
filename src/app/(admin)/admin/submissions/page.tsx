@@ -1,7 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { PageHeader, EmptyState } from "@/components/ui";
 import { planFromSubscription } from "@/lib/entitlements";
-import { planRank } from "@/lib/stripe";
 import { OverrideForm } from "./ReviewClient";
 
 const PAGE_SIZE = 50;
@@ -11,12 +10,10 @@ export default async function ReviewQueue({ searchParams }: { searchParams: Prom
   const filter = status ?? "flagged";
   const where = filter === "all" ? {} : { status: filter };
 
-  // "Priority in the human review queue" is sold as a Premium feature, so the
-  // queue actually has to be ordered by plan. Prisma cannot sort by effective
-  // plan (it depends on the subscription's status and period end as well as
-  // its `plan` string), so a wider window is read and ordered here, then cut
-  // to a page — cheap at admin scale, and the alternative is a feature that is
-  // advertised and not delivered.
+  // Plain newest-first. Ordering this queue by plan was the mechanism behind a
+  // "priority human review" benefit that is no longer sold - and no paid plan
+  // promises a person will look at an artist's work, so nobody is owed a place
+  // at the front of it.
   const rows = await prisma.submission.findMany({
     where,
     orderBy: { createdAt: "desc" },
@@ -32,14 +29,10 @@ export default async function ReviewQueue({ searchParams }: { searchParams: Prom
     },
   });
 
+  // Oldest-waiting first, so nothing is starved. Plan plays no part.
   const submissions = rows
     .map((s) => ({ ...s, plan: planFromSubscription(s.user.subscription) }))
-    .sort(
-      (a, b) =>
-        // Higher plan first, then oldest-waiting first within a plan so nobody
-        // is starved by a newer submission from the same tier.
-        planRank(b.plan) - planRank(a.plan) || a.createdAt.getTime() - b.createdAt.getTime(),
-    )
+    .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
     .slice(0, PAGE_SIZE);
 
   const tabs = [
@@ -52,7 +45,7 @@ export default async function ReviewQueue({ searchParams }: { searchParams: Prom
     <div className="max-w-3xl">
       <PageHeader
         title="Review Queue"
-        subtitle="Low confidence AI reviews are flagged here for a human to confirm or override. Premium artists are listed first — human review is part of what they pay for."
+        subtitle="Low confidence AI reviews are flagged here for staff to confirm or override. Internal tool — no plan promises this to artists."
       />
 
       <div className="flex gap-1 mb-5 overflow-x-auto">

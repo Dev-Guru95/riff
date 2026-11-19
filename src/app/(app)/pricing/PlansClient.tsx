@@ -45,7 +45,6 @@ export function PlansClient({
   currentPlan,
   currency,
   configured,
-  premiumDifference,
 }: {
   plans: PlanCard[];
   groups: FeatureGroup[];
@@ -54,7 +53,6 @@ export function PlansClient({
   currency: string;
   /** False when Stripe has no keys — the cards still render, nothing can be bought. */
   configured: boolean;
-  premiumDifference: string;
 }) {
   // Annual by default while the launch offer is on: it is the better deal and
   // the one the campaign is built around.
@@ -95,7 +93,7 @@ export function PlansClient({
         <h1 className="text-2xl sm:text-3xl font-bold">Plans</h1>
         <p className="text-sm text-[var(--muted)] mt-1 max-w-2xl">
           Free gets you through every track and certificate. Pro turns Riff into the toolkit you run your
-          music business from. Premium adds the strategy on top.
+          music business from.
         </p>
       </div>
 
@@ -140,7 +138,7 @@ export function PlansClient({
       </div>
 
       {/* ---- Plan cards ---- */}
-      <div className="grid gap-4 md:grid-cols-3 items-start">
+      <div className="grid gap-4 sm:grid-cols-2 items-start max-w-3xl mx-auto">
         {plans.map((p) => {
           const isCurrent = currentPlan === p.key;
           const featured = p.key === "pro";
@@ -151,7 +149,7 @@ export function PlansClient({
             <div
               key={p.key}
               className={`card p-6 flex flex-col h-full relative ${
-                featured ? "border-[var(--brand)] md:-mt-2 md:pb-8" : ""
+                featured ? "border-[var(--brand)]" : ""
               }`}
             >
               {featured && (
@@ -230,17 +228,11 @@ export function PlansClient({
                 )
               ) : (
                 <UpgradeButton
-                  plan={p.key as "pro" | "premium"}
+                  plan="pro"
                   interval={interval}
                   disabled={!buyable}
                   variant={featured ? "primary" : "ghost"}
-                  label={
-                    currentPlan === "free"
-                      ? `Get ${p.name}`
-                      : currentPlan === "premium" && p.key === "pro"
-                        ? "Switch to Pro"
-                        : `Upgrade to ${p.name}`
-                  }
+                  label={currentPlan === "free" ? `Get ${p.name}` : `Upgrade to ${p.name}`}
                 />
               )}
 
@@ -254,32 +246,25 @@ export function PlansClient({
         })}
       </div>
 
-      {/* ---- Why Premium ---- */}
-      <div className="card p-5 mt-6 border-[var(--accent)]/40">
-        <h2 className="text-sm font-semibold mb-1">Pro or Premium?</h2>
-        <p className="text-sm text-[var(--muted)]">{premiumDifference}</p>
-      </div>
-
       {/* ---- Full comparison ------------------------------------------------
           Scrolls sideways on a narrow screen rather than squeezing four
           columns into 320px; the cards above already carry the headline
           differences, so nothing is hidden from a phone. */}
       <h2 className="text-lg font-bold mt-10 mb-3">Compare every feature</h2>
       <div className="card p-0 overflow-x-auto">
-        <table className="w-full text-sm min-w-[560px]">
+        <table className="w-full text-sm min-w-[440px]">
           <thead>
             <tr className="border-b border-[var(--border)]">
-              <th className="text-left font-semibold p-3 w-[46%]">Feature</th>
-              <th className="font-semibold p-3 text-center w-[18%]">Free</th>
-              <th className="font-semibold p-3 text-center w-[18%] text-[var(--brand)]">Pro</th>
-              <th className="font-semibold p-3 text-center w-[18%]">Premium</th>
+              <th className="text-left font-semibold p-3 w-[56%]">Feature</th>
+              <th className="font-semibold p-3 text-center w-[22%]">Free</th>
+              <th className="font-semibold p-3 text-center w-[22%] text-[var(--brand)]">Pro</th>
             </tr>
           </thead>
           <tbody>
             {groups.map((g) => (
               <Fragment key={g.title}>
                 <tr className="bg-[var(--surface-2)]">
-                  <th colSpan={4} className="text-left text-xs font-semibold uppercase tracking-wide p-2.5 px-3 text-[var(--muted)]">
+                  <th colSpan={3} className="text-left text-xs font-semibold uppercase tracking-wide p-2.5 px-3 text-[var(--muted)]">
                     {g.title}
                   </th>
                 </tr>
@@ -291,7 +276,6 @@ export function PlansClient({
                     </td>
                     <td className="p-3 text-center">{cell(r.free)}</td>
                     <td className="p-3 text-center">{cell(r.pro)}</td>
-                    <td className="p-3 text-center">{cell(r.premium)}</td>
                   </tr>
                 ))}
               </Fragment>

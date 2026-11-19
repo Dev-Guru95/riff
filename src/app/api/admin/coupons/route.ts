@@ -10,7 +10,8 @@ const schema = z.object({
   description: z.string().default(""),
   maxRedemptions: z.number().int().min(0).default(0),
   // Which paid plans the code discounts. Empty = every paid plan.
-  plans: z.array(z.enum(["pro", "premium"])).default([]),
+  // Only Pro is sold, so only Pro can be discounted.
+  plans: z.array(z.enum(["pro"])).default([]),
   // Months of access a code that covers the whole price grants. 0 = no end date.
   durationMonths: z.number().int().min(0).max(120).default(1),
   expiresAt: z.coerce.date().optional(),

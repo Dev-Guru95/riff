@@ -618,7 +618,6 @@ export type RedeemResponse = {
     coachMessagesPerDay: number;
     socialConnections: number;
     allCourses: boolean;
-    humanReview: boolean;
     weeklyMissions: boolean;
   };
   currentPeriodEnd: ISODate | null;
@@ -643,11 +642,8 @@ export type BillingResponse = {
     coachMessagesPerDay: number;
     socialConnections: number;
     allCourses: boolean;
-    humanReview: boolean;
     weeklyMissions?: boolean;
     roadmapHorizons?: readonly string[];
-    merchPlansPerDay?: number;
-    merchCampaignPlans?: boolean;
   };
   subscription: {
     plan: string;

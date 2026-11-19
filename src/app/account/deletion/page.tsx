@@ -65,7 +65,7 @@ export default function AccountDeletionPage() {
             <li>AI Coach conversations and the memory built from them</li>
             <li>Audits, roadmaps and connected social accounts</li>
             <li>Project boards, cards, checklists, comments and attachments you own</li>
-            <li>Studio data — brand kit, merch, gigs, finance entries, fans, broadcasts, bookings, goals and link page</li>
+            <li>Studio data — brand kit, finance entries, fans, broadcasts, bookings, goals and link page</li>
             <li>Community threads and posts you wrote</li>
             <li>Notifications, analytics events, coupon redemptions and leaderboard history</li>
           </ul>

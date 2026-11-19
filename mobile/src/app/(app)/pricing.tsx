@@ -1,6 +1,6 @@
 // Plans — what each tier includes, and which one you are on.
 //
-// This screen still sells nothing. Pro and Premium unlock digital content, so
+// This screen still sells nothing. Pro unlocks digital content, so
 // App Store guideline 3.1.1 and Google Play's Payments policy would require
 // them to be sold through in-app purchase. Riff sells them on the website
 // instead, which means the app must contain no purchase mechanism AND no

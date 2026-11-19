@@ -20,7 +20,7 @@ import { colors, fonts, radius, tint } from "@/theme/tokens";
 import type { AdminUserRow, AdminUsersResponse } from "@/types/api";
 
 const PATH = "/api/mobile/admin/users";
-const PLANS = ["free", "pro", "premium"] as const;
+const PLANS = ["free", "pro"] as const;
 const ROLES = ["artist", "reviewer", "moderator", "admin"] as const;
 
 function Col({ label, children, right }: { label: string; children: React.ReactNode; right?: boolean }) {

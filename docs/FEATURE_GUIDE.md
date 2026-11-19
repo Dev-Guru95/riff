@@ -85,8 +85,9 @@ Add **colours** (name + picker), **fonts** (name + usage), upload **logos/assets
 ### 💰 Revenue & Budget (`/studio/finance`)
 Add an entry (Income/Expense, category, description, amount) → see totals (income · expenses · net) and a per-category breakdown.
 
-### 🧢 Merch & Gigs (`/studio/merch`)
-- **Merch:** add items → set status/price/stock inline.
+### 🧢 Merch & Gigs — REMOVED (2026-11-19)
+Withdrawn from the product. The `MerchItem` and `Gig` tables remain in the
+schema so nothing is destroyed, but no route, API or navigation reaches them.
 - **Gigs:** add a venue → set city/date/status/fee inline.
 
 ### 📆 Booking Scheduler (`/studio/bookings`)

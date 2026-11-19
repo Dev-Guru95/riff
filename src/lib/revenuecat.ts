@@ -237,8 +237,17 @@ export function planForEntitlementIds(ids: readonly string[]): PlanKey {
   return "free";
 }
 
-/** The entitlement ids a plan should grant. Mirror of the RevenueCat config. */
+/**
+ * The entitlement ids a plan should grant. Mirror of the RevenueCat config.
+ *
+ * `premium` is retired and is no longer in the sellable catalogue, but a
+ * historical subscription row can still be synced — by a renewal webhook, or
+ * by /api/billing/restore. Indexing PLANS with it would throw inside a webhook
+ * handler, so it maps to exactly what Pro grants: the access those subscribers
+ * already have, and nothing that is no longer offered.
+ */
 export function entitlementsForPlan(plan: PlanKey): string[] {
+  if (plan === "premium") return PLANS.pro.entitlements;
   return PLANS[plan].entitlements;
 }
 

@@ -1,12 +1,13 @@
 import Stripe from "stripe";
 import {
   BILLING_INTERVALS,
+  PAID_PLANS,
   LIST_PRICE_CENTS,
   listPriceCents,
   type BillingInterval,
   type PaidPlanKey,
 } from "./pricing";
-import { PLAN_HIGHLIGHTS, PLAN_META } from "./plan-features";
+import { PLAN_HIGHLIGHTS, PLAN_META, type PlanKeyLike } from "./plan-features";
 
 // Stripe is optional: when STRIPE_SECRET_KEY is unset the whole billing surface
 // degrades gracefully to a "not configured" state instead of crashing.
@@ -66,22 +67,27 @@ export const PLAN_PRICES: Record<PaidPlanKey, Record<BillingInterval, PlanPriceR
       amountCents: LIST_PRICE_CENTS.pro.annual,
     },
   },
-  premium: {
-    monthly: {
-      priceId: process.env.STRIPE_PRICE_PREMIUM || process.env.STRIPE_PRICE_PREMIUM_MONTHLY,
-      lookupKey: "riff_premium_monthly",
-      amountCents: LIST_PRICE_CENTS.premium.monthly,
-    },
-    annual: {
-      priceId: process.env.STRIPE_PRICE_PREMIUM_ANNUAL,
-      lookupKey: "riff_premium_annual",
-      amountCents: LIST_PRICE_CENTS.premium.annual,
-    },
-  },
+};
+
+/**
+ * Lookup keys and price ids that used to sell Premium.
+ *
+ * Premium is no longer offered, but a renewal webhook for one of its prices
+ * could still arrive, and resolving it to "free" would silently strip someone
+ * of access. These map it back to a real plan without making it sellable.
+ */
+const RETIRED_PRICE_IDS: Record<string, PlanKey> = {
+  ...(process.env.STRIPE_PRICE_PREMIUM ? { [process.env.STRIPE_PRICE_PREMIUM]: "premium" as PlanKey } : {}),
+  ...(process.env.STRIPE_PRICE_PREMIUM_ANNUAL ? { [process.env.STRIPE_PRICE_PREMIUM_ANNUAL]: "premium" as PlanKey } : {}),
+};
+
+const RETIRED_LOOKUP_KEYS: Record<string, PlanKey> = {
+  riff_premium_monthly: "premium",
+  riff_premium_annual: "premium",
 };
 
 export const PLANS: Record<
-  PlanKey,
+  PlanKeyLike,
   { name: string; priceMonthly: number; priceId?: string; lookupKey?: string; entitlements: string[]; features: string[] }
 > = {
   free: {
@@ -104,15 +110,19 @@ export const PLANS: Record<
     entitlements: ["pro"],
     features: PLAN_HIGHLIGHTS.pro,
   },
-  premium: {
-    name: PLAN_META.premium.name,
-    priceMonthly: listPriceCents("premium", "monthly") / 100,
-    priceId: PLAN_PRICES.premium.monthly.priceId,
-    lookupKey: PLAN_PRICES.premium.monthly.lookupKey,
-    entitlements: ["pro", "premium"],
-    features: PLAN_HIGHLIGHTS.premium,
-  },
 };
+
+/**
+ * Display details for any plan a row might hold, including the retired one.
+ *
+ * `PLANS` is the sellable catalogue and has no Premium entry. Billing screens
+ * still have to render a name for a historical Premium subscription, so they
+ * read this instead of indexing PLANS with a key that is no longer there.
+ */
+export function planDisplay(plan: PlanKey): { name: string; priceMonthly: number } {
+  if (plan === "premium") return { name: "Premium (retired)", priceMonthly: 0 };
+  return { name: PLANS[plan].name, priceMonthly: PLANS[plan].priceMonthly };
+}
 
 /** The Stripe price id to charge for a plan on an interval, or undefined. */
 export function priceIdFor(plan: PaidPlanKey, interval: BillingInterval): string | undefined {
@@ -144,15 +154,14 @@ export function statusGrantsAccess(status: string | null | undefined): boolean {
  */
 export function planForPriceId(priceId: string | null | undefined): PlanKey {
   if (!priceId) return "free";
-  // Checked premium-first so a deployment that (wrongly) points two plans at
-  // one price id resolves to the higher plan rather than silently downgrading
-  // a paying Premium subscriber on their next renewal webhook.
-  for (const plan of ["premium", "pro"] as const) {
+  for (const plan of PAID_PLANS) {
     for (const interval of BILLING_INTERVALS) {
       if (priceId === priceIdFor(plan, interval)) return plan;
     }
   }
-  return "free";
+  // A retired Premium price can still renew. Resolving it to "free" would
+  // strip a historical subscriber of access on their next webhook.
+  return RETIRED_PRICE_IDS[priceId] ?? "free";
 }
 
 /**
@@ -164,7 +173,7 @@ export function planForPriceId(priceId: string | null | undefined): PlanKey {
  */
 export function intervalForPriceId(priceId: string | null | undefined): BillingInterval {
   if (!priceId) return "monthly";
-  for (const plan of PAID_PLAN_KEYS) {
+  for (const plan of PAID_PLANS) {
     for (const interval of BILLING_INTERVALS) {
       if (priceId === priceIdFor(plan, interval)) return interval;
     }
@@ -174,7 +183,6 @@ export function intervalForPriceId(priceId: string | null | undefined): BillingI
   return priceId.includes("annual") || priceId.includes("year") ? "annual" : "monthly";
 }
 
-const PAID_PLAN_KEYS: PaidPlanKey[] = ["pro", "premium"];
 
 function isPlanKey(v: unknown): v is PlanKey {
   return v === "free" || v === "pro" || v === "premium";
@@ -205,11 +213,13 @@ export function planForPrice(price: Stripe.Price | null | undefined): PlanKey {
   }
 
   if (price.lookup_key) {
-    for (const plan of ["premium", "pro"] as const) {
+    for (const plan of PAID_PLANS) {
       for (const interval of BILLING_INTERVALS) {
         if (price.lookup_key === PLAN_PRICES[plan][interval].lookupKey) return plan;
       }
     }
+    const retired = RETIRED_LOOKUP_KEYS[price.lookup_key];
+    if (retired) return retired;
   }
 
   return "free";

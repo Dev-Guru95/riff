@@ -32,7 +32,7 @@
  * and the webhook up by URL before creating anything.
  */
 import Stripe from "stripe";
-import { LIST_PRICE_CENTS, PROMO, PROMO_PRICE_CENTS } from "../src/lib/pricing";
+import { LIST_PRICE_CENTS, PROMO, PROMO_PRICE_CENTS, type PaidPlanKey } from "../src/lib/pricing";
 
 const key = process.env.STRIPE_LIVE_SETUP_KEY;
 if (!key) {
@@ -69,7 +69,7 @@ const EVENTS: Stripe.WebhookEndpointCreateParams.EnabledEvent[] = [
 ];
 
 type PriceSpec = {
-  plan: "pro" | "premium";
+  plan: PaidPlanKey;
   interval: "monthly" | "annual";
   name: string;
   amount: number;
@@ -81,9 +81,11 @@ type PriceSpec = {
 const PLANS: PriceSpec[] = [
   { plan: "pro", interval: "monthly", name: "Riff Pro", amount: LIST_PRICE_CENTS.pro.monthly, lookupKey: "riff_pro_monthly", envVar: "STRIPE_PRICE_PRO" },
   { plan: "pro", interval: "annual", name: "Riff Pro", amount: LIST_PRICE_CENTS.pro.annual, lookupKey: "riff_pro_annual", envVar: "STRIPE_PRICE_PRO_ANNUAL" },
-  { plan: "premium", interval: "monthly", name: "Riff Premium", amount: LIST_PRICE_CENTS.premium.monthly, lookupKey: "riff_premium_monthly", envVar: "STRIPE_PRICE_PREMIUM" },
-  { plan: "premium", interval: "annual", name: "Riff Premium", amount: LIST_PRICE_CENTS.premium.annual, lookupKey: "riff_premium_annual", envVar: "STRIPE_PRICE_PREMIUM_ANNUAL" },
 ];
+// Premium was withdrawn from the product. Its live prices are deliberately
+// NOT archived here: archiving a price does not end a subscription billing
+// against it, and leaving them active keeps any historical subscriber's
+// renewals working. They simply are not created or sold any more.
 
 const recurrenceFor = (interval: PriceSpec["interval"]): Stripe.PriceCreateParams.Recurring =>
   interval === "annual" ? { interval: "year" } : { interval: "month" };
@@ -200,7 +202,7 @@ async function main() {
     `\n${PROMO.name}: nothing to configure here. While the campaign is live the app creates a` +
       `\nfixed-amount Stripe coupon on the first checkout (${PROMO.percentOff}% off: Pro at $${PROMO_PRICE_CENTS.pro.monthly / 100}/mo` +
       ` / $${PROMO_PRICE_CENTS.pro.annual / 100}/yr,` +
-      `\nPremium at $${PROMO_PRICE_CENTS.premium.monthly / 100}/mo / $${PROMO_PRICE_CENTS.premium.annual / 100}/yr).`,
+      ` / $${PROMO_PRICE_CENTS.pro.annual / 100}/yr).`,
   );
   console.log("\nThe restricted setup key is no longer needed - revoke it in the Stripe dashboard.");
 }

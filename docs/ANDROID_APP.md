@@ -86,7 +86,7 @@ the app by the same backend that serves the website, with the same session.
 | `/audit` — artist audit engine | ✅ |
 | `/community`, `/community/[slug]`, `/community/thread/[id]` | ✅ |
 | `/boards`, `/boards/[id]` — full Kanban | ✅ |
-| `/studio` + 11 sub-tools (brand kit, merch, gigs, finance, fans, broadcasts, bookings, goals, link-in-bio, caption, drafts) | ✅ |
+| `/studio` + sub-tools (brand kit, finance, fans, broadcasts, bookings, goals, link-in-bio, caption, drafts) | ✅ |
 | `/pricing`, `/settings/billing` — Stripe | ✅ |
 | `/u/[handle]` — public artist profile | ✅ |
 | Notifications | ✅ + native background polling |
