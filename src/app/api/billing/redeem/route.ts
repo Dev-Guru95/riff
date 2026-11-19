@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
-import { quoteCoupon, promoPeriodEnd } from "@/lib/coupons";
+import { quoteCoupon, promoPeriodEnd, accessMonthsFor } from "@/lib/coupons";
 import { activatePromoSubscription } from "@/lib/subscriptions";
 import { getBillingSummary } from "@/lib/entitlements";
 import { parseBody, ok, fail, tooMany, withRoute } from "@/lib/api";
@@ -9,6 +9,7 @@ import { rateLimit, clientIp } from "@/lib/ratelimit";
 
 const schema = z.object({
   plan: z.enum(["pro", "premium"]),
+  interval: z.enum(["monthly", "annual"]).default("monthly"),
   code: z.string().min(1).max(64),
 });
 
@@ -37,7 +38,7 @@ export const POST = withRoute(async (req: Request) => {
   const { plan } = body.data;
 
   // Re-quoted, never trusted from the request.
-  const quoted = await quoteCoupon(session.id, body.data.code, plan);
+  const quoted = await quoteCoupon(session.id, body.data.code, plan, body.data.interval);
   if (!quoted.ok) return fail(quoted.message, quoted.status, { reason: quoted.reason });
   const quote = quoted.quote;
 
@@ -51,7 +52,9 @@ export const POST = withRoute(async (req: Request) => {
   const coupon = await prisma.coupon.findUnique({ where: { code: quote.code }, select: { id: true } });
   if (!coupon) return fail("That code isn't valid. Check it and try again.", 404, { reason: "invalid" });
 
-  const periodEnd = promoPeriodEnd(quote.durationMonths);
+  // A code that covered a whole annual price has to be worth at least that
+  // year, however the code's own duration was written. See accessMonthsFor().
+  const periodEnd = promoPeriodEnd(accessMonthsFor(quote));
   const activated = await activatePromoSubscription(session.id, plan, periodEnd, quote.code);
   if (!activated.ok) {
     return fail(

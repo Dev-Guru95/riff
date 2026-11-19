@@ -1,17 +1,73 @@
 import { prisma } from "./prisma";
-import type { PlanKey } from "./stripe";
+import { intervalForPriceId, type PlanKey } from "./stripe";
+
+/** The roadmap horizons the AI career planner can be asked for. */
+export const ROADMAP_HORIZONS = ["30d", "90d", "6m", "12m"] as const;
+export type RoadmapHorizonKey = (typeof ROADMAP_HORIZONS)[number];
+
+export type PlanEntitlements = {
+  coachMessagesPerDay: number;
+  socialConnections: number;
+  /**
+   * Access to every course track. True on every plan: Riff is the assessment
+   * half of the Skool loop (learners arrive by deep link to take a quiz), so
+   * paywalling a track would break the loop. Kept as a field because the
+   * mobile clients read it.
+   */
+  allCourses: boolean;
+  humanReview: boolean;
+  weeklyMissions: boolean;
+  /** Which career-roadmap horizons can be generated. Free is the 30-day plan. */
+  roadmapHorizons: readonly RoadmapHorizonKey[];
+  /** AI merch concept plans per day. 0 means the generator is not available. */
+  merchPlansPerDay: number;
+  /** Whether the AI can also write a week-by-week merch launch campaign. */
+  merchCampaignPlans: boolean;
+  /** Longer, more detailed AI output on the tools that generate plans. */
+  extendedAiDepth: boolean;
+};
 
 // Per-plan entitlements. Gate features against these so upgrades unlock value.
-export const ENTITLEMENTS: Record<
-  PlanKey,
-  { coachMessagesPerDay: number; socialConnections: number; allCourses: boolean; humanReview: boolean; weeklyMissions: boolean }
-> = {
-  // `weeklyMissions` exists because the Plans page has always advertised weekly
-  // missions as a Pro feature while the app let Free users complete them for XP
-  // — reviewers spotted the contradiction. Pro is the intended tier.
-  free: { coachMessagesPerDay: 5, socialConnections: 1, allCourses: false, humanReview: false, weeklyMissions: false },
-  pro: { coachMessagesPerDay: 1000, socialConnections: 6, allCourses: true, humanReview: false, weeklyMissions: true },
-  premium: { coachMessagesPerDay: 5000, socialConnections: 6, allCourses: true, humanReview: true, weeklyMissions: true },
+//
+// Every line here is enforced somewhere — a feature sold on the Plans page but
+// not checked in code is the contradiction reviewers found last time
+// (`weeklyMissions` was advertised as Pro while Free users could complete them
+// for XP). `plan-features.ts` is the copy that describes this table; the two
+// are meant to be read side by side.
+export const ENTITLEMENTS: Record<PlanKey, PlanEntitlements> = {
+  free: {
+    coachMessagesPerDay: 5,
+    socialConnections: 1,
+    allCourses: true,
+    humanReview: false,
+    weeklyMissions: false,
+    roadmapHorizons: ["30d"],
+    merchPlansPerDay: 0,
+    merchCampaignPlans: false,
+    extendedAiDepth: false,
+  },
+  pro: {
+    coachMessagesPerDay: 1000,
+    socialConnections: 6,
+    allCourses: true,
+    humanReview: false,
+    weeklyMissions: true,
+    roadmapHorizons: ROADMAP_HORIZONS,
+    merchPlansPerDay: 3,
+    merchCampaignPlans: false,
+    extendedAiDepth: false,
+  },
+  premium: {
+    coachMessagesPerDay: 5000,
+    socialConnections: 6,
+    allCourses: true,
+    humanReview: true,
+    weeklyMissions: true,
+    roadmapHorizons: ROADMAP_HORIZONS,
+    merchPlansPerDay: 12,
+    merchCampaignPlans: true,
+    extendedAiDepth: true,
+  },
 };
 
 /** The subscription fields that decide access. */
@@ -86,6 +142,8 @@ export async function getBillingSummary(userId: string) {
       ? {
           status: sub.status,
           provider: sub.provider,
+          /** monthly | annual — derived from the Stripe price that is billed. */
+          interval: intervalForPriceId(sub.stripePriceId),
           currentPeriodEnd: sub.currentPeriodEnd,
           cancelAtPeriodEnd: sub.cancelAtPeriodEnd,
           canceledAt: sub.canceledAt,
@@ -106,6 +164,45 @@ function safeParseIds(json: string): string[] {
   } catch {
     return [];
   }
+}
+
+/**
+ * How many AI merch plans this artist has left today.
+ *
+ * Counted the same way as coach messages — from the analytics events already
+ * written for every generation — so there is no second place for the number to
+ * drift out of step. Returns `limit: 0` when the plan has no access at all,
+ * which is what the upgrade prompt renders from.
+ */
+export async function merchPlanQuota(userId: string): Promise<{
+  plan: PlanKey;
+  limit: number;
+  used: number;
+  remaining: number;
+  campaigns: boolean;
+  /** Longer, more detailed AI output — the "Extended" row on the Plans page. */
+  extended: boolean;
+}> {
+  const plan = await getPlan(userId);
+  const {
+    merchPlansPerDay: limit,
+    merchCampaignPlans: campaigns,
+    extendedAiDepth: extended,
+  } = ENTITLEMENTS[plan];
+  if (limit <= 0) return { plan, limit: 0, used: 0, remaining: 0, campaigns, extended };
+
+  const since = new Date();
+  since.setHours(0, 0, 0, 0);
+  const used = await prisma.analyticsEvent.count({
+    where: { userId, type: "merch_plan", createdAt: { gte: since } },
+  });
+  return { plan, limit, used, remaining: Math.max(0, limit - used), campaigns, extended };
+}
+
+/** True when the plan may generate the given career-roadmap horizon. */
+export async function canGenerateRoadmap(userId: string, horizon: string): Promise<boolean> {
+  const { roadmapHorizons } = await getEntitlements(userId);
+  return (roadmapHorizons as readonly string[]).includes(horizon);
 }
 
 /** True when the user is still under their daily coach-message quota. */

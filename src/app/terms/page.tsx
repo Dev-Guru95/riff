@@ -1,15 +1,41 @@
 import Link from "next/link";
 import { PublicNav } from "@/components/PublicNav";
-import { PLANS } from "@/lib/stripe";
+import { BILLING_CURRENCY, PLANS } from "@/lib/stripe";
+import {
+  PROMO,
+  isPromoActive,
+  listPriceCents,
+  promoEndsAt,
+  promoHoldsFor,
+  promoPriceCents,
+  type BillingInterval,
+  type PaidPlanKey,
+} from "@/lib/pricing";
+import { formatMoney } from "@/lib/money";
 
 export const metadata = {
   title: "Terms of Use — Riff",
   description: "The agreement between you and SoundRig for using Riff: the rules, the paid plans, and what happens if they are broken.",
 };
 
+/**
+ * These terms now quote a time-limited offer, and this page has no dynamic
+ * API in it — so Next would prerender it once at build time and keep serving
+ * the launch-offer clause long after the offer had closed. Regenerating hourly
+ * keeps a legal page from advertising a price that is no longer available.
+ */
+export const revalidate = 3600;
+
 // Last substantive change to these terms. Update it whenever the content below
 // changes — reviewers and users both look for a real date.
-const LAST_UPDATED = "28 October 2026";
+const LAST_UPDATED = "19 November 2026";
+
+// Prices are read from the one pricing module, never retyped here: terms that
+// quote a stale price are worse than terms that quote none.
+const price = (plan: PaidPlanKey, interval: BillingInterval) =>
+  formatMoney(listPriceCents(plan, interval), BILLING_CURRENCY);
+const promoPrice = (plan: PaidPlanKey, interval: BillingInterval) =>
+  formatMoney(promoPriceCents(plan, interval), BILLING_CURRENCY);
 
 /**
  * Public, unauthenticated, and deliberately reachable without an account.
@@ -126,13 +152,26 @@ export default function TermsPage() {
           <ul className="text-sm text-[var(--muted)] space-y-1 list-disc pl-5">
             <li>
               <strong className="text-[var(--foreground)]">What they cost.</strong>{" "}
-              {PLANS.free.name} is free. {PLANS.pro.name} is ${PLANS.pro.priceMonthly} per month
-              and {PLANS.premium.name} is ${PLANS.premium.priceMonthly} per month, in US dollars,
-              billed monthly. Any tax due is added at checkout.
+              {PLANS.free.name} is free. {PLANS.pro.name} is {price("pro", "monthly")} per month
+              or {price("pro", "annual")} per year, and {PLANS.premium.name} is{" "}
+              {price("premium", "monthly")} per month or {price("premium", "annual")} per year — all in
+              US dollars. Any tax due is added at checkout.
             </li>
-            <li><strong className="text-[var(--foreground)]">They renew automatically.</strong> A paid plan renews every month on the same date and charges the card you gave us, until you cancel it.</li>
+            {isPromoActive() && (
+              <li>
+                <strong className="text-[var(--foreground)]">{PROMO.name}.</strong> For a limited time, new
+                subscriptions get {PROMO.percentOff}% off: {PLANS.pro.name} at {promoPrice("pro", "monthly")} per
+                month or {promoPrice("pro", "annual")} per year, and {PLANS.premium.name} at{" "}
+                {promoPrice("premium", "monthly")} per month or {promoPrice("premium", "annual")} per year. The
+                offer price holds for {promoHoldsFor("monthly")} on a monthly plan and{" "}
+                {promoHoldsFor("annual")} on an annual one; after that the standard price above applies, and we
+                will tell you before it does. The offer closes on{" "}
+                {promoEndsAt().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: "UTC" })}.
+              </li>
+            )}
+            <li><strong className="text-[var(--foreground)]">They renew automatically.</strong> A paid plan renews on the same date each month, or each year if you chose annual billing, and charges the card you gave us until you cancel it.</li>
             <li><strong className="text-[var(--foreground)]">Plans are bought and managed on the Riff website</strong>, at Settings → Billing. The mobile apps do not sell plans and cannot change them — whatever you do on the website takes effect in the app straight away.</li>
-            <li><strong className="text-[var(--foreground)]">Cancel whenever you like</strong>, from that same page. Cancelling stops the next charge; you keep the paid features until the end of the month you have already paid for. We do not refund part-months.</li>
+            <li><strong className="text-[var(--foreground)]">Cancel whenever you like</strong>, from that same page. Cancelling stops the next charge; you keep the paid features until the end of the period you have already paid for. We do not refund part-periods.</li>
             <li><strong className="text-[var(--foreground)]">14-day cooling-off.</strong> If you are a consumer in the UK or EU you may cancel within 14 days of subscribing for a full refund. Because a paid plan unlocks content immediately, starting to use it means you agree we can begin straight away and accept that your refund may be reduced in proportion to what you have used. Email <Contact /> to exercise this right.</li>
             <li><strong className="text-[var(--foreground)]">Payments are handled by Stripe.</strong> Your card details go to Stripe and never reach us.</li>
             <li><strong className="text-[var(--foreground)]">If a price changes</strong> we will tell you at least 30 days before it affects you, and you can cancel before it does.</li>

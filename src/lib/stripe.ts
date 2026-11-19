@@ -1,4 +1,12 @@
 import Stripe from "stripe";
+import {
+  BILLING_INTERVALS,
+  LIST_PRICE_CENTS,
+  listPriceCents,
+  type BillingInterval,
+  type PaidPlanKey,
+} from "./pricing";
+import { PLAN_HIGHLIGHTS, PLAN_META } from "./plan-features";
 
 // Stripe is optional: when STRIPE_SECRET_KEY is unset the whole billing surface
 // degrades gracefully to a "not configured" state instead of crashing.
@@ -34,36 +42,92 @@ export function planRank(plan: PlanKey): number {
   return PLAN_ORDER.indexOf(plan);
 }
 
+/**
+ * The Stripe price behind one plan on one interval.
+ *
+ * `priceId` comes from the environment so a deployment can point at a
+ * different set of prices without a code change; `lookupKey` is the stable
+ * fallback used to resolve a webhook when STRIPE_PRICE_* drifts out of sync
+ * with the account. Both monthly keys keep their original names so existing
+ * deployments are unaffected by the move to two intervals.
+ */
+export type PlanPriceRef = { priceId?: string; lookupKey: string; amountCents: number };
+
+export const PLAN_PRICES: Record<PaidPlanKey, Record<BillingInterval, PlanPriceRef>> = {
+  pro: {
+    monthly: {
+      priceId: process.env.STRIPE_PRICE_PRO || process.env.STRIPE_PRICE_PRO_MONTHLY,
+      lookupKey: "riff_pro_monthly",
+      amountCents: LIST_PRICE_CENTS.pro.monthly,
+    },
+    annual: {
+      priceId: process.env.STRIPE_PRICE_PRO_ANNUAL,
+      lookupKey: "riff_pro_annual",
+      amountCents: LIST_PRICE_CENTS.pro.annual,
+    },
+  },
+  premium: {
+    monthly: {
+      priceId: process.env.STRIPE_PRICE_PREMIUM || process.env.STRIPE_PRICE_PREMIUM_MONTHLY,
+      lookupKey: "riff_premium_monthly",
+      amountCents: LIST_PRICE_CENTS.premium.monthly,
+    },
+    annual: {
+      priceId: process.env.STRIPE_PRICE_PREMIUM_ANNUAL,
+      lookupKey: "riff_premium_annual",
+      amountCents: LIST_PRICE_CENTS.premium.annual,
+    },
+  },
+};
+
 export const PLANS: Record<
   PlanKey,
   { name: string; priceMonthly: number; priceId?: string; lookupKey?: string; entitlements: string[]; features: string[] }
 > = {
   free: {
-    name: "Free",
+    name: PLAN_META.free.name,
     priceMonthly: 0,
     entitlements: [],
-    features: ["First course module", "AI Coach (Skool members)", "1 social connection", "Monthly audit (1 platform)", "Community (read)"],
+    features: PLAN_HIGHLIGHTS.free,
   },
   pro: {
-    name: "Pro",
-    priceMonthly: 19,
-    priceId: process.env.STRIPE_PRICE_PRO,
-    lookupKey: "riff_pro_monthly",
+    name: PLAN_META.pro.name,
+    // Dollars, for the places that print a round price (Terms, the mobile
+    // billing payload). The authoritative figure is in minor units in
+    // `pricing.ts` — this is derived from it and never typed twice.
+    priceMonthly: listPriceCents("pro", "monthly") / 100,
+    priceId: PLAN_PRICES.pro.monthly.priceId,
+    lookupKey: PLAN_PRICES.pro.monthly.lookupKey,
     // Entitlement ids are shared with RevenueCat: the identifiers configured on
     // the RevenueCat project must match these exactly, or a mobile sign-in will
     // resolve to the wrong plan.
     entitlements: ["pro"],
-    features: ["All courses", "Unlimited coach", "All socials audited", "Weekly missions", "Full roadmap", "Leaderboard rewards"],
+    features: PLAN_HIGHLIGHTS.pro,
   },
   premium: {
-    name: "Premium",
-    priceMonthly: 39,
-    priceId: process.env.STRIPE_PRICE_PREMIUM,
-    lookupKey: "riff_premium_monthly",
+    name: PLAN_META.premium.name,
+    priceMonthly: listPriceCents("premium", "monthly") / 100,
+    priceId: PLAN_PRICES.premium.monthly.priceId,
+    lookupKey: PLAN_PRICES.premium.monthly.lookupKey,
     entitlements: ["pro", "premium"],
-    features: ["Everything in Pro", "Priority human-reviewed assignments", "Deeper audits", "1:1 roadmap reviews", "Accountability groups", "Early content"],
+    features: PLAN_HIGHLIGHTS.premium,
   },
 };
+
+/** The Stripe price id to charge for a plan on an interval, or undefined. */
+export function priceIdFor(plan: PaidPlanKey, interval: BillingInterval): string | undefined {
+  return PLAN_PRICES[plan][interval].priceId;
+}
+
+/** Which intervals this deployment can actually sell (a price id is configured). */
+export function sellableIntervals(plan: PaidPlanKey): BillingInterval[] {
+  return BILLING_INTERVALS.filter((i) => !!priceIdFor(plan, i));
+}
+
+/** True when at least one interval of a paid plan can be bought. */
+export function canSell(plan: PaidPlanKey): boolean {
+  return sellableIntervals(plan).length > 0;
+}
 
 /** Statuses Stripe reports that still mean "this person has paid for access". */
 const ENTITLING_STATUSES = new Set(["active", "trialing"]);
@@ -79,10 +143,38 @@ export function statusGrantsAccess(status: string | null | undefined): boolean {
  * different set of prices without a code change.
  */
 export function planForPriceId(priceId: string | null | undefined): PlanKey {
-  if (priceId && priceId === PLANS.premium.priceId) return "premium";
-  if (priceId && priceId === PLANS.pro.priceId) return "pro";
+  if (!priceId) return "free";
+  // Checked premium-first so a deployment that (wrongly) points two plans at
+  // one price id resolves to the higher plan rather than silently downgrading
+  // a paying Premium subscriber on their next renewal webhook.
+  for (const plan of ["premium", "pro"] as const) {
+    for (const interval of BILLING_INTERVALS) {
+      if (priceId === priceIdFor(plan, interval)) return plan;
+    }
+  }
   return "free";
 }
+
+/**
+ * Which billing interval a Stripe price id belongs to.
+ *
+ * Nothing about access depends on this — it is what lets the billing screens
+ * say "renews yearly" instead of guessing. Unknown ids fall back to monthly,
+ * which is what every subscription sold before annual existed is.
+ */
+export function intervalForPriceId(priceId: string | null | undefined): BillingInterval {
+  if (!priceId) return "monthly";
+  for (const plan of PAID_PLAN_KEYS) {
+    for (const interval of BILLING_INTERVALS) {
+      if (priceId === priceIdFor(plan, interval)) return interval;
+    }
+  }
+  // A price created by hand in the dashboard: fall back to the lookup-key
+  // naming convention before giving up.
+  return priceId.includes("annual") || priceId.includes("year") ? "annual" : "monthly";
+}
+
+const PAID_PLAN_KEYS: PaidPlanKey[] = ["pro", "premium"];
 
 function isPlanKey(v: unknown): v is PlanKey {
   return v === "free" || v === "pro" || v === "premium";
@@ -112,10 +204,25 @@ export function planForPrice(price: Stripe.Price | null | undefined): PlanKey {
     if (isPlanKey(fromProduct)) return fromProduct;
   }
 
-  if (price.lookup_key === PLANS.premium.lookupKey) return "premium";
-  if (price.lookup_key === PLANS.pro.lookupKey) return "pro";
+  if (price.lookup_key) {
+    for (const plan of ["premium", "pro"] as const) {
+      for (const interval of BILLING_INTERVALS) {
+        if (price.lookup_key === PLAN_PRICES[plan][interval].lookupKey) return plan;
+      }
+    }
+  }
 
   return "free";
+}
+
+/** The billing interval of a whole Stripe price object. */
+export function intervalForPrice(price: Stripe.Price | null | undefined): BillingInterval {
+  if (!price) return "monthly";
+  // Stripe itself knows the recurrence — trust it before our own naming.
+  const recurring = price.recurring;
+  if (recurring?.interval === "year") return "annual";
+  if (recurring?.interval === "month") return recurring.interval_count >= 12 ? "annual" : "monthly";
+  return intervalForPriceId(price.id);
 }
 
 /** The plan a Stripe subscription grants, or "free" when it no longer grants one. */

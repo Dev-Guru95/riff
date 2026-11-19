@@ -1,88 +1,62 @@
 import { requirePageSession } from "@/lib/auth";
 import { getPlan } from "@/lib/entitlements";
-import { isStripeConfigured, PLANS, planRank } from "@/lib/stripe";
-import { UpgradeButton } from "./PricingClient";
-import Link from "next/link";
+import { isStripeConfigured, BILLING_CURRENCY, sellableIntervals } from "@/lib/stripe";
+import {
+  PROMO,
+  isPromoActive,
+  planPrices,
+  promoDaysLeft,
+  promoEndsAt,
+  type PaidPlanKey,
+} from "@/lib/pricing";
+import { FEATURE_GROUPS, PLAN_HIGHLIGHTS, PLAN_META, PREMIUM_DIFFERENCE, type PlanKeyLike } from "@/lib/plan-features";
+import { PlansClient, type PlanCard } from "./PlansClient";
+
+export const metadata = { title: "Plans — Riff" };
+
+const ORDER: PlanKeyLike[] = ["free", "pro", "premium"];
 
 export default async function PricingPage() {
   const session = await requirePageSession();
   const currentPlan = await getPlan(session.id);
-  const configured = isStripeConfigured();
 
-  const order: ("free" | "pro" | "premium")[] = ["free", "pro", "premium"];
+  // Resolved once, here, on the server: whether the launch offer is live, what
+  // every plan costs on both intervals, and which intervals this deployment
+  // can actually sell. The client renders those numbers and never recomputes
+  // them, so there is no window in which the page shows a promotional price
+  // the checkout endpoint would refuse to honour.
+  const now = new Date();
+  const plans: PlanCard[] = ORDER.map((key) => ({
+    key,
+    name: PLAN_META[key].name,
+    tagline: PLAN_META[key].tagline,
+    audience: PLAN_META[key].audience,
+    highlights: PLAN_HIGHLIGHTS[key],
+    prices: key === "free" ? null : planPrices(key as PaidPlanKey, now),
+    sellable: key === "free" ? [] : sellableIntervals(key as PaidPlanKey),
+  }));
 
   return (
-    <main className="max-w-4xl mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold mb-1">Plans</h1>
-      <p className="text-sm text-[var(--muted)] mb-6">Upgrade to unlock all courses, unlimited coaching, and full audits.</p>
-
-      {/* Setup details (which Stripe env vars are missing) belong in the server
-          log, not in front of artists. */}
-      {!configured && (
-        <div className="card p-4 mb-6">
-          <p className="text-sm">
-            💳 <strong>Upgrades are opening soon.</strong> Paid plans aren&apos;t available to purchase just yet —
-            keep learning on Free and we&apos;ll let you know the moment they go live.
-          </p>
-        </div>
-      )}
-
-      <div className="grid sm:grid-cols-3 gap-4">
-        {order.map((key) => {
-          const p = PLANS[key];
-          const isCurrent = currentPlan === key;
-          const highlight = key === "pro";
-          return (
-            <div key={key} className={`card p-6 flex flex-col ${highlight ? "border-[var(--brand)]" : ""}`}>
-              {highlight && <div className="text-xs text-[var(--brand)] font-semibold mb-1">MOST POPULAR</div>}
-              <h2 className="text-lg font-bold">{p.name}</h2>
-              <div className="text-3xl font-extrabold my-2">
-                ${p.priceMonthly}
-                <span className="text-sm font-normal text-[var(--muted)]">/mo</span>
-              </div>
-              <ul className="space-y-1.5 text-sm my-4 flex-1">
-                {p.features.map((f) => (
-                  <li key={f} className="flex gap-2"><span className="text-[var(--success)]">✓</span>{f}</li>
-                ))}
-              </ul>
-              {isCurrent ? (
-                <span className="btn btn-ghost w-full pointer-events-none opacity-70">Current plan</span>
-              ) : key === "free" ? (
-                // Downgrading to Free means cancelling, which happens in the
-                // Stripe customer portal so the cancellation terms are shown.
-                currentPlan === "free" ? (
-                  <span className="btn btn-ghost w-full pointer-events-none opacity-50">Free</span>
-                ) : (
-                  <Link href="/settings/billing" className="btn btn-ghost w-full">Manage plan</Link>
-                )
-              ) : (
-                <UpgradeButton
-                  plan={key}
-                  disabled={!configured}
-                  label={
-                    currentPlan === "free"
-                      ? `Upgrade to ${key}`
-                      : planRank(key) > planRank(currentPlan)
-                        ? `Upgrade to ${key}`
-                        : `Switch to ${key}`
-                  }
-                />
-              )}
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Price, billing period and cancellation route have to be visible where
-          plans are sold, with Terms and Privacy linked (App Store 3.1.2, and
-          Google Play's subscriptions policy). */}
-      <p className="text-xs text-[var(--muted)] text-center mt-6 max-w-xl mx-auto">
-        Paid plans are billed monthly in US dollars and renew automatically until you cancel.
-        Cancel any time from Settings → Billing; you keep your plan until the end of the month you
-        have paid for. See our{" "}
-        <Link href="/terms" className="text-[var(--accent)] underline">Terms of Use</Link> and{" "}
-        <Link href="/privacy" className="text-[var(--accent)] underline">Privacy Policy</Link>.
-      </p>
-    </main>
+    <PlansClient
+      plans={plans}
+      groups={FEATURE_GROUPS}
+      promo={{
+        active: isPromoActive(now),
+        name: PROMO.name,
+        badge: PROMO.badge,
+        tagline: PROMO.tagline,
+        // Formatted on the server so the markup it hydrates into matches.
+        endsAtLabel: promoEndsAt().toLocaleDateString("en-US", {
+          month: "long",
+          day: "numeric",
+          timeZone: "UTC",
+        }),
+        daysLeft: promoDaysLeft(now),
+      }}
+      currentPlan={currentPlan}
+      currency={BILLING_CURRENCY}
+      configured={isStripeConfigured()}
+      premiumDifference={PREMIUM_DIFFERENCE}
+    />
   );
 }

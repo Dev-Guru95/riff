@@ -36,7 +36,7 @@ in the production environment.
 | --- | --- | --- |
 | `STRIPE_SECRET_KEY` | `sk_test_…` | `sk_live_…` |
 | `STRIPE_WEBHOOK_SECRET` | test endpoint's `whsec_…` | **live endpoint's own** `whsec_…` |
-| `STRIPE_PRICE_PRO` / `_PREMIUM` | test price ids | live price ids |
+| `STRIPE_PRICE_{PRO,PREMIUM}` / `_ANNUAL` | test price ids | live price ids |
 | `REVENUECAT_STRIPE_PUBLIC_API_KEY` | `strp_sb_…` (sandbox) | `strp_…` (live config) |
 | `REVENUECAT_SECRET_API_KEY` | `sk_…` | same or a separate key |
 | `REVENUECAT_WEBHOOK_AUTHORIZATION` | shared secret | same value set in RevenueCat |

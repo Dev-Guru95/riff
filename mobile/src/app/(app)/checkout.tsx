@@ -136,8 +136,17 @@ export default function Checkout() {
               <View>
                 <Text variant="title">Checkout</Text>
                 <Text variant="small" style={{ marginTop: 4 }}>
-                  {info?.name ?? plan} — monthly. Have a code? Apply it below.
+                  {info?.name ?? plan} — {money(info?.priceCents ?? 0)} a month. Have a code? Apply it below.
                 </Text>
+                {/* The offer is shown, not sold: annual billing and the
+                    discounted rate are bought on the website, which is the
+                    only place that takes payment at all. */}
+                {d.promo ? (
+                  <Text variant="small" color={colors.accent} style={{ marginTop: 6 }}>
+                    {d.promo.badge} · {d.promo.name} — {d.promo.percentOff}% off every plan, monthly or annual, on
+                    the Riff website until {new Date(d.promo.endsAt).toLocaleDateString()}.
+                  </Text>
+                ) : null}
               </View>
 
               {/* Discount code */}
@@ -153,7 +162,9 @@ export default function Checkout() {
                     setQuote(null);
                     setCodeError(null);
                   }}
-                  placeholder="e.g. RIFF100"
+                  // Never a code-shaped example: "e.g. RIFF100" read as a real
+                  // code and got typed in verbatim.
+                  placeholder="Enter your code"
                   autoCapitalize="characters"
                   autoCorrect={false}
                   maxLength={64}

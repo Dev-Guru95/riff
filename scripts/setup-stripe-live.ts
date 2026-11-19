@@ -1,8 +1,25 @@
 /**
  * One-shot live-mode Stripe setup for Riff billing.
  *
- * Creates (or re-uses) the Pro and Premium products, their monthly prices, and
- * the webhook endpoint, then prints the production environment block.
+ * Creates (or re-uses) the Pro and Premium products, their monthly *and
+ * annual* prices, and the webhook endpoint, then prints the production
+ * environment block.
+ *
+ * Amounts come from `src/lib/pricing.ts` — the same module the pricing page
+ * and the checkout endpoint read — so Stripe cannot be configured with a
+ * figure the app does not advertise.
+ *
+ * Stripe prices are immutable, so a price change means a *new* price object.
+ * When the amount behind a lookup key has changed this script creates the new
+ * price and transfers the lookup key to it, and deliberately leaves the old
+ * price active: subscriptions already billing against it keep their original
+ * amount, which is exactly what should happen to someone who subscribed at the
+ * old price. New checkouts use the ids printed at the end.
+ *
+ * The BFCM launch-offer discount is NOT created here. It is a Stripe coupon
+ * made on first use by `ensureCampaignCoupon()` in src/lib/coupons.ts, priced
+ * as a fixed amount off so the charge equals the advertised offer price to the
+ * cent. There is nothing to configure by hand for it.
  *
  * Run it with a *restricted* live key that can only write Products, Prices and
  * Webhook Endpoints — never the account's full secret key, and never from a
@@ -15,6 +32,7 @@
  * and the webhook up by URL before creating anything.
  */
 import Stripe from "stripe";
+import { LIST_PRICE_CENTS, PROMO, PROMO_PRICE_CENTS } from "../src/lib/pricing";
 
 const key = process.env.STRIPE_LIVE_SETUP_KEY;
 if (!key) {
@@ -50,34 +68,83 @@ const EVENTS: Stripe.WebhookEndpointCreateParams.EnabledEvent[] = [
   "charge.refunded",
 ];
 
-const PLANS = [
-  { plan: "pro", name: "Riff Pro", amount: 1900, lookupKey: "riff_pro_monthly" },
-  { plan: "premium", name: "Riff Premium", amount: 3900, lookupKey: "riff_premium_monthly" },
-] as const;
+type PriceSpec = {
+  plan: "pro" | "premium";
+  interval: "monthly" | "annual";
+  name: string;
+  amount: number;
+  lookupKey: string;
+  /** The env var the printed id belongs in. */
+  envVar: string;
+};
 
-async function ensurePrice(spec: (typeof PLANS)[number]): Promise<string> {
-  // Lookup keys are unique per mode, so this is the reliable idempotency handle.
-  const existing = await stripe.prices.list({ lookup_keys: [spec.lookupKey], active: true, limit: 1 });
-  if (existing.data[0]) {
-    console.log(`  = ${spec.plan}: reusing existing price ${existing.data[0].id}`);
-    return existing.data[0].id;
-  }
+const PLANS: PriceSpec[] = [
+  { plan: "pro", interval: "monthly", name: "Riff Pro", amount: LIST_PRICE_CENTS.pro.monthly, lookupKey: "riff_pro_monthly", envVar: "STRIPE_PRICE_PRO" },
+  { plan: "pro", interval: "annual", name: "Riff Pro", amount: LIST_PRICE_CENTS.pro.annual, lookupKey: "riff_pro_annual", envVar: "STRIPE_PRICE_PRO_ANNUAL" },
+  { plan: "premium", interval: "monthly", name: "Riff Premium", amount: LIST_PRICE_CENTS.premium.monthly, lookupKey: "riff_premium_monthly", envVar: "STRIPE_PRICE_PREMIUM" },
+  { plan: "premium", interval: "annual", name: "Riff Premium", amount: LIST_PRICE_CENTS.premium.annual, lookupKey: "riff_premium_annual", envVar: "STRIPE_PRICE_PREMIUM_ANNUAL" },
+];
+
+const recurrenceFor = (interval: PriceSpec["interval"]): Stripe.PriceCreateParams.Recurring =>
+  interval === "annual" ? { interval: "year" } : { interval: "month" };
+
+/**
+ * Find the product for a plan, so both of its prices hang off one product
+ * rather than creating "Riff Pro" twice. Matched on the `plan` metadata this
+ * script has always written.
+ */
+async function ensureProduct(spec: PriceSpec): Promise<string> {
+  const search = await stripe.products.search({
+    query: `active:'true' AND metadata['plan']:'${spec.plan}' AND metadata['app']:'riff'`,
+    limit: 1,
+  });
+  if (search.data[0]) return search.data[0].id;
 
   const product = await stripe.products.create({
     name: spec.name,
-    description: `${spec.name} plan - monthly subscription`,
+    description: `${spec.name} plan`,
+    // `plan` is the metadata `planForPrice()` falls back to when an env price
+    // id has drifted — it is what keeps an old subscription resolvable.
     metadata: { plan: spec.plan, app: "riff" },
   });
+  console.log(`  + ${spec.plan}: product ${product.id}`);
+  return product.id;
+}
+
+async function ensurePrice(spec: PriceSpec): Promise<string> {
+  const per = spec.interval === "annual" ? "yr" : "mo";
+  // Lookup keys are unique per mode, so this is the reliable idempotency handle.
+  const existing = await stripe.prices.list({ lookup_keys: [spec.lookupKey], active: true, limit: 1 });
+  const found = existing.data[0];
+
+  if (found && found.unit_amount === spec.amount) {
+    console.log(`  = ${spec.plan} ${spec.interval}: reusing price ${found.id} ($${spec.amount / 100}/${per})`);
+    return found.id;
+  }
+
+  const productId = found?.product && typeof found.product === "string" ? found.product : await ensureProduct(spec);
+
   const price = await stripe.prices.create({
-    product: product.id,
+    product: productId,
     unit_amount: spec.amount,
     currency: "usd",
-    recurring: { interval: "month" },
+    recurring: recurrenceFor(spec.interval),
     lookup_key: spec.lookupKey,
-    metadata: { plan: spec.plan },
+    // Transferring the key off the old price is what makes this re-runnable
+    // after a price change; without it Stripe refuses the duplicate key.
+    ...(found ? { transfer_lookup_key: true } : {}),
+    metadata: { plan: spec.plan, interval: spec.interval },
   });
-  await stripe.products.update(product.id, { default_price: price.id });
-  console.log(`  + ${spec.plan}: product ${product.id}, price ${price.id} ($${spec.amount / 100}/mo)`);
+
+  if (found) {
+    console.log(
+      `  ~ ${spec.plan} ${spec.interval}: $${(found.unit_amount ?? 0) / 100} -> $${spec.amount / 100}/${per}` +
+        ` (new price ${price.id}; ${found.id} left active so existing subscribers keep their price)`,
+    );
+  } else {
+    console.log(`  + ${spec.plan} ${spec.interval}: price ${price.id} ($${spec.amount / 100}/${per})`);
+    if (spec.interval === "monthly") await stripe.products.update(productId, { default_price: price.id });
+  }
   return price.id;
 }
 
@@ -112,7 +179,7 @@ async function main() {
 
   console.log("Products and prices:");
   const priceIds: Record<string, string> = {};
-  for (const spec of PLANS) priceIds[spec.plan] = await ensurePrice(spec);
+  for (const spec of PLANS) priceIds[spec.envVar] = await ensurePrice(spec);
 
   console.log("\nWebhook:");
   const secret = await ensureWebhook();
@@ -121,8 +188,7 @@ async function main() {
   console.log("Production environment variables");
   console.log("=".repeat(68));
   console.log(`APP_URL="${APP_ORIGIN}"`);
-  console.log(`STRIPE_PRICE_PRO="${priceIds.pro}"`);
-  console.log(`STRIPE_PRICE_PREMIUM="${priceIds.premium}"`);
+  for (const spec of PLANS) console.log(`${spec.envVar}="${priceIds[spec.envVar]}"`);
   if (secret) {
     console.log(`STRIPE_WEBHOOK_SECRET="${secret}"`);
   } else {
@@ -130,6 +196,12 @@ async function main() {
   }
   console.log(`STRIPE_SECRET_KEY="<create a full live secret key in the dashboard - do NOT reuse the restricted setup key>"`);
   console.log("=".repeat(68));
+  console.log(
+    `\n${PROMO.name}: nothing to configure here. While the campaign is live the app creates a` +
+      `\nfixed-amount Stripe coupon on the first checkout (${PROMO.percentOff}% off: Pro at $${PROMO_PRICE_CENTS.pro.monthly / 100}/mo` +
+      ` / $${PROMO_PRICE_CENTS.pro.annual / 100}/yr,` +
+      `\nPremium at $${PROMO_PRICE_CENTS.premium.monthly / 100}/mo / $${PROMO_PRICE_CENTS.premium.annual / 100}/yr).`,
+  );
   console.log("\nThe restricted setup key is no longer needed - revoke it in the Stripe dashboard.");
 }
 

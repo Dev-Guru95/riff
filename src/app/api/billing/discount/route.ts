@@ -1,11 +1,12 @@
 import { z } from "zod";
 import { getSession } from "@/lib/auth";
-import { quoteCoupon } from "@/lib/coupons";
+import { quoteCoupon, campaignDiscount } from "@/lib/coupons";
 import { parseBody, ok, fail, tooMany, withRoute } from "@/lib/api";
 import { rateLimit, clientIp } from "@/lib/ratelimit";
 
 const schema = z.object({
   plan: z.enum(["pro", "premium"]),
+  interval: z.enum(["monthly", "annual"]).default("monthly"),
   code: z.string().min(1).max(64),
 });
 
@@ -33,8 +34,21 @@ export const POST = withRoute(async (req: Request) => {
   const body = await parseBody(req, schema);
   if (body.error) return body.error;
 
-  const result = await quoteCoupon(session.id, body.data.code, body.data.plan);
+  const { plan, interval } = body.data;
+  const result = await quoteCoupon(session.id, body.data.code, plan, interval);
   if (!result.ok) return fail(result.message, result.status, { reason: result.reason });
 
-  return ok({ discount: result.quote });
+  // The BFCM launch offer and a code do not stack: checkout applies whichever
+  // is worth more (see /api/billing/checkout). Returning the comparison means
+  // the UI can say so *before* the artist pays, rather than leaving them to
+  // wonder why their code seemingly did nothing.
+  const campaign = campaignDiscount(plan, interval);
+  const campaignWins = !!campaign && !result.quote.free && campaign.discountCents > result.quote.discountCents;
+
+  return ok({
+    discount: result.quote,
+    campaign,
+    /** True when the launch offer beats this code, so the offer is what gets applied. */
+    campaignWins,
+  });
 });

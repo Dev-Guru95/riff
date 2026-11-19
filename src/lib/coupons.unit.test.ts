@@ -1,6 +1,24 @@
 import { describe, it, expect } from "vitest";
-import { discountFor, evaluateCoupon, normalizeCode, promoPeriodEnd, type CouponRules } from "./coupons";
+import {
+  accessMonthsFor,
+  campaignDiscount,
+  discountFor,
+  evaluateCoupon,
+  normalizeCode,
+  planPriceCents,
+  promoPeriodEnd,
+  type CouponRules,
+  type DiscountQuote,
+} from "./coupons";
 import { formatMoney } from "./money";
+import { listPriceCents, promoDiscountCents } from "./pricing";
+
+// Prices are read from the pricing module rather than typed in, so a price
+// change does not need these tests edited — only `pricing.unit.test.ts`, which
+// is where the published prices are actually asserted.
+const PRO_MONTHLY = listPriceCents("pro", "monthly");
+const PRO_ANNUAL = listPriceCents("pro", "annual");
+const PREMIUM_MONTHLY = listPriceCents("premium", "monthly");
 
 // The arithmetic behind a discount code, isolated from the database. These are
 // the rules a client must never be able to influence: it sends a code, and
@@ -99,8 +117,8 @@ describe("evaluateCoupon", () => {
     const res = evaluateCoupon(base, ctx);
     expect(res.ok).toBe(true);
     if (!res.ok) return;
-    expect(res.quote.originalCents).toBe(1900);
-    expect(res.quote.discountCents).toBe(1900);
+    expect(res.quote.originalCents).toBe(PRO_MONTHLY);
+    expect(res.quote.discountCents).toBe(PRO_MONTHLY);
     expect(res.quote.finalCents).toBe(0);
     expect(res.quote.free).toBe(true);
   });
@@ -109,15 +127,17 @@ describe("evaluateCoupon", () => {
     const res = evaluateCoupon({ ...base, value: 50 }, ctx);
     expect(res.ok).toBe(true);
     if (!res.ok) return;
-    expect(res.quote.finalCents).toBe(950);
+    // The *discount* is what gets rounded, so a half-cent lands in the
+    // artist's favour: $29.99 less a rounded $15.00 is $14.99 payable.
+    expect(res.quote.finalCents).toBe(PRO_MONTHLY - Math.round(PRO_MONTHLY / 2));
     expect(res.quote.free).toBe(false);
   });
 
   it("prices each plan from the server's own list price", () => {
     const pro = evaluateCoupon({ ...base, value: 10 }, ctx);
     const premium = evaluateCoupon({ ...base, value: 10 }, { ...ctx, plan: "premium" });
-    expect(pro.ok && pro.quote.originalCents).toBe(1900);
-    expect(premium.ok && premium.quote.originalCents).toBe(3900);
+    expect(pro.ok && pro.quote.originalCents).toBe(PRO_MONTHLY);
+    expect(premium.ok && premium.quote.originalCents).toBe(PREMIUM_MONTHLY);
   });
 
   it("refuses an unknown, inactive, expired or exhausted code", () => {
@@ -151,5 +171,106 @@ describe("evaluateCoupon", () => {
     const coupon = { ...base, expiresAt: at };
     expect(evaluateCoupon(coupon, { ...ctx, now: new Date(at.getTime() - 1) }).ok).toBe(true);
     expect(evaluateCoupon(coupon, { ...ctx, now: at }).ok).toBe(false);
+  });
+});
+
+// ───────── Billing interval ─────────
+// A code has to be quoted against the price the artist is actually buying.
+// Quoting an annual purchase at the monthly price is how a 50%-off code ends
+// up taking $15 off a $299.99 subscription.
+
+describe("quoting a code against a billing interval", () => {
+  const base: CouponRules = {
+    code: "HALF",
+    type: "percent",
+    value: 50,
+    description: "Half off",
+    active: true,
+    expiresAt: null,
+    maxRedemptions: 0,
+    redeemed: 0,
+    plans: "",
+    durationMonths: 1,
+  };
+
+  it("defaults to the monthly price when no interval is given", () => {
+    const res = evaluateCoupon(base, { plan: "pro", alreadyRedeemed: false });
+    expect(res.ok && res.quote.originalCents).toBe(PRO_MONTHLY);
+    expect(res.ok && res.quote.interval).toBe("monthly");
+  });
+
+  it("prices an annual purchase from the annual price", () => {
+    const res = evaluateCoupon(base, { plan: "pro", interval: "annual", alreadyRedeemed: false });
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+    expect(res.quote.originalCents).toBe(PRO_ANNUAL);
+    expect(res.quote.discountCents).toBe(Math.round(PRO_ANNUAL / 2));
+    expect(res.quote.interval).toBe("annual");
+  });
+
+  it("still takes a 100% code to zero on either interval", () => {
+    for (const interval of ["monthly", "annual"] as const) {
+      const res = evaluateCoupon({ ...base, value: 100 }, { plan: "premium", interval, alreadyRedeemed: false });
+      expect(res.ok && res.quote.finalCents).toBe(0);
+      expect(res.ok && res.quote.free).toBe(true);
+    }
+  });
+
+  it("exposes the list price, not the promotional price", () => {
+    // Codes and the launch offer are alternatives, and checkout picks the
+    // better one — which is only comparable from a common starting price.
+    expect(planPriceCents("pro", "monthly")).toBe(PRO_MONTHLY);
+    expect(planPriceCents("pro", "annual")).toBe(PRO_ANNUAL);
+    expect(planPriceCents("free")).toBe(0);
+  });
+});
+
+describe("accessMonthsFor", () => {
+  const quote = (interval: "monthly" | "annual", durationMonths: number) =>
+    ({ interval, durationMonths } as DiscountQuote);
+
+  it("uses the code's own duration on a monthly plan", () => {
+    expect(accessMonthsFor(quote("monthly", 1))).toBe(1);
+    expect(accessMonthsFor(quote("monthly", 3))).toBe(3);
+  });
+
+  it("gives a free annual plan at least the year it covered", () => {
+    // A one-month code that covered a whole $299.99 year must not hand over
+    // one month of access.
+    expect(accessMonthsFor(quote("annual", 1))).toBe(12);
+    expect(accessMonthsFor(quote("annual", 18))).toBe(18);
+  });
+
+  it("keeps an unlimited code unlimited", () => {
+    expect(accessMonthsFor(quote("annual", 0))).toBe(0);
+    expect(accessMonthsFor(quote("monthly", 0))).toBe(0);
+  });
+});
+
+// ───────── The BFCM launch offer ─────────
+
+describe("campaignDiscount", () => {
+  const DURING = new Date("2026-11-27T12:00:00.000Z");
+  const AFTER = new Date("2026-12-10T12:00:00.000Z");
+
+  it("offers nothing outside the campaign window", () => {
+    expect(campaignDiscount("pro", "monthly", AFTER)).toBeNull();
+    expect(campaignDiscount("premium", "annual", AFTER)).toBeNull();
+  });
+
+  it("prices the offer from the pricing module, to the cent", () => {
+    const d = campaignDiscount("pro", "annual", DURING);
+    expect(d).not.toBeNull();
+    if (!d) return;
+    expect(d.originalCents).toBe(PRO_ANNUAL);
+    expect(d.discountCents).toBe(promoDiscountCents("pro", "annual"));
+    // The figure Stripe is charged must equal the advertised price exactly.
+    expect(d.finalCents).toBe(PRO_ANNUAL - promoDiscountCents("pro", "annual"));
+    expect(d.percentOff).toBe(50);
+  });
+
+  it("says how long the offer price holds, per interval", () => {
+    expect(campaignDiscount("pro", "annual", DURING)?.holdsFor).toBe("your first year");
+    expect(campaignDiscount("pro", "monthly", DURING)?.holdsFor).toContain("months");
   });
 });

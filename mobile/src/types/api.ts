@@ -540,6 +540,20 @@ export type AuditResponse = {
 
 // ───────────────────────── GET /api/mobile/billing ─────────────────────────
 
+/** One plan on one billing interval, priced by the server. */
+export type PlanIntervalPrice = {
+  /** The undiscounted price in minor units. */
+  listCents: number;
+  /** What a new subscriber pays today — the promotional price while an offer runs. */
+  payCents: number;
+  /** True when `payCents` is a promotional price. */
+  promo: boolean;
+  /** payCents expressed per month, so annual can be shown as "$x/mo". */
+  perMonthCents: number;
+  /** What annual saves against twelve monthly charges, in minor units. */
+  annualSavingCents: number;
+};
+
 export type PlanInfo = {
   key: PlanKey;
   name: string;
@@ -548,6 +562,18 @@ export type PlanInfo = {
   /** The same price in minor units — what the checkout summary does maths on. */
   priceCents: number;
   features: string[];
+  /** Both billing intervals. Absent on the free plan. */
+  prices?: { monthly: PlanIntervalPrice; annual: PlanIntervalPrice };
+};
+
+/** A running promotional campaign, or null. Display only — the app sells nothing. */
+export type PromoInfo = {
+  id: string;
+  name: string;
+  badge: string;
+  percentOff: number;
+  /** ISO instant the offer closes. */
+  endsAt: ISODate;
 };
 
 /**
@@ -613,6 +639,8 @@ export type BillingResponse = {
   currency: string;
   /** Whether discount codes can be applied at all (there is a coupon table). */
   discountsEnabled: boolean;
+  /** The running launch offer, or null. The app shows it; the website sells it. */
+  promo: PromoInfo | null;
   entitlements: {
     plan: PlanKey;
     coachMessagesPerDay: number;

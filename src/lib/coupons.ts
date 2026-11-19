@@ -1,5 +1,14 @@
 import { prisma } from "./prisma";
 import { BILLING_CURRENCY, PLANS, type PlanKey } from "./stripe";
+import {
+  PROMO,
+  isPromoActive,
+  listPriceCents,
+  promoDiscountCents,
+  promoHoldsFor,
+  type BillingInterval,
+  type PaidPlanKey,
+} from "./pricing";
 
 /**
  * Discount codes, priced.
@@ -29,6 +38,8 @@ export type DiscountQuote = {
   value: number;
   plan: PlanKey;
   planName: string;
+  /** Which price the code was quoted against. Monthly unless asked otherwise. */
+  interval: BillingInterval;
   currency: string;
   /** The plan's list price, in minor units. */
   originalCents: number;
@@ -75,9 +86,17 @@ export function normalizeCode(code: string): string {
   return code.trim().toUpperCase();
 }
 
-/** The price a plan is listed at, in minor units (integer — never float cents). */
-export function planPriceCents(plan: PlanKey): number {
-  return Math.round(PLANS[plan].priceMonthly * 100);
+/**
+ * The price a plan is listed at, in minor units (integer — never float cents).
+ *
+ * Codes are always quoted against the *list* price, never against the BFCM
+ * price. The launch offer and a discount code are alternatives, not layers:
+ * the checkout endpoint applies whichever is worth more to the artist, which
+ * is only comparable if both are measured from the same starting figure.
+ */
+export function planPriceCents(plan: PlanKey, interval: BillingInterval = "monthly"): number {
+  if (plan === "free") return 0;
+  return listPriceCents(plan, interval);
 }
 
 /** The coupon fields that decide a quote. A subset of the Prisma row. */
@@ -103,10 +122,11 @@ export type CouponRules = {
  */
 export function evaluateCoupon(
   coupon: CouponRules | null,
-  opts: { plan: PlanKey; alreadyRedeemed: boolean; now?: Date },
+  opts: { plan: PlanKey; interval?: BillingInterval; alreadyRedeemed: boolean; now?: Date },
 ): QuoteResult {
   const now = opts.now ?? new Date();
   const plan = opts.plan;
+  const interval: BillingInterval = opts.interval ?? "monthly";
 
   if (!coupon) return refuse("invalid");
   if (!coupon.active) return refuse("inactive");
@@ -123,7 +143,7 @@ export function evaluateCoupon(
 
   if (opts.alreadyRedeemed) return refuse("already_used");
 
-  const originalCents = planPriceCents(plan);
+  const originalCents = planPriceCents(plan, interval);
   const discountCents = discountFor(coupon.type, coupon.value, originalCents);
   const finalCents = Math.max(0, originalCents - discountCents);
 
@@ -136,6 +156,7 @@ export function evaluateCoupon(
       value: coupon.value,
       plan,
       planName: PLANS[plan].name,
+      interval,
       currency: BILLING_CURRENCY,
       originalCents,
       discountCents,
@@ -150,7 +171,12 @@ export function evaluateCoupon(
  * Work out what `code` does to `plan` for this artist — without changing
  * anything. Safe to call on every keystroke of an Apply button.
  */
-export async function quoteCoupon(userId: string, rawCode: string, plan: PlanKey): Promise<QuoteResult> {
+export async function quoteCoupon(
+  userId: string,
+  rawCode: string,
+  plan: PlanKey,
+  interval: BillingInterval = "monthly",
+): Promise<QuoteResult> {
   const code = normalizeCode(rawCode);
   if (!code) return refuse("invalid");
 
@@ -161,7 +187,20 @@ export async function quoteCoupon(userId: string, rawCode: string, plan: PlanKey
     where: { couponId_userId: { couponId: coupon.id, userId } },
   });
 
-  return evaluateCoupon(coupon, { plan, alreadyRedeemed: !!already });
+  return evaluateCoupon(coupon, { plan, interval, alreadyRedeemed: !!already });
+}
+
+/**
+ * Months of access a free activation should grant.
+ *
+ * A code's `durationMonths` is written with monthly billing in mind, so a code
+ * that covers a whole *annual* price has to be worth at least the year that
+ * was just given away — otherwise "100% off the annual plan" would hand over
+ * one month. 0 still means "no end date".
+ */
+export function accessMonthsFor(quote: DiscountQuote): number {
+  if (quote.durationMonths <= 0) return 0;
+  return quote.interval === "annual" ? Math.max(quote.durationMonths, 12) : quote.durationMonths;
 }
 
 /**
@@ -230,6 +269,106 @@ export async function ensureStripeCoupon(quote: DiscountQuote): Promise<string |
       ? { percent_off: Math.min(Math.max(quote.value, 0), 100) }
       : { amount_off: quote.discountCents, currency: quote.currency }),
     metadata: { riffCode: quote.code, plan: quote.plan },
+  });
+  return created.id;
+}
+
+// ---- The BFCM launch offer ------------------------------------------------
+// The campaign is not a Coupon row and has no code to type: it is applied
+// automatically for the window defined in `pricing.ts`. It reaches Stripe the
+// same way a code does, as a real Stripe coupon, so what Stripe charges is
+// what the pricing page advertised.
+
+export type CampaignDiscount = {
+  /** The campaign id, e.g. "bfcm2026". */
+  campaign: string;
+  name: string;
+  /** What it takes off this plan + interval, in minor units. */
+  discountCents: number;
+  /** What is payable after it, in minor units. */
+  finalCents: number;
+  originalCents: number;
+  percentOff: number;
+  /** "your first 12 months" / "your first year". */
+  holdsFor: string;
+};
+
+/**
+ * The launch-offer discount for a plan + interval, or null when the campaign
+ * is not running. Priced from `pricing.ts`, never from a request.
+ */
+export function campaignDiscount(
+  plan: PaidPlanKey,
+  interval: BillingInterval = "monthly",
+  now: Date = new Date(),
+): CampaignDiscount | null {
+  if (!isPromoActive(now)) return null;
+  const originalCents = listPriceCents(plan, interval);
+  const discountCents = promoDiscountCents(plan, interval);
+  if (discountCents <= 0) return null;
+  return {
+    campaign: PROMO.id,
+    name: PROMO.name,
+    discountCents,
+    finalCents: originalCents - discountCents,
+    originalCents,
+    percentOff: Math.round((discountCents / originalCents) * 100),
+    holdsFor: promoHoldsFor(interval),
+  };
+}
+
+/**
+ * The Stripe coupon that applies the launch offer, created on first use.
+ *
+ * Deliberately a fixed `amount_off` rather than `percent_off`: 50% of $29.99
+ * is $14.995, so a percentage coupon would charge a cent more or less than the
+ * $14.99 on the pricing page. The amount is derived from the two prices in
+ * `pricing.ts`, so the charge always equals the advertised figure.
+ *
+ * The id encodes the campaign, plan, interval and amount, so changing the
+ * offer produces a *new* coupon instead of silently reusing the old terms.
+ */
+export async function ensureCampaignCoupon(
+  plan: PaidPlanKey,
+  interval: BillingInterval,
+  now: Date = new Date(),
+): Promise<string | null> {
+  const discount = campaignDiscount(plan, interval, now);
+  if (!discount) return null;
+
+  const { stripe } = await import("./stripe");
+  if (!stripe) return null;
+
+  const id = `riff_${PROMO.id}_${plan}_${interval}_${discount.discountCents}`
+    .replace(/[^A-Za-z0-9_]/g, "")
+    .slice(0, 100);
+
+  try {
+    const found = await stripe.coupons.retrieve(id);
+    if (found && !found.deleted) return found.id;
+  } catch {
+    // Not there yet — fall through and create it.
+  }
+
+  // An annual subscription renews once a year, so "the first year" is a single
+  // period: `once`. A monthly one holds the rate for the configured number of
+  // periods, or forever when that is 0.
+  const duration =
+    interval === "annual"
+      ? ({ duration: "once" } as const)
+      : PROMO.monthlyDurationMonths <= 0
+        ? ({ duration: "forever" } as const)
+        : PROMO.monthlyDurationMonths === 1
+          ? ({ duration: "once" } as const)
+          : ({ duration: "repeating", duration_in_months: PROMO.monthlyDurationMonths } as const);
+
+  const created = await stripe.coupons.create({
+    id,
+    name: `${PROMO.name} — ${PLANS[plan].name} ${interval}`,
+    amount_off: discount.discountCents,
+    currency: BILLING_CURRENCY,
+    ...duration,
+    metadata: { riffCampaign: PROMO.id, plan, interval },
   });
   return created.id;
 }
